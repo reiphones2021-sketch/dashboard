@@ -256,8 +256,8 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="sc"><div class="sc-title cli">🛒 Cliente Final</div><div class="sc-grid" id="sc-cli"></div></div>
     <div class="sc"><div class="sc-title loj">🏪 Lojista</div><div class="sc-grid" id="sc-loj"></div></div>
   </div>
-  <div class="sh"><span class="st">Forma de Pagamento</span></div>
-  <div class="cg c2">
+  <div class="sh" id="pgtoSh"><span class="st">Forma de Pagamento</span></div>
+  <div class="cg c2" id="pgtoGrid">
     <div class="card"><div class="ct">Mix de pagamentos</div><div style="height:195px"><canvas id="c-pagPie"></canvas></div></div>
     <div class="card"><div class="ct">Valores por forma de pagamento</div><div id="pagDetail" style="margin-top:4px"></div></div>
   </div>
@@ -344,8 +344,8 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     </div>
   </div>
 
-  <div class="sh"><span class="st">Lacrado vs Semi-novo — projeção (histórico completo)</span></div>
-  <div class="cg c2">
+  <div class="sh" id="garSh" style="display:none"><span class="st">Lacrado vs Semi-novo — projeção (histórico completo)</span></div>
+  <div class="cg c2" id="garGrid" style="display:none">
     <div class="card">
       <div class="ct">Volume de vendas por tipo de garantia</div>
       <div class="cw" style="height:200px"><canvas id="c-fcGarVol"></canvas></div>
@@ -1007,26 +1007,136 @@ function renderAll(){
 // ── VISÃO GERAL
 function rVisao(cur,prv,cs,csp){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur),spp=aSplit(prv);
-  document.getElementById('kg-v').innerHTML=[
-    kpi('Faturamento',BRLK(a.fat),'Valor total coletado',dlt(a.fat,ap.fat),'bl'),
+
+  if(isSoft()){
+    // ══ SOFT BLINDAGEM — same layout pattern as Reis Phones ══════
+    function catOf(prod){
+      const p=String(prod||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if(p.includes('ASSIST')) return 'assist';
+      if(p.includes('BLINDAGEM')||p.includes('BLINDADO')||p.includes('STICKER')||
+         p.includes('RELOGIO')||p.includes('TABLET')||p.includes('NOTEBOOK')||
+         p.includes('MULTIMIDIA')||p.includes('CAMERA')||
+         (p.includes('SUPORTE')&&p.includes('BLIND'))) return 'blind';
+      if(p.includes('PLANO')||p.includes('UPGRADE')) return 'plano';
+      if(p.includes('GARANTIA')) return 'gar';
+      return 'acess';
+    }
+    const fatFn=rows=>rows.reduce((s,r)=>s+r.vtc,0);
+    const rBlind=cur.filter(r=>catOf(r.prod)==='blind'),   rBlind_p=prv.filter(r=>catOf(r.prod)==='blind');
+    const rAssist=cur.filter(r=>catOf(r.prod)==='assist'), rAssist_p=prv.filter(r=>catOf(r.prod)==='assist');
+    const rPlano=cur.filter(r=>catOf(r.prod)==='plano'),   rPlano_p=prv.filter(r=>catOf(r.prod)==='plano');
+    const rGar=cur.filter(r=>catOf(r.prod)==='gar'),       rGar_p=prv.filter(r=>catOf(r.prod)==='gar');
+    const rAcess=cur.filter(r=>catOf(r.prod)==='acess'),   rAcess_p=prv.filter(r=>catOf(r.prod)==='acess');
+    const fatB=fatFn(rBlind),fatB_p=fatFn(rBlind_p);
+    const fatA=fatFn(rAssist),fatA_p=fatFn(rAssist_p);
+    const fatP=fatFn(rPlano),fatP_p=fatFn(rPlano_p);
+    const fatG=fatFn(rGar),fatG_p=fatFn(rGar_p);
+    const fatAc=fatFn(rAcess),fatAc_p=fatFn(rAcess_p);
+
+    // ── KPI Cards (same style as Reis Phones) ────────────────────
+    document.getElementById('kg-v').innerHTML=[
+      kpi('Faturamento',BRL(a.fat),'Total do período',dlt(a.fat,ap.fat),'bl'),
+      kpi('Serviços realizados',NUM(a.qtd),'Atendimentos',dlt(a.qtd,ap.qtd),'bl'),
+      kpi('Ticket médio',BRL(a.fat/Math.max(a.qtd,1)),'Faturamento ÷ serviços',dlt(a.fat/Math.max(a.qtd,1),ap.fat/Math.max(ap.qtd,1)),'am'),
+      kpi('Clientes únicos',NUM(a.clientes),'No período',null,'pu'),
+      kpi('Blindagens',NUM(rBlind.length),'Fat. '+BRL(fatB),dlt(rBlind.length,rBlind_p.length),'gr'),
+      kpi('Assistência',NUM(rAssist.length),'Fat. '+BRL(fatA),dlt(rAssist.length,rAssist_p.length),'te'),
+    ].join('');
+
+    // ── 6-month chart: faturamento histórico (same as Reis) ──────
+    const months6=[...new Set(SALES.map(r=>r.m))].sort().slice(-6);
+    mkChart('c-fat6m',{type:'bar',data:{labels:months6.map(m=>mL(m)),
+      datasets:[
+        {label:'Faturamento',data:months6.map(m=>SALES.filter(r=>r.m===m).reduce((s,r)=>s+r.vtc,0)),backgroundColor:'rgba(29,90,154,.5)',borderRadius:4,order:2},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#0d1f3c',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',callbacks:{label:c=>` ${BRL(c.raw)}`}}},
+        scales:{x:{grid:{color:'rgba(29,90,154,.12)'},ticks:{color:TXT2,font:{size:11}}},
+                y:{grid:{color:'rgba(29,90,154,.12)'},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}}}});
+
+    // ── Top 10 serviços (by product name, not model) ─────────────
+    const pMap={};
+    cur.forEach(r=>{const k=String(r.prod||'').trim().toUpperCase();if(k)pMap[k]=(pMap[k]||0)+1;});
+    const tops=Object.entries(pMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const maxT=tops[0]?tops[0][1]:1;
+    const ctEl=document.getElementById('topModsCt');
+    if(ctEl)ctEl.textContent='Top 10 serviços no período';
+    document.getElementById('topMods').innerHTML=tops.map(([n,c])=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bor)">
+        <span style="flex:1;font-size:12px;color:var(--txt)">${n}</span>
+        <div style="width:140px;height:6px;background:rgba(29,90,154,.2);border-radius:3px;overflow:hidden">
+          <div style="height:100%;background:var(--bll);border-radius:3px;width:${(c/maxT*100).toFixed(0)}%"></div>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:var(--txt);width:24px;text-align:right">${c}</span>
+      </div>`).join('');
+
+    // ── Category breakdown (replaces Lojista vs CF) ──────────────
+    document.getElementById('splitSh').style.display='';
+    document.getElementById('splitCards').style.display='';
+    const stEl=document.getElementById('splitTitle');
+    if(stEl)stEl.textContent='Categorias de serviço';
+    const sbEl=document.getElementById('splitBadge');
+    if(sbEl)sbEl.textContent=`${NUM(a.qtd)} serviços · ${BRL(a.fat)}`;
+
+    const catData=[
+      {label:'Blindagem',rows:rBlind,fat:fatB,fatP:fatB_p,col:'var(--bl)'},
+      {label:'Assistência Técnica',rows:rAssist,fat:fatA,fatP:fatA_p,col:'var(--te)'},
+      {label:'Planos',rows:rPlano,fat:fatP,fatP:fatP_p,col:'var(--gr)'},
+      {label:'Garantia Estendida',rows:rGar,fat:fatG,fatP:fatG_p,col:'var(--am)'},
+      {label:'Acessórios',rows:rAcess,fat:fatAc,fatP:fatAc_p,col:'var(--pu)'},
+    ];
+    const makeCatCard=(cat)=>`
+      <div class="sc" style="border-left:3px solid ${cat.col}">
+        <div class="sc-title" style="color:${cat.col}">${cat.label}</div>
+        <div class="cg c2" style="margin-top:10px">
+          ${scI('SERVIÇOS',NUM(cat.rows.length),dlt(cat.rows.length,cat.rows===rBlind?rBlind_p.length:cat.rows===rAssist?rAssist_p.length:cat.rows===rPlano?rPlano_p.length:cat.rows===rGar?rGar_p.length:rAcess_p.length),'bl')}
+          ${scI('FATURAMENTO',BRL(cat.fat),dlt(cat.fat,cat.fatP),'gr')}
+          ${scI('TICKET MÉDIO',BRL(cat.fat/Math.max(cat.rows.length,1)),null,'am')}
+          ${scI('% DO TOTAL',PCT(a.fat>0?cat.fat/a.fat*100:0),null,'pu')}
+        </div>
+      </div>`;
+    document.getElementById('sc-cli').outerHTML=`<div id="sc-cli" style="display:contents">${catData.slice(0,3).map(makeCatCard).join('')}</div>`;
+    document.getElementById('sc-loj').outerHTML=`<div id="sc-loj" style="display:contents">${catData.slice(3).map(makeCatCard).join('')}</div>`;
+
+    // ── Hide Reis-only sections ───────────────────────────────────
+    document.getElementById('pgtoSh').style.display='none';
+    document.getElementById('pgtoGrid').style.display='none';
+    const garSh=document.getElementById('garSh');if(garSh)garSh.style.display='none';
+    const garGrid=document.getElementById('garGrid');if(garGrid)garGrid.style.display='none';
+
+    // ── Comparativo table ─────────────────────────────────────────
+    const ap2=agg(prv);
+    document.getElementById('cmpTable').innerHTML=`<table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="padding:6px 10px;color:var(--te);font-size:10px;text-align:left;text-transform:uppercase;border-bottom:1px solid var(--bor)">Métrica</th>
+        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${mL(curMes)}</th>
+        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${mL(prevM(curMes))}</th>
+        <th style="padding:6px 10px;font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">Δ</th>
+      </tr></thead>
+      <tbody>${[
+        ['Faturamento total',BRL(a.fat),BRL(ap2.fat),dlt(a.fat,ap2.fat)],
+        ['Serviços realizados',NUM(a.qtd),NUM(ap2.qtd),dlt(a.qtd,ap2.qtd)],
+        ['Ticket médio',BRL(a.fat/Math.max(a.qtd,1)),BRL(ap2.fat/Math.max(ap2.qtd,1)),dlt(a.fat/Math.max(a.qtd,1),ap2.fat/Math.max(ap2.qtd,1))],
+        ['Blindagens',NUM(rBlind.length),NUM(rBlind_p.length),dlt(rBlind.length,rBlind_p.length)],
+        ['Assistência técnica',NUM(rAssist.length),NUM(rAssist_p.length),dlt(rAssist.length,rAssist_p.length)],
+        ['Planos',NUM(rPlano.length),NUM(rPlano_p.length),dlt(rPlano.length,rPlano_p.length)],
+        ['Garantia estendida',NUM(rGar.length),NUM(rGar_p.length),dlt(rGar.length,rGar_p.length)],
+        ['Acessórios',NUM(rAcess.length),NUM(rAcess_p.length),dlt(rAcess.length,rAcess_p.length)],
+      ].map(([l,c,p,d])=>cmpRow(l,c,p,d)).join('')}</tbody></table>`;
+    return;
+  }
+
+
+  // ══ REIS PHONES — Visão Geral (original) ════════════════════
+  const kGrid=isReis()?[
+    kpi('Faturamento',BRL(a.fat),'Total coletado',dlt(a.fat,ap.fat),'bl'),
     kpi('Lucro bruto',BRL(a.lb),'Margem '+PCT(a.mgb),dlt(a.lb,ap.lb),'gr'),
-    kpi('Transações',NUM(a.qtd),NUM(a.clientes)+' clientes únicos',dlt(a.qtd,ap.qtd),'pu'),
-    kpi(isReis()?'Ticket CF (Lucro/iPhone)':'Ticket médio (Preço/serviço)',BRL(isReis()?sp.cli.ticket:a.fat/Math.max(a.qtd,1)),isReis()?'Somente cliente final':'Média por serviço',dlt(sp.cli.ticket,spp.cli.ticket),'am'),
-    kpi('Trocas recebidas',NUM(a.troca_q),'Total '+BRL(a.troca_v),dlt(a.troca_q,ap.troca_q),'te'),
-    kpi('Taxa cartão',BRL(a.taxa),PCT(a.fat>0?a.taxa/a.fat*100:0)+' do faturamento',dlt(a.taxa,ap.taxa),'rd'),
-  ].join('');
-
-  // chart 6m
-  const allM=[...new Set(SALES.map(r=>r.m))].sort();const idx=allM.indexOf(curMes);const l6=allM.slice(Math.max(0,idx-5),idx+1);
-  const d6=l6.map(m=>{const s=SALES.filter(r=>r.m===m);return{m,fat:s.reduce((x,r)=>x+(r.vtc||0),0),lb:s.reduce((x,r)=>x+(r.lb||0),0)};});
-  mkChart('c-fatLb',{type:'bar',data:{labels:d6.map(x=>mL(x.m)),datasets:[{label:'Faturamento',data:d6.map(x=>x.fat),backgroundColor:d6.map(x=>x.m===curMes?'#2d7acc':'rgba(29,90,154,.3)'),borderRadius:4},{label:'Lucro',data:d6.map(x=>x.lb),backgroundColor:d6.map(x=>x.m===curMes?'#00d97e':'rgba(0,217,126,.3)'),borderRadius:4}]},options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(2))}),plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}}}});
-
-  // top 10 modelos
-  const mods=topMods(cur,10);
-  const ctEl=document.getElementById('topModsCt');
-  if(ctEl)ctEl.textContent=isSoft()?'Top 10 serviços no período':'Top 10 aparelhos vendidos no período';
-  document.getElementById('topMods').innerHTML=mods.length?brs(mods,x=>x.m,x=>x.q,()=>'#2d7acc'):'<div style="color:var(--txt3);font-size:12px;padding:8px 0">Sem dados neste período</div>';
-
+    kpi('Ticket CF (Lucro/iPhone)',BRL(sp.cli.ticket),'Somente cliente final',dlt(sp.cli.ticket,spp.cli.ticket),'am'),
+    kpi('Aparelhos vendidos',NUM(a.qtd),'Transações',dlt(a.qtd,ap.qtd),'bl'),
+    kpi('Taxa de cartão',BRL(a.taxa),'Custo financeiro',dlt(a.taxa,ap.taxa),'rd'),
+    kpi('Trocas recebidas',NUM(a.troca_q),'Total '+BRL(a.troca_v),dlt(a.troca_q,ap.troca_q),'pu'),
+  ]:[];
+  document.getElementById('kg-v').innerHTML=kGrid.join('');
   // split
   document.getElementById('splitBadge').textContent=isSoft()?sp.cli.qtd+' serviços realizados':sp.cli.qtd+' cliente final · '+sp.loj.qtd+' lojista';
   document.getElementById('sc-cli').innerHTML=scG(sp.cli,'cli');
@@ -1035,6 +1145,8 @@ function rVisao(cur,prv,cs,csp){
   if(stEl)stEl.textContent=isSoft()?'Serviços realizados':'Lojista vs Cliente Final';
 
   // pagamento
+  document.getElementById('pgtoSh').style.display=isReis()?'':'none';
+  document.getElementById('pgtoGrid').style.display=isReis()?'':'none';
   const MC={C:'#2d7acc',P:'#00d97e',D:'#f5a623',T:'#5b9bd5',X:'#22d3ee',O:'#556070'};
   const ML2={C:'Cartão',P:'PIX',D:'Dinheiro',T:'Troca',X:'Combinado',O:'Outro'};
   const mcnt={};cur.forEach(r=>{mcnt[r.meio]=(mcnt[r.meio]||0)+1;});
@@ -1125,112 +1237,127 @@ function rMarketing(cur,prv){
 function rCustos(cur,prv,cs,csp){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur),spp=aSplit(prv);
   const co=cs.reduce((s,r)=>s+r.v,0),cop=csp.reduce((s,r)=>s+r.v,0);
-  const cats={ret:0,sal_s:0,com_s:0,traf:0,sal_b:0,gar:0,out:0};
-  cs.forEach(r=>{if(cats[r.cat]!==undefined)cats[r.cat]+=r.v;else cats.out+=r.v;});
-  const ll=a.lb-co,llp=ap.lb-cop;
+  const ll=a.lb-co, llp=ap.lb-cop;
+
+  // Cost breakdown by category
+  const catTots={ret:0,sal_s:0,com_s:0,traf:0,sal_b:0,gar:0,adm:0,log:0,out:0};
+  cs.forEach(r=>{if(catTots[r.cat]!==undefined)catTots[r.cat]+=r.v;else catTots.out+=r.v;});
+
+  // ── KPI Cards ─────────────────────────────────────────────────
   document.getElementById('kg-cu').innerHTML=[
-    kpi('Custos totais Reis',co>0?BRL(co):'Sem registro',co>0?NUM(cs.length)+' lançamentos':'Não registrado',co>0&&cop>0?dlt(co,cop):null,'rd'),
-    kpi('Lucro bruto',BRL(a.lb),'Venda − custo produto − taxa cartão',dlt(a.lb,ap.lb),'gr'),
-    kpi('Lucro líquido',co>0?BRL(ll):'—',co>0?'Lucro bruto − custos Reis Phones':'Custos não registrados',co>0&&cop>0?dlt(ll,llp):null,ll>=0||co===0?'gr':'rd'),
-    kpi('Margem bruta CF',PCT(sp.cli.mgb),'iPhone cliente final',dlt(sp.cli.mgb,spp.cli.mgb),'am'),
-    kpi('Margem bruta lojista',sp.loj.qtd>0?PCT(sp.loj.mgb):'—','iPhone lojista',null,'bl'),
-    kpi('Taxa cartão',BRL(a.taxa),PCT(a.fat>0?a.taxa/a.fat*100:0)+' do fat.',dlt(a.taxa,ap.taxa),'pu'),
+    kpi(isReis()?'Custos totais Reis':'Custos totais Soft',co>0?BRL(co):'Sem registro',co>0?NUM(cs.length)+' lançamentos':'Não registrado',co>0&&cop>0?dlt(co,cop):null,'rd'),
+    kpi('Lucro bruto',BRL(a.lb),isReis()?'Venda − custo produto − taxa cartão':'Faturamento do período',dlt(a.lb,ap.lb),'gr'),
+    kpi('Lucro líquido',co>0?BRL(ll):'—',co>0?(isReis()?'Lucro bruto − custos Reis Phones':'Faturamento − custos Soft Blindagem'):'Custos não registrados',co>0&&cop>0?dlt(ll,llp):null,ll>=0||co===0?'gr':'rd'),
   ].join('');
-  const cI=[['Retiradas',cats.ret,'#ff5c6a'],['Sal. Sandy',cats.sal_s,'#f5a623'],['Com. Sandy',cats.com_s,'#5b9bd5'],['Tráfego',cats.traf,'#2d7acc'],['Sal. Bia',cats.sal_b,'#22d3ee'],['Garantia',cats.gar,'#00d97e'],['Outros',cats.out,'#556070']].filter(x=>x[1]>0);
-  const cp=document.getElementById('card-custPie');
-  if(cI.length){
-    cp.innerHTML='<div class="ct">Composição dos custos Reis Phones</div><div style="height:195px"><canvas id="c-custPie"></canvas></div>';
-    mkChart('c-custPie',{type:'doughnut',data:{labels:cI.map(x=>x[0]),datasets:[{data:cI.map(x=>x[1]),backgroundColor:cI.map(x=>x[2]),borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:6}},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.label}: ${BRL(c.raw)}`}}}}});
-  }else{cp.innerHTML='<div class="ct">Composição dos custos</div><div style="color:var(--txt3);font-size:12px;padding:16px 0">Custos não registrados para este mês</div>';}
-  const allM=[...new Set(SALES.map(r=>r.m))].sort();const idx=allM.indexOf(curMes);const l6=allM.slice(Math.max(0,idx-5),idx+1);
-  const lD=l6.map(m=>{const s=SALES.filter(r=>r.m===m),c=CUSTOS.filter(r=>r.m===m);const lb=s.reduce((x,r)=>x+(r.lb||0),0),co2=c.reduce((x,r)=>x+r.v,0);return{m,lb,ll:co2>0?lb-co2:null};});
-  mkChart('c-lucros',{type:'line',data:{labels:lD.map(x=>mL(x.m)),datasets:[{label:'Lucro bruto',data:lD.map(x=>x.lb),borderColor:'#00d97e',backgroundColor:'rgba(0,217,126,.08)',borderWidth:2,pointRadius:3,fill:true,tension:.3},{label:'Lucro líquido',data:lD.map(x=>x.ll),borderColor:'#2d7acc',backgroundColor:'rgba(29,90,154,.06)',borderWidth:2,pointRadius:3,borderDash:[4,3],fill:true,tension:.3,spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}}},plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>c.raw!==null?` ${c.dataset.label}: ${BRL(c.raw)}`:' Sem dado'}}}}});
-  document.getElementById('t-cu').innerHTML=[
-    ['Faturamento',BRL(sp.cli.fat),BRL(sp.loj.fat),BRL(a.fat),BRL(ap.fat),dlt(a.fat,ap.fat)],
+
+  // ── Main comparison table ──────────────────────────────────────
+  const thCF=document.getElementById('thCF');if(thCF)thCF.textContent=isReis()?'Cliente Final':'—';
+  const thLoj=document.getElementById('thLoj');if(thLoj)thLoj.textContent=isReis()?'Lojista':'—';
+  const custEl=document.getElementById('t-cu').closest('.tw');
+
+  const tableRows=isReis()?[
     ['Lucro bruto (venda−custo−taxa)',BRL(sp.cli.lb),BRL(sp.loj.lb),BRL(a.lb),BRL(ap.lb),dlt(a.lb,ap.lb)],
     ['Margem bruta',PCT(sp.cli.mgb),sp.loj.qtd>0?PCT(sp.loj.mgb):'—',PCT(a.mgb),PCT(ap.mgb),dlt(a.mgb,ap.mgb)],
     ['Ticket (Lucro/iPhone)',BRL(sp.cli.ticket),sp.loj.qtd>0?BRL(sp.loj.ticket):'—',BRL(a.ticket),BRL(ap.ticket),dlt(a.ticket,ap.ticket)],
     ['Transações',NUM(sp.cli.qtd),NUM(sp.loj.qtd),NUM(a.qtd),NUM(ap.qtd),dlt(a.qtd,ap.qtd)],
     ['Custos Reis Phones','—','—',co>0?BRL(co):'Sem reg.',cop>0?BRL(cop):'—',co>0&&cop>0?dlt(co,cop):null],
     ['Lucro líquido (bruto−custos Reis)','—','—',co>0?BRL(ll):'—',cop>0?BRL(llp):'—',co>0&&cop>0?dlt(ll,llp):null],
-    ['Taxa cartão','—','—',BRL(a.taxa),BRL(ap.taxa),dlt(a.taxa,ap.taxa)],
-  ].map(([l,c1,c2,tot,prv2,d])=>`<tr style="border-bottom:1px solid var(--bor)"><td style="padding:7px 12px;color:var(--txt2)">${l}</td><td class="r" style="padding:7px 12px;color:var(--te)">${c1}</td><td class="r" style="padding:7px 12px;color:var(--am)">${c2}</td><td class="r" style="padding:7px 12px;font-weight:600">${tot}</td><td class="r" style="padding:7px 12px;color:var(--txt2)">${prv2}</td><td class="r" style="padding:7px 12px">${d?`<span class="kd ${d.cls}" style="font-size:11px">${d.s}</span>`:'—'}</td></tr>`).join('');
+  ]:[
+    ['Faturamento','—','—',BRL(a.fat),BRL(ap.fat),dlt(a.fat,ap.fat)],
+    ['Serviços realizados','—','—',NUM(a.qtd),NUM(ap.qtd),dlt(a.qtd,ap.qtd)],
+    ['Ticket médio','—','—',BRL(a.fat/Math.max(a.qtd,1)),BRL(ap.fat/Math.max(ap.qtd,1)),dlt(a.fat/Math.max(a.qtd,1),ap.fat/Math.max(ap.qtd,1))],
+    ['Custos Soft Blindagem','—','—',co>0?BRL(co):'Sem reg.',cop>0?BRL(cop):'—',co>0&&cop>0?dlt(co,cop):null],
+    ['Lucro líquido (fat.−custos Soft)','—','—',co>0?BRL(ll):'—',cop>0?BRL(llp):'—',co>0&&cop>0?dlt(ll,llp):null],
+  ];
 
-  // ── Custo por venda ──────────────────────────────────
-  const qtdDev=cur.filter(r=>r.dev).length;
+  document.getElementById('t-cu').innerHTML=tableRows
+    .map(([l,c1,c2,tot,prv2,d])=>`<tr style="border-bottom:1px solid var(--bor)">
+      <td style="padding:7px 12px;color:var(--txt2)">${l}</td>
+      <td class="r" style="padding:7px 12px;color:var(--te)">${c1}</td>
+      <td class="r" style="padding:7px 12px;color:var(--am)">${c2}</td>
+      <td class="r" style="padding:7px 12px;font-weight:600">${tot}</td>
+      <td class="r" style="padding:7px 12px;color:var(--txt2)">${prv2}</td>
+      <td class="r" style="padding:7px 12px">${d?`<span class="kd ${d.cls}" style="font-size:11px">${d.s}</span>`:'—'}</td>
+    </tr>`).join('');
+
+  // ── Custo por serviço/venda block ─────────────────────────────
+  const existingBlock=document.getElementById('custoPorVendaBlock');
+  if(existingBlock)existingBlock.remove();
+  const qtdDev=isReis()?cur.filter(r=>r.dev).length:cur.length;
   const custoPorVenda=qtdDev>0?co/qtdDev:0;
-  const lucroAposOp=a.lb>0&&co>0?((a.lb-co)/a.lb*100):null;
-  const catTots={ret:0,sal_s:0,com_s:0,sal_b:0,com_v:0,mkt:0,gar:0,log:0,merc:0,adm:0,out:0};
-  cs.forEach(r=>{if(catTots[r.cat]!==undefined)catTots[r.cat]+=r.v;else catTots.out+=r.v;});
+  const fatUnit=isReis()?a.lb/Math.max(qtdDev,1):a.fat/Math.max(qtdDev,1);
+  const llUnit=ll/Math.max(qtdDev,1);
   const catRows=Object.entries({
-    'Retiradas sócios':catTots.ret,
-    'Salários/Comissões':catTots.sal_s+catTots.com_s+catTots.sal_b+catTots.com_v,
-    'Marketing/Tráfego':catTots.mkt,
+    [isReis()?'Retiradas sócios':'Pró-labore/Retiradas']:catTots.ret,
+    'Salários/Comissões':catTots.sal_s+catTots.com_s+catTots.sal_b,
+    'Marketing/Tráfego':catTots.traf,
     'Garantias':catTots.gar,
     'Logística':catTots.log,
     'Administrativo':catTots.adm+catTots.out
   }).filter(([,v])=>v>0);
 
-  const custEl=document.getElementById('t-cu').closest('.tw');
-  // Remove existing block to avoid duplication on re-render
-  const existingBlock=document.getElementById('custoPorVendaBlock');
-  if(existingBlock)existingBlock.remove();
   if(co>0&&qtdDev>0){
-    const block=`<div id="custoPorVendaBlock"><div class="sh" style="margin-top:20px"><span class="st">Custo por aparelho vendido</span></div>
+    const block=`<div id="custoPorVendaBlock">
+    <div class="sh" style="margin-top:20px"><span class="st">${isReis()?'Custo por aparelho vendido':'Custo por serviço realizado'}</span></div>
     <div style="background:linear-gradient(135deg,rgba(245,166,35,.08),rgba(29,90,154,.05));border:1px solid rgba(245,166,35,.25);border-radius:var(--r);padding:18px 20px;margin-top:2px;">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:${catRows.length>0?'16':'0'}px;">
         <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;border:1px solid rgba(245,166,35,.2);">
-          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Custo médio por venda</div>
+          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">${isReis()?'Custo médio por venda':'Custo médio por serviço'}</div>
           <div style="font-size:22px;font-weight:700;color:var(--am)">${BRL(custoPorVenda)}</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">${BRL(co)} ÷ ${NUM(qtdDev)} aparelhos</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">${BRL(co)} ÷ ${NUM(qtdDev)} ${isReis()?'aparelhos':'serviços'}</div>
         </div>
         <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;border:1px solid rgba(0,217,126,.2);">
-          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Lucro líquido por venda</div>
-          <div style="font-size:22px;font-weight:700;color:${ll/qtdDev>=0?'var(--gr)':'var(--rd)'}">${BRL(ll/qtdDev)}</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">Lucro bruto ${BRL(a.lb/qtdDev)} − custo op. ${BRL(custoPorVenda)}</div>
+          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">${isReis()?'Lucro líquido por venda':'Lucro líquido por serviço'}</div>
+          <div style="font-size:22px;font-weight:700;color:${llUnit>=0?'var(--gr)':'var(--rd)'}">${BRL(llUnit)}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">${isReis()?'Lucro bruto':'Fat.'} ${BRL(fatUnit)} − custo op. ${BRL(custoPorVenda)}</div>
         </div>
         <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;border:1px solid var(--bor);">
           <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Ponto de equilíbrio</div>
-          <div style="font-size:22px;font-weight:700;color:var(--bl)">${co>0?NUM(Math.ceil(co/Math.max(a.lb/Math.max(qtdDev,1),1))):'-'} vendas</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">Vendas necessárias para cobrir os custos op.</div>
+          <div style="font-size:22px;font-weight:700;color:var(--bll)">${NUM(Math.ceil(co/Math.max(fatUnit,1)))} ${isReis()?'vendas':'serviços'}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">${isReis()?'Vendas':'Serviços'} necessários para cobrir os custos op.</div>
         </div>
       </div>
-      ${catRows.length>0?`<div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Custo por categoria ÷ aparelho</div>
+      ${catRows.length>0?`<div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Custo por categoria ÷ ${isReis()?'aparelho':'serviço'}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px;">
-        ${catRows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:6px;padding:7px 10px;font-size:12px;"><span style="color:var(--txt2)">${l}</span><span style="font-weight:600;color:var(--txt)">${BRL(v/qtdDev)}<span style="font-size:10px;color:var(--txt3);font-weight:400"> /venda</span></span></div>`).join('')}
+        ${catRows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:6px;padding:7px 10px;font-size:12px;">
+          <span style="color:var(--txt2)">${l}</span>
+          <span style="font-weight:600;color:var(--txt)">${BRL(v/qtdDev)}<span style="font-size:10px;color:var(--txt3);font-weight:400"> /${isReis()?'venda':'serv.'}</span></span>
+        </div>`).join('')}
       </div>`:''}
     </div></div>`;
     custEl.insertAdjacentHTML('afterend', block);
   }
-  // Full discriminated costs table
-  (function(){
-    const cRows=CUSTOS.filter(r=>{
-      if(!window._startStr||!window._endStr)return r.m===curMes;
-      const sm=window._startStr.slice(0,7),em=window._endStr.slice(0,7);
-      return r.m>=sm&&r.m<=em;
-    });
-    const CAT_L={'ret':'Retiradas sócios','adm':'Administrativo','mkt':'Marketing','gar':'Garantias','sal_s':'Salário Sandy','com_s':'Comissão Sandy','sal_b':'Salário Bia','com_v':'Comissão Vidal/Pierre','log':'Logística','merc':'Mercadoria','assist':'Assistência'};
-    const CAT_C={'ret':'var(--rd)','adm':'var(--txt2)','mkt':'var(--bl)','gar':'var(--gr)','sal_s':'var(--am)','com_s':'var(--pu)','sal_b':'var(--te)','com_v':'#e86fd8','log':'#f5a623','merc':'#22d3ee','assist':'#2d7acc'};
-    const cM=[...new Set(cRows.map(r=>r.m))].sort();
-    const cTot={};Object.keys(CAT_L).forEach(k=>{cTot[k]=cRows.filter(r=>r.cat===k).reduce((s,r)=>s+r.v,0);});
-    const grand=Object.values(cTot).reduce((s,v)=>s+v,0);
-    const entries=Object.entries(cTot).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
-    const hdr=document.getElementById('t-full-custos-hdr');
-    if(hdr) hdr.innerHTML='<th>Categoria</th><th class="r">Total</th><th class="r">% custos</th>'+cM.map(m=>`<th class="r" style="padding:8px 12px;font-size:10px;font-weight:600;color:var(--txt2);text-transform:uppercase;border-bottom:1px solid var(--bor)">${mL(m)}</th>`).join('');
-    const tbody=document.getElementById('t-full-custos');
+
+  // ── Detailed cost breakdown table by month ──────────────────────
+  (()=>{
+    const months=[...new Set([...cs,...csp].map(r=>r.m))].sort().slice(-6);
+    const catLabels={ret:'Retiradas',sal_s:'Sal. Sandy',com_s:'Com. Sandy',sal_b:isReis()?'Estagiária':'Outros Sal.',traf:'Marketing',gar:'Garantias',adm:'Administrativo',log:'Logística',out:'Outros'};
+    const cats2=Object.keys(catLabels).filter(k=>cs.some(r=>r.cat===k)||csp.some(r=>r.cat===k));
+    const tbody=document.getElementById('t-cu2');
     if(!tbody)return;
-    if(!grand){tbody.innerHTML='<tr><td colspan="20" style="padding:12px;color:var(--txt3);text-align:center">Custos não registrados para este período</td></tr>';return;}
-    const rows=entries.map(([cat,total])=>{
-      const pct=grand>0?total/grand*100:0;
-      const mCols=cM.map(m=>{const v=cRows.filter(r=>r.m===m&&r.cat===cat).reduce((s,r)=>s+r.v,0);return`<td class="r" style="padding:7px 12px">${v>0?BRL(v):'<span style="color:var(--txt3)">—</span>'}</td>`;}).join('');
-      return`<tr style="border-bottom:1px solid var(--bor)"><td style="padding:7px 12px"><div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${CAT_C[cat]};flex-shrink:0"></div><span>${CAT_L[cat]}</span></div></td><td class="r" style="padding:7px 12px;font-weight:600;color:${CAT_C[cat]}">${BRL(total)}</td><td class="r" style="padding:7px 12px;color:var(--txt2)">${PCT(pct)}</td>${mCols}</tr>`;
+    const grand=cs.reduce((s,r)=>s+r.v,0);
+    const tCols=months.map(m=>{
+      const mv=cs.filter(r=>r.m===m).reduce((s,r)=>s+r.v,0);
+      return`<td class="r" style="padding:6px 10px;color:var(--txt2)">${mv>0?BRL(mv):'—'}</td>`;
+    }).join('');
+    const rows=cats2.map(cat=>{
+      const v=cs.filter(r=>r.cat===cat).reduce((s,r)=>s+r.v,0);
+      if(!v)return'';
+      const pct=grand>0?v/grand*100:0;
+      const mCols=months.map(m=>{const mv=cs.filter(r=>r.m===m&&r.cat===cat).reduce((s,r)=>s+r.v,0);return`<td class="r" style="padding:6px 10px;color:var(--txt2)">${mv>0?BRL(mv):'—'}</td>`;}).join('');
+      return`<tr style="border-bottom:1px solid var(--bor)">
+        <td style="padding:6px 10px;color:var(--txt2)">${catLabels[cat]}</td>
+        <td class="r" style="padding:6px 10px;font-weight:600">${BRL(v)}</td>
+        <td class="r" style="padding:6px 10px;color:var(--txt3)">${PCT(pct)}</td>${mCols}</tr>`;
     });
-    const tCols=cM.map(m=>{const v=cRows.filter(r=>r.m===m).reduce((s,r)=>s+r.v,0);return`<td class="r" style="padding:7px 12px;font-weight:600">${v>0?BRL(v):'—'}</td>`;}).join('');
-    tbody.innerHTML=rows.join('')+`<tr style="border-top:1.5px solid var(--bor2)"><td style="padding:7px 12px;font-weight:700">TOTAL</td><td class="r" style="padding:7px 12px;font-weight:700;color:var(--rd)">${BRL(grand)}</td><td class="r" style="padding:7px 12px;color:var(--txt2)">100,00%</td>${tCols}</tr>`;
+    tbody.innerHTML=rows.join('')+`<tr style="border-top:1.5px solid var(--bor2)">
+      <td style="padding:7px 12px;font-weight:700">TOTAL</td>
+      <td class="r" style="padding:7px 12px;font-weight:700;color:var(--rd)">${BRL(grand)}</td>
+      <td class="r" style="padding:7px 12px;color:var(--txt2)">100,00%</td>${tCols}</tr>`;
   })();
 }
 
-// ── ANÁLISE
+
 function rAnalise(cur,prv,cs){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur);
   const co=cs.reduce((s,r)=>s+r.v,0),ll=a.lb-co;
@@ -1245,7 +1372,7 @@ function rAnalise(cur,prv,cs){
 
   const cards=[
     {icon:'📈',col:a.fat>=(ap.fat||0)?'var(--gr)':'var(--am)',title:'Resultado do período',body:`Faturamento de ${BRL(a.fat)}${fatDelta!==null?' ('+(fatDelta>0?'▲':'▼')+Math.abs(fatDelta).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% vs '+mL(pm)+')':''}. Lucro bruto: ${BRL(a.lb)} (${PCT(a.mgb)}).${co>0?' Lucro líquido: '+BRL(ll)+'.':''}`},
-    {icon:'🏷️',col:'var(--bl)',title:'Lojista vs Cliente Final',body:sp.loj.qtd>0?`CF: ${sp.cli.qtd} vendas, ticket ${BRL(sp.cli.ticket)}, margem ${PCT(sp.cli.mgb)}. Lojista: ${sp.loj.qtd} vendas, ticket ${BRL(sp.loj.ticket)}, margem ${PCT(sp.loj.mgb)}. ${sp.cli.mgb>=sp.loj.mgb?'CF com margem superior — priorize este canal.':'Lojista com margem maior — verifique o mix.'}`:`100% cliente final (${sp.cli.qtd} vendas). Ticket: ${BRL(sp.cli.ticket)}, margem: ${PCT(sp.cli.mgb)}.`},
+    ...(isReis()?[{icon:'🏷️',col:'var(--bl)',title:'Lojista vs Cliente Final',body:sp.loj.qtd>0?`CF: ${sp.cli.qtd} vendas, ticket ${BRL(sp.cli.ticket)}, margem ${PCT(sp.cli.mgb)}. Lojista: ${sp.loj.qtd} vendas, ticket ${BRL(sp.loj.ticket)}, margem ${PCT(sp.loj.mgb)}. ${sp.cli.mgb>=sp.loj.mgb?'CF com margem superior — priorize este canal.':'Lojista com margem maior — verifique o mix.'}`:`100% cliente final (${sp.cli.qtd} vendas). Ticket: ${BRL(sp.cli.ticket)}, margem: ${PCT(sp.cli.mgb)}.`}]:[{icon:'🛡',col:'var(--bl)',title:'Mix de serviços',body:(()=>{const tops=topMods(cur,3).map(x=>x.m).join(', ');return `${a.qtd} serviços realizados no período. Ticket médio: ${BRL(a.fat/Math.max(a.qtd,1))}. ${tops?'Top serviços: '+tops+'.':''} Clientes únicos atendidos: ${NUM(a.clientes)}.`;})()}]),
     {icon:'🔁',col:taxaRet>=8?'var(--gr)':'var(--am)',title:'Retenção de clientes',body:`${novos} novos e ${recorr} recorrentes (taxa ${PCT(taxaRet)}). ${taxaRet>=10?'Ótima retenção!':taxaRet>=6?'Razoável — ações de reativação podem ajudar.':'Baixa — considere follow-up WhatsApp com clientes do mês anterior.'}`},
     {icon:'📱',col:'var(--pu)',title:'Mix de produtos e pagamento',body:`${mods?'Top modelos: '+mods+'. ':''}Trocas: ${NUM(a.troca_q)} (${BRL(a.troca_v)}). ${(cur.filter(r=>r.meio==='P').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% PIX, ${(cur.filter(r=>r.meio==='C').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% cartão, ${(cur.filter(r=>r.meio==='X').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% combinado.${trafVal>0?' Tráfego: '+BRL(trafVal)+', ROAS: '+(a.fat/trafVal).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'x.':''}` }
   ];
@@ -1270,41 +1397,58 @@ function rAnalise(cur,prv,cs){
 
 // ══════════════════════════════════════════════════════════════════ FORECAST MODULE
 function buildFCHist(){
-  // Build monthly forecast history dynamically from live SALES data only (no cost data — this tab is faturamento/lucro bruto only)
   const months=[...new Set(SALES.map(r=>r.m))].sort();
   const GLOBAL_LAST_DATE=SALES.reduce((max,r)=>r.dt>max?r.dt:max,'0000-00-00');
   const GLOBAL_LAST_MONTH=GLOBAL_LAST_DATE.slice(0,7);
   const GLOBAL_LAST_DAY=parseInt(GLOBAL_LAST_DATE.slice(8,10))||1;
-
-  function daysInMonth(m){
-    const[y,mo]=m.split('-').map(Number);
-    return new Date(y,mo,0).getDate();
-  }
+  function daysInMonth(m){const[y,mo]=m.split('-').map(Number);return new Date(y,mo,0).getDate();}
   function garType(g){
     if(g==='lacrado'||g==='externo') return 'lacrado';
     if(g==='1ano'||g==='6meses'||g==='interno') return 'seminovo';
     return 'outro';
   }
-
+  function softCat(prod){
+    const p=String(prod||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(p.includes('ASSIST')) return 'assist';
+    if(p.includes('BLINDAGEM')||p.includes('BLINDADO')||p.includes('STICKER')||p.includes('RELOGIO')||p.includes('TABLET')||p.includes('NOTEBOOK')||p.includes('MULTIMIDIA')||p.includes('CAMERA')||(p.includes('SUPORTE')&&p.includes('BLIND'))) return 'blind';
+    if(p.includes('PLANO')||p.includes('UPGRADE')) return 'plano';
+    if(p.includes('GARANTIA')) return 'gar';
+    return 'acess';
+  }
   return months.map(m=>{
-    const rows=SALES.filter(r=>r.m===m&&r.dev);
-    const cliRows=rows.filter(r=>!r.loj);
-    const lojRows=rows.filter(r=>r.loj);
-    const lacRows=rows.filter(r=>garType(r.gar)==='lacrado');
-    const seminovoRows=rows.filter(r=>garType(r.gar)==='seminovo');
+    const rows=SALES.filter(r=>r.m===m);
     const sum=(arr,f)=>arr.reduce((s,r)=>s+(r[f]||0),0);
     const trafRows=CUSTOS.filter(r=>r.m===m&&r.cat==='mkt');
     const dInMonth=daysInMonth(m);
     const lastDay=(m===GLOBAL_LAST_MONTH)?GLOBAL_LAST_DAY:dInMonth;
-    return{
-      m, qtd:rows.length, fat:sum(rows,'vtc'), lb:sum(rows,'lb'),
-      qtd_cli:cliRows.length, lb_cli:sum(cliRows,'lb'), fat_cli:sum(cliRows,'vtc'),
-      qtd_loj:lojRows.length, lb_loj:sum(lojRows,'lb'), fat_loj:sum(lojRows,'vtc'),
-      qtd_lac:lacRows.length, lb_lac:sum(lacRows,'lb'), fat_lac:sum(lacRows,'vtc'),
-      qtd_1a:seminovoRows.length, lb_1a:sum(seminovoRows,'lb'), fat_1a:sum(seminovoRows,'vtc'),
-      trafego:sum(trafRows,'v'),
-      last_day:lastDay, days_total:dInMonth
-    };
+    if(isReis()){
+      const devRows=rows.filter(r=>r.dev);
+      const cliRows=devRows.filter(r=>!r.loj);
+      const lojRows=devRows.filter(r=>r.loj);
+      const lacRows=devRows.filter(r=>garType(r.gar)==='lacrado');
+      const semRows=devRows.filter(r=>garType(r.gar)==='seminovo');
+      return{m,qtd:devRows.length,fat:sum(devRows,'vtc'),lb:sum(devRows,'lb'),
+        qtd_cli:cliRows.length,lb_cli:sum(cliRows,'lb'),fat_cli:sum(cliRows,'vtc'),
+        qtd_loj:lojRows.length,lb_loj:sum(lojRows,'lb'),fat_loj:sum(lojRows,'vtc'),
+        qtd_lac:lacRows.length,lb_lac:sum(lacRows,'lb'),fat_lac:sum(lacRows,'vtc'),
+        qtd_1a:semRows.length,lb_1a:sum(semRows,'lb'),fat_1a:sum(semRows,'vtc'),
+        trafego:sum(trafRows,'v'),last_day:lastDay,days_total:dInMonth};
+    } else {
+      const blind=rows.filter(r=>softCat(r.prod)==='blind');
+      const assist=rows.filter(r=>softCat(r.prod)==='assist');
+      const plano=rows.filter(r=>softCat(r.prod)==='plano');
+      const gar=rows.filter(r=>softCat(r.prod)==='gar');
+      const acess=rows.filter(r=>softCat(r.prod)==='acess');
+      return{m,qtd:rows.length,fat:sum(rows,'vtc'),lb:sum(rows,'vtc'),
+        qtd_blind:blind.length,fat_blind:sum(blind,'vtc'),
+        qtd_assist:assist.length,fat_assist:sum(assist,'vtc'),
+        qtd_plano:plano.length,fat_plano:sum(plano,'vtc'),
+        qtd_gar:gar.length,fat_gar:sum(gar,'vtc'),
+        qtd_acess:acess.length,fat_acess:sum(acess,'vtc'),
+        trafego:sum(trafRows,'v'),last_day:lastDay,days_total:dInMonth,
+        qtd_cli:rows.length,lb_cli:sum(rows,'vtc'),fat_cli:sum(rows,'vtc'),
+        qtd_loj:0,lb_loj:0,fat_loj:0,qtd_lac:0,lb_lac:0,fat_lac:0,qtd_1a:0,lb_1a:0,fat_1a:0};
+    }
   });
 }
 let FC_HIST=[];
@@ -1379,6 +1523,10 @@ function fcAvgLast(field, nMonths){
 }
 
 function renderPrevisao(){
+  const garSh=document.getElementById('garSh');
+  const garGrid=document.getElementById('garGrid');
+  if(garSh)garSh.style.display=isReis()?'':'none';
+  if(garGrid)garGrid.style.display=isReis()?'':'none';
   FC_HIST=buildFCHist();
   if(!FC_HIST.length)return;
   const cur=FC_HIST[FC_HIST.length-1];
@@ -1387,28 +1535,115 @@ function renderPrevisao(){
 
   document.getElementById('fcCurMonthBadge').textContent=curMonthLabel+' — '+cur.last_day+' de '+cur.days_total+' dias registrados';
 
-  // ── Projections for current month (run-rate) ──
   const projFat=fcProjectCurrentMonth('fat');
   const projLb=fcProjectCurrentMonth('lb');
   const projQtd=fcProjectCurrentMonth('qtd');
+  const nextFat=fcNextMonthForecast('fat');
+  const nextLb=fcNextMonthForecast('lb');
+  const nextQtd=fcNextMonthForecast('qtd');
+  const growthFat=fcGrowthRate('fat');
+  const growthLb=fcGrowthRate('lb');
+
+  if(isSoft()){
+    // ── SOFT BLINDAGEM PREVISÃO ────────────────────────────────
+    document.getElementById('kg-fc').innerHTML=[
+      kpi('Faturamento projetado ('+curMonthLabel+')',BRLK(projFat),'Baseado no run-rate atual',null,'bl'),
+      kpi('Faturamento próximo mês',BRLK(nextFat),'Meta sugerida baseada no histórico',null,'pu'),
+      kpi('Crescimento mensal típico',PCT(growthFat),'Mediana dos últimos meses',null,growthFat>=0?'gr':'rd'),
+      kpi('Serviços projetados (mês)',NUM(projQtd),'Run-rate de '+NUM(cur.qtd)+' até agora',null,'am'),
+      kpi('Serviços próximo mês',NUM(nextQtd),'Meta de volume sugerida',null,'te'),
+      kpi('Dias registrados',NUM(cur.last_day)+' / '+NUM(cur.days_total),'Mês atual em andamento',null,'bl'),
+    ].join('');
+
+    // Chart: histórico faturamento
+    const last6=FC_HIST.slice(-7,-1);
+    const labels6=last6.map(r=>mL(r.m));
+    mkChart('c-fcFat',{type:'bar',data:{labels:[...labels6,curMonthLabel+' (parcial)',curMonthLabel+' (proj.)','Próx. mês (meta)'],
+      datasets:[{data:[...last6.map(r=>r.fat),cur.fat,projFat,nextFat],
+        backgroundColor:[...last6.map(()=>'rgba(13,158,80,.3)'),'#0d9e50','rgba(52,211,153,.6)','rgba(13,158,80,.7)'],borderRadius:4}]},
+      options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>' '+BRL(c.raw)}}}}});
+
+    mkChart('c-fcLb',{type:'bar',data:{labels:[...labels6,curMonthLabel+' (parcial)',curMonthLabel+' (proj.)','Próx. mês (meta)'],
+      datasets:[{data:[...last6.map(r=>r.fat),cur.fat,projFat,nextFat],
+        backgroundColor:[...last6.map(()=>'rgba(0,217,126,.25)'),'#00d97e','rgba(245,166,35,.55)','rgba(13,158,80,.65)'],borderRadius:4}]},
+      options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>' '+BRL(c.raw)}}}}});
+
+    // Forecast table — Soft categories
+    function fcRow(label,realized,proj,goal,growth){
+      const gCls=growth>0?'g':growth<0?'r':'a';
+      return`<tr style="border-bottom:1px solid var(--bor)">
+        <td style="padding:7px 12px;color:var(--txt2)">${label}</td>
+        <td class="r" style="padding:7px 12px;font-weight:500">${realized}</td>
+        <td class="r" style="padding:7px 12px;font-weight:600;color:var(--gr)">${proj}</td>
+        <td class="r" style="padding:7px 12px;font-weight:600;color:var(--pu)">${goal}</td>
+        <td class="r" style="padding:7px 12px"><span class="tag ${gCls}">${growth>0?'▲':growth<0?'▼':''} ${PCT(Math.abs(growth))}</span></td>
+      </tr>`;
+    }
+    const projBlind=fcProjectCurrentMonth('fat_blind'), nextBlind=fcNextMonthForecast('fat_blind');
+    const projAssist=fcProjectCurrentMonth('fat_assist'), nextAssist=fcNextMonthForecast('fat_assist');
+    const projPlano=fcProjectCurrentMonth('fat_plano'), nextPlano=fcNextMonthForecast('fat_plano');
+    document.getElementById('t-forecast').innerHTML=
+      fcRow('Faturamento total',BRL(cur.fat),BRL(projFat),BRL(nextFat),projFat>0?((nextFat-projFat)/projFat*100):0)+
+      fcRow('Serviços realizados',NUM(cur.qtd),NUM(projQtd),NUM(nextQtd),projQtd>0?((nextQtd-projQtd)/projQtd*100):0)+
+      fcRow('Blindagem',BRL(cur.fat_blind||0),BRL(projBlind),BRL(nextBlind),projBlind>0?((nextBlind-projBlind)/projBlind*100):0)+
+      fcRow('Assistência Técnica',BRL(cur.fat_assist||0),BRL(projAssist),BRL(nextAssist),projAssist>0?((nextAssist-projAssist)/projAssist*100):0)+
+      fcRow('Planos',BRL(cur.fat_plano||0),BRL(projPlano),BRL(nextPlano),projPlano>0?((nextPlano-projPlano)/projPlano*100):0);
+
+    // Trend: histórico 12 meses — qtd serviços
+    const last12=FC_HIST.slice(-12);
+    const labels12=last12.map(r=>mL(r.m));
+    mkChart('c-fcQtdTrend',{type:'line',data:{labels:labels12,datasets:[{
+      label:'Serviços realizados',data:last12.map(r=>r.qtd),
+      borderColor:'#0d9e50',backgroundColor:'rgba(13,158,80,.08)',borderWidth:2,pointRadius:3,fill:true,tension:.35}]},
+      options:{...cOpts({callback:v=>v}),plugins:{legend:{display:false},tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>' '+c.raw+' serviços'}}}}});
+
+    // Trend: faturamento por categoria
+    mkChart('c-fcLucroSplit',{type:'line',data:{labels:labels12,datasets:[
+      {label:'Blindagem',data:last12.map(r=>r.fat_blind||0),borderColor:'#0d9e50',backgroundColor:'rgba(13,158,80,.06)',borderWidth:2,pointRadius:3,fill:true,tension:.35},
+      {label:'Assistência',data:last12.map(r=>r.fat_assist||0),borderColor:'#34d399',backgroundColor:'rgba(52,211,153,.06)',borderWidth:2,pointRadius:3,fill:true,tension:.35},
+      {label:'Planos',data:last12.map(r=>r.fat_plano||0),borderColor:'#f5a623',backgroundColor:'rgba(245,166,35,.06)',borderWidth:2,pointRadius:3,fill:true,tension:.35},
+    ]},options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),
+      plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},
+        tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}}}});
+
+    // Tráfego
+    const trafHist=last12.filter(r=>r.trafego>0);
+    if(trafHist.length){
+      mkChart('c-fcTrafego',{type:'bar',data:{labels:trafHist.map(r=>mL(r.m)),datasets:[
+        {label:'Tráfego investido',data:trafHist.map(r=>r.trafego),backgroundColor:'#f5a623',borderRadius:4,yAxisID:'y'},
+        {label:'Faturamento gerado',data:trafHist.map(r=>r.fat),backgroundColor:'rgba(13,158,80,.4)',borderRadius:4,yAxisID:'y1'},
+      ]},options:{responsive:true,maintainAspectRatio:false,scales:{
+        x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},
+        y:{position:'left',grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+v.toLocaleString('pt-BR')}},
+        y1:{position:'right',grid:{display:false},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}
+      },plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},
+        tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}}}});
+    }
+
+    const aboxEl=document.getElementById('fcAbox');
+    if(aboxEl) aboxEl.innerHTML=`<div class="abox-hdr"><span style="font-size:17px">🔮</span><span class="abox-title">Como a previsão é calculada</span></div>
+      <div style="font-size:12px;color:var(--txt2);line-height:1.7">
+        <strong style="color:var(--txt)">Run-rate:</strong> faturamento acumulado no mês ÷ dias corridos × dias no mês.<br>
+        <strong style="color:var(--txt)">Meta próximo mês:</strong> mediana do crescimento MoM dos últimos meses aplicada sobre a projeção atual (cap ±15%).<br>
+        <strong style="color:var(--txt)">Categorias:</strong> projeção individual para Blindagem, Assistência e Planos baseada no mesmo histórico proporcional.<br>
+        <strong style="color:var(--txt)">Importante:</strong> esta aba usa exclusivamente dados de faturamento — nenhum custo operacional da Soft Blindagem entra nesse cálculo.
+      </div>`;
+    return;
+  }
+
+  // ══ REIS PHONES PREVISÃO (original) ═══════════════════════════
   const projLbCli=fcProjectCurrentMonth('lb_cli');
   const projLbLoj=fcProjectCurrentMonth('lb_loj');
   const projQtdLac=fcProjectCurrentMonth('qtd_lac');
   const projQtd1a=fcProjectCurrentMonth('qtd_1a');
   const projLbLac=fcProjectCurrentMonth('lb_lac');
   const projLb1a=fcProjectCurrentMonth('lb_1a');
-
-  // ── Next month forecast (trend-based) ──
-  const nextFat=fcNextMonthForecast('fat');
-  const nextLb=fcNextMonthForecast('lb');
-  const nextQtd=fcNextMonthForecast('qtd');
   const nextLbCli=fcNextMonthForecast('lb_cli');
   const nextLbLoj=FC_HIST.filter(r=>r.qtd_loj>0).length>=2?fcNextMonthForecast('lb_loj',Math.min(4,FC_HIST.filter(r=>r.qtd_loj>0).length)):0;
   const nextQtdLac=FC_HIST.filter(r=>r.qtd_lac>0).length>=2?fcNextMonthForecast('qtd_lac',Math.min(4,FC_HIST.filter(r=>r.qtd_lac>0).length)):0;
   const nextQtd1a=FC_HIST.filter(r=>r.qtd_1a>0).length>=2?fcNextMonthForecast('qtd_1a',Math.min(4,FC_HIST.filter(r=>r.qtd_1a>0).length)):0;
-
-  const growthFat=fcGrowthRate('fat');
-  const growthLb=fcGrowthRate('lb');
 
   // ── KPI cards ──
   document.getElementById('kg-fc').innerHTML=[
