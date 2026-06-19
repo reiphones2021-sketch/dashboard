@@ -22,10 +22,6 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,sans-serif;font-size:14px;background-image:radial-gradient(ellipse at top,rgba(29,90,154,.08) 0%,transparent 60%);}
-.company-sw{display:flex;align-items:center;gap:6px;background:rgba(29,90,154,.15);border:1px solid rgba(29,90,154,.35);border-radius:20px;padding:3px;cursor:pointer;}
-.company-btn{padding:5px 14px;border-radius:17px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;color:var(--txt2);background:transparent;border:none;white-space:nowrap;}
-.company-btn.active{background:var(--bll);color:#fff;box-shadow:0 2px 8px rgba(29,90,154,.4);}
-.company-btn:not(.active):hover{color:var(--te);}
 .hdr{padding:18px 28px;border-bottom:1px solid rgba(29,90,154,.3);background:linear-gradient(135deg,#0a1628,#0d1f38);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
 .logo{display:flex;align-items:center;gap:10px;}.logo-ic{width:36px;height:36px;background:transparent;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;}.logo-nm{font-size:17px;font-weight:700;letter-spacing:-.3px;color:var(--txt);}.logo-sb{font-size:11px;color:var(--txt2);}
 .hdr-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
@@ -142,15 +138,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 
 <div class="hdr">
   <div class="logo"><img src="data:image/png;base64,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" alt="Reis Phones" style="width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;"><div><div class="logo-nm">Reis Phones</div><div class="logo-sb">Dashboard Executivo · Dados ao vivo</div></div></div>
-  <div class="hdr-r">
-    <div class="company-sw" id="companySw">
-      <button class="company-btn active" id="btnReis" onclick="switchCompany('reis')">📱 Reis Phones</button>
-      <button class="company-btn" id="btnSoft" onclick="switchCompany('soft')">🛡 Soft Blindagem</button>
-    </div>
-    <div class="badge-live" id="badgeLive">AO VIVO</div>
-    <button class="btn-rf" id="btnRf" onclick="loadData(true)">⟳ Atualizar dados</button>
-    <div class="last-upd" id="lastUpd"></div>
-  </div>
+  <div class="hdr-r"><div class="badge-live">AO VIVO</div><button class="btn-rf" id="btnRf" onclick="loadData(true)">⟳ Atualizar dados</button><div class="last-upd" id="lastUpd"></div></div>
 </div>
 
 <div class="pbar">
@@ -249,15 +237,15 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   <div class="kg" id="kg-v"></div>
   <div class="cg c2">
     <div class="card"><div class="ct">Faturamento x Lucro — últimos 6 meses</div><div style="height:200px"><canvas id="c-fatLb"></canvas></div></div>
-    <div class="card"><div class="ct" id="topModsCt">Top 10 aparelhos vendidos no período</div><div id="topMods" style="margin-top:2px;max-height:220px;overflow-y:auto"></div></div>
+    <div class="card"><div class="ct">Top 10 aparelhos vendidos no período</div><div id="topMods" style="margin-top:2px;max-height:220px;overflow-y:auto"></div></div>
   </div>
-  <div class="sh" id="splitSh"><span class="st" id="splitTitle">Lojista vs Cliente Final</span><span class="sb" id="splitBadge"></span></div>
+  <div class="sh"><span class="st">Lojista vs Cliente Final</span><span class="sb" id="splitBadge"></span></div>
   <div class="split">
     <div class="sc"><div class="sc-title cli">🛒 Cliente Final</div><div class="sc-grid" id="sc-cli"></div></div>
     <div class="sc"><div class="sc-title loj">🏪 Lojista</div><div class="sc-grid" id="sc-loj"></div></div>
   </div>
-  <div class="sh" id="pgtoSh"><span class="st">Forma de Pagamento</span></div>
-  <div class="cg c2" id="pgtoGrid">
+  <div class="sh"><span class="st">Forma de Pagamento</span></div>
+  <div class="cg c2">
     <div class="card"><div class="ct">Mix de pagamentos</div><div style="height:195px"><canvas id="c-pagPie"></canvas></div></div>
     <div class="card"><div class="ct">Valores por forma de pagamento</div><div id="pagDetail" style="margin-top:4px"></div></div>
   </div>
@@ -344,8 +332,8 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     </div>
   </div>
 
-  <div class="sh" id="garSh" style="display:none"><span class="st">Lacrado vs Semi-novo — projeção (histórico completo)</span></div>
-  <div class="cg c2" id="garGrid" style="display:none">
+  <div class="sh"><span class="st">Lacrado vs Semi-novo — projeção (histórico completo)</span></div>
+  <div class="cg c2">
     <div class="card">
       <div class="ct">Volume de vendas por tipo de garantia</div>
       <div class="cw" style="height:200px"><canvas id="c-fcGarVol"></canvas></div>
@@ -378,20 +366,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 
 <script>
 const API_KEY  = "AIzaSyDeSGH3WDgLMo954r2PkXPlhZsHEA-deb0";
-// Reis Phones
-const REIS_SHEET_ID = "1imqcSw2UUIkhI7lPd0XyxR9tbKEudcpZCdVWT9LdEwk";
-const REIS_GID_FAT  = "0";
-const REIS_GID_CUST = "1574021542";
-// Soft Blindagem
-const SOFT_SHEET_ID = "1K4b2wBs3dQ82FHYoUoy-oalZPkFlFrelcnXfQ0nJmiI";
-const SOFT_GID_FAT  = "179719176";
-const SOFT_CSV_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSScQBpFJlMSQEMhHM-VwOO6Gw4CFh8gW7VnecTBqBEGJhAjFomvxqx93lrwljGNvZGBI9gWwOaYqNu/pub?gid=179719176&single=true&output=csv";
-// Reis Phones custos sheet (shared — filters by CENTRO DE CUSTO)
-const CUST_SHEET_ID = "1imqcSw2UUIkhI7lPd0XyxR9tbKEudcpZCdVWT9LdEwk";
-const CUST_GID      = "1574021542";
-// Active company state
-var ACTIVE_COMPANY = 'reis'; // 'reis' or 'soft'
-var SHEET_ID = REIS_SHEET_ID; // current (for legacy fetchRangeByGid)
+const SHEET_ID = "1imqcSw2UUIkhI7lPd0XyxR9tbKEudcpZCdVWT9LdEwk";
 const API_BASE = "https://sheets.googleapis.com/v4/spreadsheets/" + SHEET_ID + "/values/";
 
 async function fetchRange(range) {
@@ -547,162 +522,6 @@ function parseCustAPI(values){
     return{dt,m:dt.slice(0,7),d:parseInt(dt.slice(8,10)),v,cat,desc:String(get(iDesc)).trim()};
   }).filter(Boolean);
 }
-
-function parseCustAPICompany(values, company){
-  // company: 'REIS' or 'SOFT'
-  if(!values||values.length<2)return[];
-  const hdr=values[0].map(h=>String(h).trim());
-  const idx=k=>hdr.findIndex(h=>h.toUpperCase().includes(k.toUpperCase()));
-  const iData=idx('DATA'),iCentro=idx('CENTRO'),iDesc=idx('DESCRI'),iValor=idx('VALOR'),iDem=idx('DEMANDA');
-  return values.slice(1).map(r=>{
-    const get=(i,def='')=>i>=0&&i<r.length?r[i]:def;
-    const centro=String(get(iCentro)).toUpperCase();
-    // Filter by company
-    if(company==='REIS'&&!centro.includes('REIS'))return null;
-    if(company==='SOFT'&&!centro.includes('SOFT'))return null;
-    const dt=parseDt(get(iData));if(!dt||dt<'2025-04-01')return null;
-    const v=toN(get(iValor));if(!v)return null;
-    const desc=String(get(iDesc)).toUpperCase().trim();
-    const dem=String(get(iDem)).toUpperCase().trim();
-    let cat='adm';
-    if(desc.includes('RETIRADA'))cat='ret';
-    else if(desc.includes('SALARIO SANDY')||desc.includes('SALÁRIO SANDY'))cat='sal_s';
-    else if(desc.includes('SALARIO BIA')||desc.includes('ESTAGIARIA')||desc.startsWith('BIA '))cat='sal_b';
-    else if(desc.includes('COMISSÃO SANDY')||desc.includes('COMISSAO SANDY'))cat='com_s';
-    else if(desc.includes('COMISSÃO VIDAL')||desc.includes('COMISSAO VIDAL'))cat='com_v';
-    else if(desc.includes('COMISSÃO PIERRE')||desc.includes('COMISSAO PIERRE'))cat='com_v';
-    else if(dem==='MARKETING')cat='mkt';
-    else if(dem.includes('GARANTIA'))cat='gar';
-    else if(dem==='LOGISTICA'||dem==='ENVIOS E RECEBIMENTOS')cat='log';
-    else if(dem==='MERCADORIA')cat='merc';
-    else if(dem==='ASSISTÊNCIA'||dem==='ASSISTENCIA')cat='assist';
-    return{dt,m:dt.slice(0,7),d:parseInt(dt.slice(8,10)),v,cat,desc:String(get(iDesc)).trim()};
-  }).filter(Boolean);
-}
-
-
-// ══════════════════════════════════════════════ SOFT BLINDAGEM PARSER
-function parseSoftCSV(csv){
-  const rows=Papa.parse(csv,{header:true,skipEmptyLines:true}).data;
-  if(!rows.length){console.warn('parseSoftCSV: no rows'); return [];}
-
-  // Discover actual column names (case/accent insensitive)
-  const keys=Object.keys(rows[0]);
-  console.log('Soft CSV columns:', keys);
-
-  function findKey(keys, term){
-    const norm=s=>s.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    return keys.find(k=>norm(k).includes(norm(term)))||null;
-  }
-  const kStatus  = findKey(keys,'STATUS');
-  const kData    = findKey(keys,'DATA');
-  const kCliente = findKey(keys,'CLIENTE');
-  const kVend    = findKey(keys,'VENDEDOR');
-  const kProd    = findKey(keys,'PRODUTO');
-  const kPreco   = findKey(keys,'PRE')||findKey(keys,'VALOR')||findKey(keys,'PRICE');
-  const kMarca   = findKey(keys,'MARCA');
-  const kModelo  = findKey(keys,'MODELO');
-  console.log('Mapped:', {kStatus,kData,kPreco,kProd,kVend});
-
-  const out=[];
-  for(const r of rows){
-    const status=String(r[kStatus]||'').trim().toUpperCase();
-    if(status!=='PAGO') continue;
-    const dt=parseDt(r[kData]);if(!dt)continue;
-    const preco=toN(r[kPreco]||'0');if(!preco)continue;
-    const prod=String(r[kProd]||'').trim().toUpperCase();
-    const marca=String(r[kMarca]||'').trim().toUpperCase();
-    const modelo=String(r[kModelo]||'').trim().toUpperCase();
-    const vend=String(r[kVend]||'').trim().toUpperCase();
-    const cli=String(r[kCliente]||'').trim().toUpperCase();
-    let tipo='BL';
-    if(prod.includes('REL')&&(prod.includes('GIO')||prod.includes('ÓG'))) tipo='REL';
-    else if(prod.includes('UPSELL')||prod.includes('ACESS')) tipo='UP';
-    else if(prod.includes('FRONTAL')) tipo='BLF';
-    else if(prod.includes('COMPLETA')) tipo='BLC';
-    else if(prod.includes('STICKER')) tipo='STK';
-    else if(prod.includes('TABLET')) tipo='TAB';
-    out.push({
-      dt, m:dt.slice(0,7), d:parseInt(dt.slice(8,10)),
-      cli, vend, tipo, dev:1, loj:0, gar:'outro',
-      vtc:preco, lb:preco, taxa:0, custo:0,
-      meio:'O', mod:modelo||marca||prod, prod
-    });
-  }
-  console.log('parseSoftCSV: parsed', out.length, 'records from', rows.length, 'rows');
-  return out;
-}
-
-async function parseSoftAPI(values){
-  if(!values||values.length<2)return[];
-  const hdr=values[0].map(h=>String(h).trim());
-  const iVend=hdr.findIndex(h=>h.toUpperCase().includes('VENDEDOR'));
-  const iData=hdr.findIndex(h=>h.toUpperCase().includes('DATA'));
-  const iCli=hdr.findIndex(h=>h.toUpperCase().includes('CLIENTE'));
-  const iProd=hdr.findIndex(h=>h.toUpperCase().includes('PRODUTO'));
-  const iPreco=hdr.findIndex(h=>h.toUpperCase().includes('PRE'));
-  const iStatus=hdr.findIndex(h=>h.toUpperCase().includes('STATUS'));
-  const iMarca=hdr.findIndex(h=>h.toUpperCase().includes('MARCA'));
-  const iModelo=hdr.findIndex(h=>h.toUpperCase().includes('MODELO')&&!h.toUpperCase().includes('MARCA'));
-  const out=[];
-  for(const r of values.slice(1)){
-    const get=(i,d='')=>i>=0&&i<r.length?r[i]:d;
-    if(String(get(iStatus)).trim().toUpperCase()!=='PAGO')continue;
-    const dt=parseDt(get(iData));if(!dt)continue;
-    const preco=toN(get(iPreco));if(!preco)continue;
-    const prod=String(get(iProd)).trim().toUpperCase();
-    const marca=String(get(iMarca)).trim().toUpperCase();
-    const modelo=String(get(iModelo)).trim().toUpperCase();
-    let tipo='BL';
-    if(prod.includes('RELÓGIO')||prod.includes('RELOGIO'))tipo='REL';
-    else if(prod.includes('UPSELL')||prod.includes('ACESS'))tipo='UP';
-    else if(prod.includes('FRONTAL'))tipo='BLF';
-    else if(prod.includes('COMPLETA'))tipo='BLC';
-    else if(prod.includes('STICKER'))tipo='STK';
-    else if(prod.includes('TABLET'))tipo='TAB';
-    out.push({
-      dt,m:dt.slice(0,7),d:parseInt(dt.slice(8,10)),
-      cli:String(get(iCli)).trim().toUpperCase(),
-      vend:String(get(iVend)).trim().toUpperCase(),
-      tipo,dev:1,loj:0,gar:'outro',
-      vtc:preco,lb:preco,taxa:0,custo:0,
-      meio:'O',mod:modelo||marca||prod,
-      prod:prod
-    });
-  }
-  return out;
-}
-
-// ══════════════════════════════════════════════ COMPANY SWITCHER
-function switchCompany(co){
-  ACTIVE_COMPANY=co;
-  // Update buttons
-  document.getElementById('btnReis').classList.toggle('active',co==='reis');
-  document.getElementById('btnSoft').classList.toggle('active',co==='soft');
-  // Update logo name
-  const nm=document.querySelector('.logo-nm');
-  const sb=document.querySelector('.logo-sb');
-  if(nm)nm.textContent=co==='reis'?'Reis Phones':'Soft Blindagem';
-  if(sb)sb.textContent='Dashboard Executivo · Dados ao vivo';
-  // Update header and CSS accent color based on company
-  const root=document.documentElement;
-  if(co==='reis'){
-    root.style.setProperty('--bl','#1d5a9a');
-    root.style.setProperty('--bll','#2d7acc');
-    root.style.setProperty('--te','#38bdf8');
-    document.querySelector('.hdr').style.background='linear-gradient(135deg,#0a1628,#0d1f38)';
-  } else {
-    root.style.setProperty('--bl','#0a7a3e');
-    root.style.setProperty('--bll','#0d9e50');
-    root.style.setProperty('--te','#34d399');
-    document.querySelector('.hdr').style.background='linear-gradient(135deg,#071a10,#0a2218)';
-  }
-  const badge=document.getElementById('badgeLive');
-  if(badge)badge.style.background=co==='reis'?'rgba(29,90,154,.25)':'rgba(10,158,80,.2)';
-  // Reload data for the selected company
-  loadData(true);
-}
-
 async function loadData(manual=false){
   const btn=document.getElementById('btnRf');
   const ov=document.getElementById('loaderOv');
@@ -711,38 +530,18 @@ async function loadData(manual=false){
   if(!manual)ov.style.display='flex';
   lt.textContent='Conectando ao Google Sheets...';
   try{
-    if(ACTIVE_COMPANY==='reis'){
-      // ── Reis Phones ──
-      SHEET_ID=REIS_SHEET_ID;
-      lt.textContent='Carregando faturamento Reis Phones...';
-      const fatVals  = await fetchRange("FATURAMENTO!A:T");
-      lt.textContent='Carregando custos...';
-      const custVals = await fetchRangeByGid(1574021542, "A:F");
-      lt.textContent='Processando dados...';
-      SALES  = parseFatAPI(fatVals);
-      CUSTOS = parseCustAPI(custVals);
-    } else {
-      // ── Soft Blindagem ──
-      SHEET_ID=CUST_SHEET_ID; // use Reis sheet for costs
-      lt.textContent='Carregando vendas Soft Blindagem...';
-      const [rSoft, custRaw] = await Promise.all([
-        fetch(SOFT_CSV_URL+'&t='+Date.now()),
-        fetchRangeByGid(parseInt(CUST_GID), "A:F")
-      ]);
-      lt.textContent='Processando dados...';
-      const csvSoft = await rSoft.text();
-      SALES  = parseSoftCSV(csvSoft);
-      CUSTOS = parseCustAPICompany(custRaw, 'SOFT');
-    }
+    lt.textContent='Carregando faturamento...';
+    const fatVals  = await fetchRange("FATURAMENTO!A:T");
+    lt.textContent='Carregando custos...';
+    const custVals = await fetchRangeByGid(1574021542, "A:F");
+    lt.textContent='Processando dados...';
+    SALES  = parseFatAPI(fatVals);
+    CUSTOS = parseCustAPI(custVals);
     document.getElementById('lastUpd').textContent='✓ Atualizado: '+new Date().toLocaleTimeString('pt-BR')+' (tempo real)';
   }catch(e){
-    console.warn('Sheets API falhou:',e);
-    if(ACTIVE_COMPANY==='reis'){
-      SALES=FB_S.map(r=>({...r,vend:r.vend||''}));
-      CUSTOS=FB_C;
-    } else {
-      SALES=[];CUSTOS=[];
-    }
+    console.warn('Sheets API falhou, usando dados locais:',e);
+    SALES=FB_S.map(r=>({...r,vend:r.vend||''}));
+    CUSTOS=FB_C;
     document.getElementById('lastUpd').textContent='⚠ Dados locais (verifique a API key)';
   }finally{
     ov.style.display='none';btn.classList.remove('loading');
@@ -900,18 +699,6 @@ function drpWireEvents(){
   drpWireCalGrids();
 }
 
-
-function getCompanyName(){return ACTIVE_COMPANY==='reis'?'Reis Phones':'Soft Blindagem';}
-function isReis(){return ACTIVE_COMPANY==='reis';}
-function isSoft(){return ACTIVE_COMPANY==='soft';}
-
-// For Soft Blindagem, product = service type, no lojista concept
-function aggSoftSplit(rows){
-  // Soft has no lojista — all cliente final
-  const a=agg(rows);
-  return {cli:a, loj:agg([]), all:a, cli_r:rows, loj_r:[]};
-}
-
 function initSel(){
   drpWireEvents();
   drpApplyPreset('este_mes_completo');
@@ -926,7 +713,7 @@ function applyPeriod(){
   diaIni=+startStr.slice(8,10);
   diaFim=+endStr.slice(8,10);
   var n=SALES.filter(function(r){return r.dt>=startStr&&r.dt<=endStr;}).length;
-  var pi=document.getElementById('pinfo');if(pi)pi.textContent=n+(isSoft()?' serviços':' vendas');
+  var pi=document.getElementById('pinfo');if(pi)pi.textContent=n+' vendas';
   var pc=document.getElementById('pcmp');
   if(pc){var dur=new Date(endStr)-new Date(startStr);var pEnd=new Date(new Date(startStr)-1);var pStart=new Date(pEnd-dur);pc.textContent='↔ vs '+pStart.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+' – '+pEnd.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});}
   renderAll();
@@ -960,16 +747,11 @@ function agg(rows){
     if(r.tipo==='IP'){a.ip_lb+=r.lb||0;a.ip_qtd++;}
   });
   a.clientes=cli.size;
-  a.ticket=isReis()?(a.ip_qtd>0?a.ip_lb/a.ip_qtd:0):(a.qtd>0?a.fat/a.qtd:0);
+  a.ticket=a.ip_qtd>0?a.ip_lb/a.ip_qtd:0;
   a.mgb=a.fat>0?a.lb/a.fat*100:0;
   return a;
 }
 function aSplit(rows){
-  if(isSoft()){
-    // Soft Blindagem: no lojista concept, all services are cliente final
-    const a=agg(rows);
-    return{cli:a,loj:agg([]),all:a,cli_r:rows,loj_r:[]};
-  }
   const dev=rows.filter(r=>r.dev);
   return{cli:agg(dev.filter(r=>!r.loj)),loj:agg(dev.filter(r=>r.loj)),cli_r:dev.filter(r=>!r.loj),loj_r:dev.filter(r=>r.loj)};
 }
@@ -984,11 +766,6 @@ function cmpRow(l,c,p,d){return `<tr style="border-bottom:1px solid var(--bor)">
 
 // RENDER ALL
 function renderAll(){
-  // Show empty state if no data
-  if(SALES.length===0&&isSoft()){
-    document.getElementById('pinfo').textContent='Sem dados — verifique a conexão';
-    return;
-  }
   const cur=window._startStr&&window._endStr?SALES.filter(r=>r.dt>=window._startStr&&r.dt<=window._endStr):fS(curMes,diaIni,diaFim);
   const prv=window._startStr&&window._endStr?fSPrev(window._startStr,window._endStr):fS(prevM(curMes),diaIni,diaFim);
   const cs=fC(curMes);
@@ -1007,146 +784,30 @@ function renderAll(){
 // ── VISÃO GERAL
 function rVisao(cur,prv,cs,csp){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur),spp=aSplit(prv);
-
-  if(isSoft()){
-    // ══ SOFT BLINDAGEM — same layout pattern as Reis Phones ══════
-    function catOf(prod){
-      const p=String(prod||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      if(p.includes('ASSIST')) return 'assist';
-      if(p.includes('BLINDAGEM')||p.includes('BLINDADO')||p.includes('STICKER')||
-         p.includes('RELOGIO')||p.includes('TABLET')||p.includes('NOTEBOOK')||
-         p.includes('MULTIMIDIA')||p.includes('CAMERA')||
-         (p.includes('SUPORTE')&&p.includes('BLIND'))) return 'blind';
-      if(p.includes('PLANO')||p.includes('UPGRADE')) return 'plano';
-      if(p.includes('GARANTIA')) return 'gar';
-      return 'acess';
-    }
-    const fatFn=rows=>rows.reduce((s,r)=>s+r.vtc,0);
-    const rBlind=cur.filter(r=>catOf(r.prod)==='blind'),   rBlind_p=prv.filter(r=>catOf(r.prod)==='blind');
-    const rAssist=cur.filter(r=>catOf(r.prod)==='assist'), rAssist_p=prv.filter(r=>catOf(r.prod)==='assist');
-    const rPlano=cur.filter(r=>catOf(r.prod)==='plano'),   rPlano_p=prv.filter(r=>catOf(r.prod)==='plano');
-    const rGar=cur.filter(r=>catOf(r.prod)==='gar'),       rGar_p=prv.filter(r=>catOf(r.prod)==='gar');
-    const rAcess=cur.filter(r=>catOf(r.prod)==='acess'),   rAcess_p=prv.filter(r=>catOf(r.prod)==='acess');
-    const fatB=fatFn(rBlind),fatB_p=fatFn(rBlind_p);
-    const fatA=fatFn(rAssist),fatA_p=fatFn(rAssist_p);
-    const fatP=fatFn(rPlano),fatP_p=fatFn(rPlano_p);
-    const fatG=fatFn(rGar),fatG_p=fatFn(rGar_p);
-    const fatAc=fatFn(rAcess),fatAc_p=fatFn(rAcess_p);
-
-    // ── KPI Cards (same style as Reis Phones) ────────────────────
-    document.getElementById('kg-v').innerHTML=[
-      kpi('Faturamento',BRL(a.fat),'Total do período',dlt(a.fat,ap.fat),'bl'),
-      kpi('Serviços realizados',NUM(a.qtd),'Atendimentos',dlt(a.qtd,ap.qtd),'bl'),
-      kpi('Ticket médio',BRL(a.fat/Math.max(a.qtd,1)),'Faturamento ÷ serviços',dlt(a.fat/Math.max(a.qtd,1),ap.fat/Math.max(ap.qtd,1)),'am'),
-      kpi('Clientes únicos',NUM(a.clientes),'No período',null,'pu'),
-      kpi('Blindagens',NUM(rBlind.length),'Fat. '+BRL(fatB),dlt(rBlind.length,rBlind_p.length),'gr'),
-      kpi('Assistência',NUM(rAssist.length),'Fat. '+BRL(fatA),dlt(rAssist.length,rAssist_p.length),'te'),
-    ].join('');
-
-    // ── 6-month chart: faturamento histórico (same as Reis) ──────
-    const months6=[...new Set(SALES.map(r=>r.m))].sort().slice(-6);
-    mkChart('c-fat6m',{type:'bar',data:{labels:months6.map(m=>mL(m)),
-      datasets:[
-        {label:'Faturamento',data:months6.map(m=>SALES.filter(r=>r.m===m).reduce((s,r)=>s+r.vtc,0)),backgroundColor:'rgba(29,90,154,.5)',borderRadius:4,order:2},
-      ]},
-      options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#0d1f3c',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',callbacks:{label:c=>` ${BRL(c.raw)}`}}},
-        scales:{x:{grid:{color:'rgba(29,90,154,.12)'},ticks:{color:TXT2,font:{size:11}}},
-                y:{grid:{color:'rgba(29,90,154,.12)'},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}}}});
-
-    // ── Top 10 serviços (by product name, not model) ─────────────
-    const pMap={};
-    cur.forEach(r=>{const k=String(r.prod||'').trim().toUpperCase();if(k)pMap[k]=(pMap[k]||0)+1;});
-    const tops=Object.entries(pMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    const maxT=tops[0]?tops[0][1]:1;
-    const ctEl=document.getElementById('topModsCt');
-    if(ctEl)ctEl.textContent='Top 10 serviços no período';
-    document.getElementById('topMods').innerHTML=tops.map(([n,c])=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bor)">
-        <span style="flex:1;font-size:12px;color:var(--txt)">${n}</span>
-        <div style="width:140px;height:6px;background:rgba(29,90,154,.2);border-radius:3px;overflow:hidden">
-          <div style="height:100%;background:var(--bll);border-radius:3px;width:${(c/maxT*100).toFixed(0)}%"></div>
-        </div>
-        <span style="font-size:12px;font-weight:600;color:var(--txt);width:24px;text-align:right">${c}</span>
-      </div>`).join('');
-
-    // ── Category breakdown (replaces Lojista vs CF) ──────────────
-    document.getElementById('splitSh').style.display='';
-    document.getElementById('splitCards').style.display='';
-    const stEl=document.getElementById('splitTitle');
-    if(stEl)stEl.textContent='Categorias de serviço';
-    const sbEl=document.getElementById('splitBadge');
-    if(sbEl)sbEl.textContent=`${NUM(a.qtd)} serviços · ${BRL(a.fat)}`;
-
-    const catData=[
-      {label:'Blindagem',rows:rBlind,fat:fatB,fatP:fatB_p,col:'var(--bl)'},
-      {label:'Assistência Técnica',rows:rAssist,fat:fatA,fatP:fatA_p,col:'var(--te)'},
-      {label:'Planos',rows:rPlano,fat:fatP,fatP:fatP_p,col:'var(--gr)'},
-      {label:'Garantia Estendida',rows:rGar,fat:fatG,fatP:fatG_p,col:'var(--am)'},
-      {label:'Acessórios',rows:rAcess,fat:fatAc,fatP:fatAc_p,col:'var(--pu)'},
-    ];
-    const makeCatCard=(cat)=>`
-      <div class="sc" style="border-left:3px solid ${cat.col}">
-        <div class="sc-title" style="color:${cat.col}">${cat.label}</div>
-        <div class="cg c2" style="margin-top:10px">
-          ${scI('SERVIÇOS',NUM(cat.rows.length),dlt(cat.rows.length,cat.rows===rBlind?rBlind_p.length:cat.rows===rAssist?rAssist_p.length:cat.rows===rPlano?rPlano_p.length:cat.rows===rGar?rGar_p.length:rAcess_p.length),'bl')}
-          ${scI('FATURAMENTO',BRL(cat.fat),dlt(cat.fat,cat.fatP),'gr')}
-          ${scI('TICKET MÉDIO',BRL(cat.fat/Math.max(cat.rows.length,1)),null,'am')}
-          ${scI('% DO TOTAL',PCT(a.fat>0?cat.fat/a.fat*100:0),null,'pu')}
-        </div>
-      </div>`;
-    document.getElementById('sc-cli').outerHTML=`<div id="sc-cli" style="display:contents">${catData.slice(0,3).map(makeCatCard).join('')}</div>`;
-    document.getElementById('sc-loj').outerHTML=`<div id="sc-loj" style="display:contents">${catData.slice(3).map(makeCatCard).join('')}</div>`;
-
-    // ── Hide Reis-only sections ───────────────────────────────────
-    document.getElementById('pgtoSh').style.display='none';
-    document.getElementById('pgtoGrid').style.display='none';
-    const garSh=document.getElementById('garSh');if(garSh)garSh.style.display='none';
-    const garGrid=document.getElementById('garGrid');if(garGrid)garGrid.style.display='none';
-
-    // ── Comparativo table ─────────────────────────────────────────
-    const ap2=agg(prv);
-    document.getElementById('cmpTable').innerHTML=`<table style="width:100%;border-collapse:collapse">
-      <thead><tr>
-        <th style="padding:6px 10px;color:var(--te);font-size:10px;text-align:left;text-transform:uppercase;border-bottom:1px solid var(--bor)">Métrica</th>
-        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${mL(curMes)}</th>
-        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${mL(prevM(curMes))}</th>
-        <th style="padding:6px 10px;font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">Δ</th>
-      </tr></thead>
-      <tbody>${[
-        ['Faturamento total',BRL(a.fat),BRL(ap2.fat),dlt(a.fat,ap2.fat)],
-        ['Serviços realizados',NUM(a.qtd),NUM(ap2.qtd),dlt(a.qtd,ap2.qtd)],
-        ['Ticket médio',BRL(a.fat/Math.max(a.qtd,1)),BRL(ap2.fat/Math.max(ap2.qtd,1)),dlt(a.fat/Math.max(a.qtd,1),ap2.fat/Math.max(ap2.qtd,1))],
-        ['Blindagens',NUM(rBlind.length),NUM(rBlind_p.length),dlt(rBlind.length,rBlind_p.length)],
-        ['Assistência técnica',NUM(rAssist.length),NUM(rAssist_p.length),dlt(rAssist.length,rAssist_p.length)],
-        ['Planos',NUM(rPlano.length),NUM(rPlano_p.length),dlt(rPlano.length,rPlano_p.length)],
-        ['Garantia estendida',NUM(rGar.length),NUM(rGar_p.length),dlt(rGar.length,rGar_p.length)],
-        ['Acessórios',NUM(rAcess.length),NUM(rAcess_p.length),dlt(rAcess.length,rAcess_p.length)],
-      ].map(([l,c,p,d])=>cmpRow(l,c,p,d)).join('')}</tbody></table>`;
-    return;
-  }
-
-
-  // ══ REIS PHONES — Visão Geral (original) ════════════════════
-  const kGrid=isReis()?[
-    kpi('Faturamento',BRL(a.fat),'Total coletado',dlt(a.fat,ap.fat),'bl'),
+  document.getElementById('kg-v').innerHTML=[
+    kpi('Faturamento',BRLK(a.fat),'Valor total coletado',dlt(a.fat,ap.fat),'bl'),
     kpi('Lucro bruto',BRL(a.lb),'Margem '+PCT(a.mgb),dlt(a.lb,ap.lb),'gr'),
+    kpi('Transações',NUM(a.qtd),NUM(a.clientes)+' clientes únicos',dlt(a.qtd,ap.qtd),'pu'),
     kpi('Ticket CF (Lucro/iPhone)',BRL(sp.cli.ticket),'Somente cliente final',dlt(sp.cli.ticket,spp.cli.ticket),'am'),
-    kpi('Aparelhos vendidos',NUM(a.qtd),'Transações',dlt(a.qtd,ap.qtd),'bl'),
-    kpi('Taxa de cartão',BRL(a.taxa),'Custo financeiro',dlt(a.taxa,ap.taxa),'rd'),
-    kpi('Trocas recebidas',NUM(a.troca_q),'Total '+BRL(a.troca_v),dlt(a.troca_q,ap.troca_q),'pu'),
-  ]:[];
-  document.getElementById('kg-v').innerHTML=kGrid.join('');
+    kpi('Trocas recebidas',NUM(a.troca_q),'Total '+BRL(a.troca_v),dlt(a.troca_q,ap.troca_q),'te'),
+    kpi('Taxa cartão',BRL(a.taxa),PCT(a.fat>0?a.taxa/a.fat*100:0)+' do faturamento',dlt(a.taxa,ap.taxa),'rd'),
+  ].join('');
+
+  // chart 6m
+  const allM=[...new Set(SALES.map(r=>r.m))].sort();const idx=allM.indexOf(curMes);const l6=allM.slice(Math.max(0,idx-5),idx+1);
+  const d6=l6.map(m=>{const s=SALES.filter(r=>r.m===m);return{m,fat:s.reduce((x,r)=>x+(r.vtc||0),0),lb:s.reduce((x,r)=>x+(r.lb||0),0)};});
+  mkChart('c-fatLb',{type:'bar',data:{labels:d6.map(x=>mL(x.m)),datasets:[{label:'Faturamento',data:d6.map(x=>x.fat),backgroundColor:d6.map(x=>x.m===curMes?'#2d7acc':'rgba(29,90,154,.3)'),borderRadius:4},{label:'Lucro',data:d6.map(x=>x.lb),backgroundColor:d6.map(x=>x.m===curMes?'#00d97e':'rgba(0,217,126,.3)'),borderRadius:4}]},options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(2))}),plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}}}});
+
+  // top 10 modelos
+  const mods=topMods(cur,10);
+  document.getElementById('topMods').innerHTML=mods.length?brs(mods,x=>x.m,x=>x.q,()=>'#2d7acc'):'<div style="color:var(--txt3);font-size:12px;padding:8px 0">Sem dados neste período</div>';
+
   // split
-  document.getElementById('splitBadge').textContent=isSoft()?sp.cli.qtd+' serviços realizados':sp.cli.qtd+' cliente final · '+sp.loj.qtd+' lojista';
+  document.getElementById('splitBadge').textContent=sp.cli.qtd+' cliente final · '+sp.loj.qtd+' lojista';
   document.getElementById('sc-cli').innerHTML=scG(sp.cli,'cli');
-  document.getElementById('sc-loj').innerHTML=isSoft()?'<div style="color:var(--txt3);font-size:12px;padding:8px 0;grid-column:1/-1">Soft Blindagem não possui canal lojista</div>':sp.loj.qtd>0?scG(sp.loj,'loj'):'<div style="color:var(--txt3);font-size:12px;padding:8px 0;grid-column:1/-1">Sem vendas lojista neste período</div>';
-  const stEl=document.getElementById('splitTitle');
-  if(stEl)stEl.textContent=isSoft()?'Serviços realizados':'Lojista vs Cliente Final';
+  document.getElementById('sc-loj').innerHTML=sp.loj.qtd>0?scG(sp.loj,'loj'):'<div style="color:var(--txt3);font-size:12px;padding:8px 0;grid-column:1/-1">Sem vendas lojista neste período</div>';
 
   // pagamento
-  document.getElementById('pgtoSh').style.display=isReis()?'':'none';
-  document.getElementById('pgtoGrid').style.display=isReis()?'':'none';
   const MC={C:'#2d7acc',P:'#00d97e',D:'#f5a623',T:'#5b9bd5',X:'#22d3ee',O:'#556070'};
   const ML2={C:'Cartão',P:'PIX',D:'Dinheiro',T:'Troca',X:'Combinado',O:'Outro'};
   const mcnt={};cur.forEach(r=>{mcnt[r.meio]=(mcnt[r.meio]||0)+1;});
@@ -1218,7 +879,7 @@ function rMarketing(cur,prv){
   const roas=trafVal>0?(a.fat/trafVal):0;
   document.getElementById('kg-m').innerHTML=[
     kpi('Ticket CF (Lucro/iPhone)',BRL(sp.cli.ticket),'Somente cliente final',dlt(sp.cli.ticket,spp.cli.ticket),'gr'),
-    kpi(isReis()?'Ticket Lojista (Lucro/iPhone)':'Serviço mais vendido',isReis()?(sp.loj.qtd>0?BRL(sp.loj.ticket):'—'):(()=>{const t=topMods(cur,1);return t.length?t[0].m:'—';})(),isReis()?'Somente lojista':'Produto top do período',null,'am'),
+    kpi('Ticket Lojista (Lucro/iPhone)',sp.loj.qtd>0?BRL(sp.loj.ticket):'—','Somente lojista',null,'am'),
     kpi('Ticket geral (Lucro/iPhone)',BRL(a.ticket),'CF + Lojista',dlt(a.ticket,ap.ticket),'bl'),
     kpi('ROAS',trafVal>0?roas.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'x':'Sem dado',trafVal>0?'Tráfego: '+BRL(trafVal):'Não registrado',null,'pu'),
     kpi('Margem CF',PCT(sp.cli.mgb),'iPhone cliente final',dlt(sp.cli.mgb,spp.cli.mgb),'te'),
@@ -1237,127 +898,112 @@ function rMarketing(cur,prv){
 function rCustos(cur,prv,cs,csp){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur),spp=aSplit(prv);
   const co=cs.reduce((s,r)=>s+r.v,0),cop=csp.reduce((s,r)=>s+r.v,0);
-  const ll=a.lb-co, llp=ap.lb-cop;
-
-  // Cost breakdown by category
-  const catTots={ret:0,sal_s:0,com_s:0,traf:0,sal_b:0,gar:0,adm:0,log:0,out:0};
-  cs.forEach(r=>{if(catTots[r.cat]!==undefined)catTots[r.cat]+=r.v;else catTots.out+=r.v;});
-
-  // ── KPI Cards ─────────────────────────────────────────────────
+  const cats={ret:0,sal_s:0,com_s:0,traf:0,sal_b:0,gar:0,out:0};
+  cs.forEach(r=>{if(cats[r.cat]!==undefined)cats[r.cat]+=r.v;else cats.out+=r.v;});
+  const ll=a.lb-co,llp=ap.lb-cop;
   document.getElementById('kg-cu').innerHTML=[
-    kpi(isReis()?'Custos totais Reis':'Custos totais Soft',co>0?BRL(co):'Sem registro',co>0?NUM(cs.length)+' lançamentos':'Não registrado',co>0&&cop>0?dlt(co,cop):null,'rd'),
-    kpi('Lucro bruto',BRL(a.lb),isReis()?'Venda − custo produto − taxa cartão':'Faturamento do período',dlt(a.lb,ap.lb),'gr'),
-    kpi('Lucro líquido',co>0?BRL(ll):'—',co>0?(isReis()?'Lucro bruto − custos Reis Phones':'Faturamento − custos Soft Blindagem'):'Custos não registrados',co>0&&cop>0?dlt(ll,llp):null,ll>=0||co===0?'gr':'rd'),
+    kpi('Custos totais Reis',co>0?BRL(co):'Sem registro',co>0?NUM(cs.length)+' lançamentos':'Não registrado',co>0&&cop>0?dlt(co,cop):null,'rd'),
+    kpi('Lucro bruto',BRL(a.lb),'Venda − custo produto − taxa cartão',dlt(a.lb,ap.lb),'gr'),
+    kpi('Lucro líquido',co>0?BRL(ll):'—',co>0?'Lucro bruto − custos Reis Phones':'Custos não registrados',co>0&&cop>0?dlt(ll,llp):null,ll>=0||co===0?'gr':'rd'),
+    kpi('Margem bruta CF',PCT(sp.cli.mgb),'iPhone cliente final',dlt(sp.cli.mgb,spp.cli.mgb),'am'),
+    kpi('Margem bruta lojista',sp.loj.qtd>0?PCT(sp.loj.mgb):'—','iPhone lojista',null,'bl'),
+    kpi('Taxa cartão',BRL(a.taxa),PCT(a.fat>0?a.taxa/a.fat*100:0)+' do fat.',dlt(a.taxa,ap.taxa),'pu'),
   ].join('');
-
-  // ── Main comparison table ──────────────────────────────────────
-  const thCF=document.getElementById('thCF');if(thCF)thCF.textContent=isReis()?'Cliente Final':'—';
-  const thLoj=document.getElementById('thLoj');if(thLoj)thLoj.textContent=isReis()?'Lojista':'—';
-  const custEl=document.getElementById('t-cu').closest('.tw');
-
-  const tableRows=isReis()?[
+  const cI=[['Retiradas',cats.ret,'#ff5c6a'],['Sal. Sandy',cats.sal_s,'#f5a623'],['Com. Sandy',cats.com_s,'#5b9bd5'],['Tráfego',cats.traf,'#2d7acc'],['Sal. Bia',cats.sal_b,'#22d3ee'],['Garantia',cats.gar,'#00d97e'],['Outros',cats.out,'#556070']].filter(x=>x[1]>0);
+  const cp=document.getElementById('card-custPie');
+  if(cI.length){
+    cp.innerHTML='<div class="ct">Composição dos custos Reis Phones</div><div style="height:195px"><canvas id="c-custPie"></canvas></div>';
+    mkChart('c-custPie',{type:'doughnut',data:{labels:cI.map(x=>x[0]),datasets:[{data:cI.map(x=>x[1]),backgroundColor:cI.map(x=>x[2]),borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:6}},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.label}: ${BRL(c.raw)}`}}}}});
+  }else{cp.innerHTML='<div class="ct">Composição dos custos</div><div style="color:var(--txt3);font-size:12px;padding:16px 0">Custos não registrados para este mês</div>';}
+  const allM=[...new Set(SALES.map(r=>r.m))].sort();const idx=allM.indexOf(curMes);const l6=allM.slice(Math.max(0,idx-5),idx+1);
+  const lD=l6.map(m=>{const s=SALES.filter(r=>r.m===m),c=CUSTOS.filter(r=>r.m===m);const lb=s.reduce((x,r)=>x+(r.lb||0),0),co2=c.reduce((x,r)=>x+r.v,0);return{m,lb,ll:co2>0?lb-co2:null};});
+  mkChart('c-lucros',{type:'line',data:{labels:lD.map(x=>mL(x.m)),datasets:[{label:'Lucro bruto',data:lD.map(x=>x.lb),borderColor:'#00d97e',backgroundColor:'rgba(0,217,126,.08)',borderWidth:2,pointRadius:3,fill:true,tension:.3},{label:'Lucro líquido',data:lD.map(x=>x.ll),borderColor:'#2d7acc',backgroundColor:'rgba(29,90,154,.06)',borderWidth:2,pointRadius:3,borderDash:[4,3],fill:true,tension:.3,spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}}},plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>c.raw!==null?` ${c.dataset.label}: ${BRL(c.raw)}`:' Sem dado'}}}}});
+  document.getElementById('t-cu').innerHTML=[
+    ['Faturamento',BRL(sp.cli.fat),BRL(sp.loj.fat),BRL(a.fat),BRL(ap.fat),dlt(a.fat,ap.fat)],
     ['Lucro bruto (venda−custo−taxa)',BRL(sp.cli.lb),BRL(sp.loj.lb),BRL(a.lb),BRL(ap.lb),dlt(a.lb,ap.lb)],
     ['Margem bruta',PCT(sp.cli.mgb),sp.loj.qtd>0?PCT(sp.loj.mgb):'—',PCT(a.mgb),PCT(ap.mgb),dlt(a.mgb,ap.mgb)],
     ['Ticket (Lucro/iPhone)',BRL(sp.cli.ticket),sp.loj.qtd>0?BRL(sp.loj.ticket):'—',BRL(a.ticket),BRL(ap.ticket),dlt(a.ticket,ap.ticket)],
     ['Transações',NUM(sp.cli.qtd),NUM(sp.loj.qtd),NUM(a.qtd),NUM(ap.qtd),dlt(a.qtd,ap.qtd)],
     ['Custos Reis Phones','—','—',co>0?BRL(co):'Sem reg.',cop>0?BRL(cop):'—',co>0&&cop>0?dlt(co,cop):null],
     ['Lucro líquido (bruto−custos Reis)','—','—',co>0?BRL(ll):'—',cop>0?BRL(llp):'—',co>0&&cop>0?dlt(ll,llp):null],
-  ]:[
-    ['Faturamento','—','—',BRL(a.fat),BRL(ap.fat),dlt(a.fat,ap.fat)],
-    ['Serviços realizados','—','—',NUM(a.qtd),NUM(ap.qtd),dlt(a.qtd,ap.qtd)],
-    ['Ticket médio','—','—',BRL(a.fat/Math.max(a.qtd,1)),BRL(ap.fat/Math.max(ap.qtd,1)),dlt(a.fat/Math.max(a.qtd,1),ap.fat/Math.max(ap.qtd,1))],
-    ['Custos Soft Blindagem','—','—',co>0?BRL(co):'Sem reg.',cop>0?BRL(cop):'—',co>0&&cop>0?dlt(co,cop):null],
-    ['Lucro líquido (fat.−custos Soft)','—','—',co>0?BRL(ll):'—',cop>0?BRL(llp):'—',co>0&&cop>0?dlt(ll,llp):null],
-  ];
+    ['Taxa cartão','—','—',BRL(a.taxa),BRL(ap.taxa),dlt(a.taxa,ap.taxa)],
+  ].map(([l,c1,c2,tot,prv2,d])=>`<tr style="border-bottom:1px solid var(--bor)"><td style="padding:7px 12px;color:var(--txt2)">${l}</td><td class="r" style="padding:7px 12px;color:var(--te)">${c1}</td><td class="r" style="padding:7px 12px;color:var(--am)">${c2}</td><td class="r" style="padding:7px 12px;font-weight:600">${tot}</td><td class="r" style="padding:7px 12px;color:var(--txt2)">${prv2}</td><td class="r" style="padding:7px 12px">${d?`<span class="kd ${d.cls}" style="font-size:11px">${d.s}</span>`:'—'}</td></tr>`).join('');
 
-  document.getElementById('t-cu').innerHTML=tableRows
-    .map(([l,c1,c2,tot,prv2,d])=>`<tr style="border-bottom:1px solid var(--bor)">
-      <td style="padding:7px 12px;color:var(--txt2)">${l}</td>
-      <td class="r" style="padding:7px 12px;color:var(--te)">${c1}</td>
-      <td class="r" style="padding:7px 12px;color:var(--am)">${c2}</td>
-      <td class="r" style="padding:7px 12px;font-weight:600">${tot}</td>
-      <td class="r" style="padding:7px 12px;color:var(--txt2)">${prv2}</td>
-      <td class="r" style="padding:7px 12px">${d?`<span class="kd ${d.cls}" style="font-size:11px">${d.s}</span>`:'—'}</td>
-    </tr>`).join('');
-
-  // ── Custo por serviço/venda block ─────────────────────────────
-  const existingBlock=document.getElementById('custoPorVendaBlock');
-  if(existingBlock)existingBlock.remove();
-  const qtdDev=isReis()?cur.filter(r=>r.dev).length:cur.length;
+  // ── Custo por venda ──────────────────────────────────
+  const qtdDev=cur.filter(r=>r.dev).length;
   const custoPorVenda=qtdDev>0?co/qtdDev:0;
-  const fatUnit=isReis()?a.lb/Math.max(qtdDev,1):a.fat/Math.max(qtdDev,1);
-  const llUnit=ll/Math.max(qtdDev,1);
+  const lucroAposOp=a.lb>0&&co>0?((a.lb-co)/a.lb*100):null;
+  const catTots={ret:0,sal_s:0,com_s:0,sal_b:0,com_v:0,mkt:0,gar:0,log:0,merc:0,adm:0,out:0};
+  cs.forEach(r=>{if(catTots[r.cat]!==undefined)catTots[r.cat]+=r.v;else catTots.out+=r.v;});
   const catRows=Object.entries({
-    [isReis()?'Retiradas sócios':'Pró-labore/Retiradas']:catTots.ret,
-    'Salários/Comissões':catTots.sal_s+catTots.com_s+catTots.sal_b,
-    'Marketing/Tráfego':catTots.traf,
+    'Retiradas sócios':catTots.ret,
+    'Salários/Comissões':catTots.sal_s+catTots.com_s+catTots.sal_b+catTots.com_v,
+    'Marketing/Tráfego':catTots.mkt,
     'Garantias':catTots.gar,
     'Logística':catTots.log,
     'Administrativo':catTots.adm+catTots.out
   }).filter(([,v])=>v>0);
 
+  const custEl=document.getElementById('t-cu').closest('.tw');
+  // Remove existing block to avoid duplication on re-render
+  const existingBlock=document.getElementById('custoPorVendaBlock');
+  if(existingBlock)existingBlock.remove();
   if(co>0&&qtdDev>0){
-    const block=`<div id="custoPorVendaBlock">
-    <div class="sh" style="margin-top:20px"><span class="st">${isReis()?'Custo por aparelho vendido':'Custo por serviço realizado'}</span></div>
+    const block=`<div id="custoPorVendaBlock"><div class="sh" style="margin-top:20px"><span class="st">Custo por aparelho vendido</span></div>
     <div style="background:linear-gradient(135deg,rgba(245,166,35,.08),rgba(29,90,154,.05));border:1px solid rgba(245,166,35,.25);border-radius:var(--r);padding:18px 20px;margin-top:2px;">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:${catRows.length>0?'16':'0'}px;">
         <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;border:1px solid rgba(245,166,35,.2);">
-          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">${isReis()?'Custo médio por venda':'Custo médio por serviço'}</div>
+          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Custo médio por venda</div>
           <div style="font-size:22px;font-weight:700;color:var(--am)">${BRL(custoPorVenda)}</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">${BRL(co)} ÷ ${NUM(qtdDev)} ${isReis()?'aparelhos':'serviços'}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">${BRL(co)} ÷ ${NUM(qtdDev)} aparelhos</div>
         </div>
         <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;border:1px solid rgba(0,217,126,.2);">
-          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">${isReis()?'Lucro líquido por venda':'Lucro líquido por serviço'}</div>
-          <div style="font-size:22px;font-weight:700;color:${llUnit>=0?'var(--gr)':'var(--rd)'}">${BRL(llUnit)}</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">${isReis()?'Lucro bruto':'Fat.'} ${BRL(fatUnit)} − custo op. ${BRL(custoPorVenda)}</div>
+          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Lucro líquido por venda</div>
+          <div style="font-size:22px;font-weight:700;color:${ll/qtdDev>=0?'var(--gr)':'var(--rd)'}">${BRL(ll/qtdDev)}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">Lucro bruto ${BRL(a.lb/qtdDev)} − custo op. ${BRL(custoPorVenda)}</div>
         </div>
         <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;border:1px solid var(--bor);">
           <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Ponto de equilíbrio</div>
-          <div style="font-size:22px;font-weight:700;color:var(--bll)">${NUM(Math.ceil(co/Math.max(fatUnit,1)))} ${isReis()?'vendas':'serviços'}</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">${isReis()?'Vendas':'Serviços'} necessários para cobrir os custos op.</div>
+          <div style="font-size:22px;font-weight:700;color:var(--bl)">${co>0?NUM(Math.ceil(co/Math.max(a.lb/Math.max(qtdDev,1),1))):'-'} vendas</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">Vendas necessárias para cobrir os custos op.</div>
         </div>
       </div>
-      ${catRows.length>0?`<div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Custo por categoria ÷ ${isReis()?'aparelho':'serviço'}</div>
+      ${catRows.length>0?`<div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Custo por categoria ÷ aparelho</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px;">
-        ${catRows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:6px;padding:7px 10px;font-size:12px;">
-          <span style="color:var(--txt2)">${l}</span>
-          <span style="font-weight:600;color:var(--txt)">${BRL(v/qtdDev)}<span style="font-size:10px;color:var(--txt3);font-weight:400"> /${isReis()?'venda':'serv.'}</span></span>
-        </div>`).join('')}
+        ${catRows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:6px;padding:7px 10px;font-size:12px;"><span style="color:var(--txt2)">${l}</span><span style="font-weight:600;color:var(--txt)">${BRL(v/qtdDev)}<span style="font-size:10px;color:var(--txt3);font-weight:400"> /venda</span></span></div>`).join('')}
       </div>`:''}
     </div></div>`;
     custEl.insertAdjacentHTML('afterend', block);
   }
-
-  // ── Detailed cost breakdown table by month ──────────────────────
-  (()=>{
-    const months=[...new Set([...cs,...csp].map(r=>r.m))].sort().slice(-6);
-    const catLabels={ret:'Retiradas',sal_s:'Sal. Sandy',com_s:'Com. Sandy',sal_b:isReis()?'Estagiária':'Outros Sal.',traf:'Marketing',gar:'Garantias',adm:'Administrativo',log:'Logística',out:'Outros'};
-    const cats2=Object.keys(catLabels).filter(k=>cs.some(r=>r.cat===k)||csp.some(r=>r.cat===k));
-    const tbody=document.getElementById('t-cu2');
-    if(!tbody)return;
-    const grand=cs.reduce((s,r)=>s+r.v,0);
-    const tCols=months.map(m=>{
-      const mv=cs.filter(r=>r.m===m).reduce((s,r)=>s+r.v,0);
-      return`<td class="r" style="padding:6px 10px;color:var(--txt2)">${mv>0?BRL(mv):'—'}</td>`;
-    }).join('');
-    const rows=cats2.map(cat=>{
-      const v=cs.filter(r=>r.cat===cat).reduce((s,r)=>s+r.v,0);
-      if(!v)return'';
-      const pct=grand>0?v/grand*100:0;
-      const mCols=months.map(m=>{const mv=cs.filter(r=>r.m===m&&r.cat===cat).reduce((s,r)=>s+r.v,0);return`<td class="r" style="padding:6px 10px;color:var(--txt2)">${mv>0?BRL(mv):'—'}</td>`;}).join('');
-      return`<tr style="border-bottom:1px solid var(--bor)">
-        <td style="padding:6px 10px;color:var(--txt2)">${catLabels[cat]}</td>
-        <td class="r" style="padding:6px 10px;font-weight:600">${BRL(v)}</td>
-        <td class="r" style="padding:6px 10px;color:var(--txt3)">${PCT(pct)}</td>${mCols}</tr>`;
+  // Full discriminated costs table
+  (function(){
+    const cRows=CUSTOS.filter(r=>{
+      if(!window._startStr||!window._endStr)return r.m===curMes;
+      const sm=window._startStr.slice(0,7),em=window._endStr.slice(0,7);
+      return r.m>=sm&&r.m<=em;
     });
-    tbody.innerHTML=rows.join('')+`<tr style="border-top:1.5px solid var(--bor2)">
-      <td style="padding:7px 12px;font-weight:700">TOTAL</td>
-      <td class="r" style="padding:7px 12px;font-weight:700;color:var(--rd)">${BRL(grand)}</td>
-      <td class="r" style="padding:7px 12px;color:var(--txt2)">100,00%</td>${tCols}</tr>`;
+    const CAT_L={'ret':'Retiradas sócios','adm':'Administrativo','mkt':'Marketing','gar':'Garantias','sal_s':'Salário Sandy','com_s':'Comissão Sandy','sal_b':'Salário Bia','com_v':'Comissão Vidal/Pierre','log':'Logística','merc':'Mercadoria','assist':'Assistência'};
+    const CAT_C={'ret':'var(--rd)','adm':'var(--txt2)','mkt':'var(--bl)','gar':'var(--gr)','sal_s':'var(--am)','com_s':'var(--pu)','sal_b':'var(--te)','com_v':'#e86fd8','log':'#f5a623','merc':'#22d3ee','assist':'#2d7acc'};
+    const cM=[...new Set(cRows.map(r=>r.m))].sort();
+    const cTot={};Object.keys(CAT_L).forEach(k=>{cTot[k]=cRows.filter(r=>r.cat===k).reduce((s,r)=>s+r.v,0);});
+    const grand=Object.values(cTot).reduce((s,v)=>s+v,0);
+    const entries=Object.entries(cTot).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+    const hdr=document.getElementById('t-full-custos-hdr');
+    if(hdr) hdr.innerHTML='<th>Categoria</th><th class="r">Total</th><th class="r">% custos</th>'+cM.map(m=>`<th class="r" style="padding:8px 12px;font-size:10px;font-weight:600;color:var(--txt2);text-transform:uppercase;border-bottom:1px solid var(--bor)">${mL(m)}</th>`).join('');
+    const tbody=document.getElementById('t-full-custos');
+    if(!tbody)return;
+    if(!grand){tbody.innerHTML='<tr><td colspan="20" style="padding:12px;color:var(--txt3);text-align:center">Custos não registrados para este período</td></tr>';return;}
+    const rows=entries.map(([cat,total])=>{
+      const pct=grand>0?total/grand*100:0;
+      const mCols=cM.map(m=>{const v=cRows.filter(r=>r.m===m&&r.cat===cat).reduce((s,r)=>s+r.v,0);return`<td class="r" style="padding:7px 12px">${v>0?BRL(v):'<span style="color:var(--txt3)">—</span>'}</td>`;}).join('');
+      return`<tr style="border-bottom:1px solid var(--bor)"><td style="padding:7px 12px"><div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${CAT_C[cat]};flex-shrink:0"></div><span>${CAT_L[cat]}</span></div></td><td class="r" style="padding:7px 12px;font-weight:600;color:${CAT_C[cat]}">${BRL(total)}</td><td class="r" style="padding:7px 12px;color:var(--txt2)">${PCT(pct)}</td>${mCols}</tr>`;
+    });
+    const tCols=cM.map(m=>{const v=cRows.filter(r=>r.m===m).reduce((s,r)=>s+r.v,0);return`<td class="r" style="padding:7px 12px;font-weight:600">${v>0?BRL(v):'—'}</td>`;}).join('');
+    tbody.innerHTML=rows.join('')+`<tr style="border-top:1.5px solid var(--bor2)"><td style="padding:7px 12px;font-weight:700">TOTAL</td><td class="r" style="padding:7px 12px;font-weight:700;color:var(--rd)">${BRL(grand)}</td><td class="r" style="padding:7px 12px;color:var(--txt2)">100,00%</td>${tCols}</tr>`;
   })();
 }
 
-
+// ── ANÁLISE
 function rAnalise(cur,prv,cs){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur);
   const co=cs.reduce((s,r)=>s+r.v,0),ll=a.lb-co;
@@ -1372,7 +1018,7 @@ function rAnalise(cur,prv,cs){
 
   const cards=[
     {icon:'📈',col:a.fat>=(ap.fat||0)?'var(--gr)':'var(--am)',title:'Resultado do período',body:`Faturamento de ${BRL(a.fat)}${fatDelta!==null?' ('+(fatDelta>0?'▲':'▼')+Math.abs(fatDelta).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% vs '+mL(pm)+')':''}. Lucro bruto: ${BRL(a.lb)} (${PCT(a.mgb)}).${co>0?' Lucro líquido: '+BRL(ll)+'.':''}`},
-    ...(isReis()?[{icon:'🏷️',col:'var(--bl)',title:'Lojista vs Cliente Final',body:sp.loj.qtd>0?`CF: ${sp.cli.qtd} vendas, ticket ${BRL(sp.cli.ticket)}, margem ${PCT(sp.cli.mgb)}. Lojista: ${sp.loj.qtd} vendas, ticket ${BRL(sp.loj.ticket)}, margem ${PCT(sp.loj.mgb)}. ${sp.cli.mgb>=sp.loj.mgb?'CF com margem superior — priorize este canal.':'Lojista com margem maior — verifique o mix.'}`:`100% cliente final (${sp.cli.qtd} vendas). Ticket: ${BRL(sp.cli.ticket)}, margem: ${PCT(sp.cli.mgb)}.`}]:[{icon:'🛡',col:'var(--bl)',title:'Mix de serviços',body:(()=>{const tops=topMods(cur,3).map(x=>x.m).join(', ');return `${a.qtd} serviços realizados no período. Ticket médio: ${BRL(a.fat/Math.max(a.qtd,1))}. ${tops?'Top serviços: '+tops+'.':''} Clientes únicos atendidos: ${NUM(a.clientes)}.`;})()}]),
+    {icon:'🏷️',col:'var(--bl)',title:'Lojista vs Cliente Final',body:sp.loj.qtd>0?`CF: ${sp.cli.qtd} vendas, ticket ${BRL(sp.cli.ticket)}, margem ${PCT(sp.cli.mgb)}. Lojista: ${sp.loj.qtd} vendas, ticket ${BRL(sp.loj.ticket)}, margem ${PCT(sp.loj.mgb)}. ${sp.cli.mgb>=sp.loj.mgb?'CF com margem superior — priorize este canal.':'Lojista com margem maior — verifique o mix.'}`:`100% cliente final (${sp.cli.qtd} vendas). Ticket: ${BRL(sp.cli.ticket)}, margem: ${PCT(sp.cli.mgb)}.`},
     {icon:'🔁',col:taxaRet>=8?'var(--gr)':'var(--am)',title:'Retenção de clientes',body:`${novos} novos e ${recorr} recorrentes (taxa ${PCT(taxaRet)}). ${taxaRet>=10?'Ótima retenção!':taxaRet>=6?'Razoável — ações de reativação podem ajudar.':'Baixa — considere follow-up WhatsApp com clientes do mês anterior.'}`},
     {icon:'📱',col:'var(--pu)',title:'Mix de produtos e pagamento',body:`${mods?'Top modelos: '+mods+'. ':''}Trocas: ${NUM(a.troca_q)} (${BRL(a.troca_v)}). ${(cur.filter(r=>r.meio==='P').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% PIX, ${(cur.filter(r=>r.meio==='C').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% cartão, ${(cur.filter(r=>r.meio==='X').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% combinado.${trafVal>0?' Tráfego: '+BRL(trafVal)+', ROAS: '+(a.fat/trafVal).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'x.':''}` }
   ];
@@ -1397,58 +1043,41 @@ function rAnalise(cur,prv,cs){
 
 // ══════════════════════════════════════════════════════════════════ FORECAST MODULE
 function buildFCHist(){
+  // Build monthly forecast history dynamically from live SALES data only (no cost data — this tab is faturamento/lucro bruto only)
   const months=[...new Set(SALES.map(r=>r.m))].sort();
   const GLOBAL_LAST_DATE=SALES.reduce((max,r)=>r.dt>max?r.dt:max,'0000-00-00');
   const GLOBAL_LAST_MONTH=GLOBAL_LAST_DATE.slice(0,7);
   const GLOBAL_LAST_DAY=parseInt(GLOBAL_LAST_DATE.slice(8,10))||1;
-  function daysInMonth(m){const[y,mo]=m.split('-').map(Number);return new Date(y,mo,0).getDate();}
+
+  function daysInMonth(m){
+    const[y,mo]=m.split('-').map(Number);
+    return new Date(y,mo,0).getDate();
+  }
   function garType(g){
     if(g==='lacrado'||g==='externo') return 'lacrado';
     if(g==='1ano'||g==='6meses'||g==='interno') return 'seminovo';
     return 'outro';
   }
-  function softCat(prod){
-    const p=String(prod||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    if(p.includes('ASSIST')) return 'assist';
-    if(p.includes('BLINDAGEM')||p.includes('BLINDADO')||p.includes('STICKER')||p.includes('RELOGIO')||p.includes('TABLET')||p.includes('NOTEBOOK')||p.includes('MULTIMIDIA')||p.includes('CAMERA')||(p.includes('SUPORTE')&&p.includes('BLIND'))) return 'blind';
-    if(p.includes('PLANO')||p.includes('UPGRADE')) return 'plano';
-    if(p.includes('GARANTIA')) return 'gar';
-    return 'acess';
-  }
+
   return months.map(m=>{
-    const rows=SALES.filter(r=>r.m===m);
+    const rows=SALES.filter(r=>r.m===m&&r.dev);
+    const cliRows=rows.filter(r=>!r.loj);
+    const lojRows=rows.filter(r=>r.loj);
+    const lacRows=rows.filter(r=>garType(r.gar)==='lacrado');
+    const seminovoRows=rows.filter(r=>garType(r.gar)==='seminovo');
     const sum=(arr,f)=>arr.reduce((s,r)=>s+(r[f]||0),0);
     const trafRows=CUSTOS.filter(r=>r.m===m&&r.cat==='mkt');
     const dInMonth=daysInMonth(m);
     const lastDay=(m===GLOBAL_LAST_MONTH)?GLOBAL_LAST_DAY:dInMonth;
-    if(isReis()){
-      const devRows=rows.filter(r=>r.dev);
-      const cliRows=devRows.filter(r=>!r.loj);
-      const lojRows=devRows.filter(r=>r.loj);
-      const lacRows=devRows.filter(r=>garType(r.gar)==='lacrado');
-      const semRows=devRows.filter(r=>garType(r.gar)==='seminovo');
-      return{m,qtd:devRows.length,fat:sum(devRows,'vtc'),lb:sum(devRows,'lb'),
-        qtd_cli:cliRows.length,lb_cli:sum(cliRows,'lb'),fat_cli:sum(cliRows,'vtc'),
-        qtd_loj:lojRows.length,lb_loj:sum(lojRows,'lb'),fat_loj:sum(lojRows,'vtc'),
-        qtd_lac:lacRows.length,lb_lac:sum(lacRows,'lb'),fat_lac:sum(lacRows,'vtc'),
-        qtd_1a:semRows.length,lb_1a:sum(semRows,'lb'),fat_1a:sum(semRows,'vtc'),
-        trafego:sum(trafRows,'v'),last_day:lastDay,days_total:dInMonth};
-    } else {
-      const blind=rows.filter(r=>softCat(r.prod)==='blind');
-      const assist=rows.filter(r=>softCat(r.prod)==='assist');
-      const plano=rows.filter(r=>softCat(r.prod)==='plano');
-      const gar=rows.filter(r=>softCat(r.prod)==='gar');
-      const acess=rows.filter(r=>softCat(r.prod)==='acess');
-      return{m,qtd:rows.length,fat:sum(rows,'vtc'),lb:sum(rows,'vtc'),
-        qtd_blind:blind.length,fat_blind:sum(blind,'vtc'),
-        qtd_assist:assist.length,fat_assist:sum(assist,'vtc'),
-        qtd_plano:plano.length,fat_plano:sum(plano,'vtc'),
-        qtd_gar:gar.length,fat_gar:sum(gar,'vtc'),
-        qtd_acess:acess.length,fat_acess:sum(acess,'vtc'),
-        trafego:sum(trafRows,'v'),last_day:lastDay,days_total:dInMonth,
-        qtd_cli:rows.length,lb_cli:sum(rows,'vtc'),fat_cli:sum(rows,'vtc'),
-        qtd_loj:0,lb_loj:0,fat_loj:0,qtd_lac:0,lb_lac:0,fat_lac:0,qtd_1a:0,lb_1a:0,fat_1a:0};
-    }
+    return{
+      m, qtd:rows.length, fat:sum(rows,'vtc'), lb:sum(rows,'lb'),
+      qtd_cli:cliRows.length, lb_cli:sum(cliRows,'lb'), fat_cli:sum(cliRows,'vtc'),
+      qtd_loj:lojRows.length, lb_loj:sum(lojRows,'lb'), fat_loj:sum(lojRows,'vtc'),
+      qtd_lac:lacRows.length, lb_lac:sum(lacRows,'lb'), fat_lac:sum(lacRows,'vtc'),
+      qtd_1a:seminovoRows.length, lb_1a:sum(seminovoRows,'lb'), fat_1a:sum(seminovoRows,'vtc'),
+      trafego:sum(trafRows,'v'),
+      last_day:lastDay, days_total:dInMonth
+    };
   });
 }
 let FC_HIST=[];
@@ -1523,10 +1152,6 @@ function fcAvgLast(field, nMonths){
 }
 
 function renderPrevisao(){
-  const garSh=document.getElementById('garSh');
-  const garGrid=document.getElementById('garGrid');
-  if(garSh)garSh.style.display=isReis()?'':'none';
-  if(garGrid)garGrid.style.display=isReis()?'':'none';
   FC_HIST=buildFCHist();
   if(!FC_HIST.length)return;
   const cur=FC_HIST[FC_HIST.length-1];
@@ -1535,115 +1160,28 @@ function renderPrevisao(){
 
   document.getElementById('fcCurMonthBadge').textContent=curMonthLabel+' — '+cur.last_day+' de '+cur.days_total+' dias registrados';
 
+  // ── Projections for current month (run-rate) ──
   const projFat=fcProjectCurrentMonth('fat');
   const projLb=fcProjectCurrentMonth('lb');
   const projQtd=fcProjectCurrentMonth('qtd');
-  const nextFat=fcNextMonthForecast('fat');
-  const nextLb=fcNextMonthForecast('lb');
-  const nextQtd=fcNextMonthForecast('qtd');
-  const growthFat=fcGrowthRate('fat');
-  const growthLb=fcGrowthRate('lb');
-
-  if(isSoft()){
-    // ── SOFT BLINDAGEM PREVISÃO ────────────────────────────────
-    document.getElementById('kg-fc').innerHTML=[
-      kpi('Faturamento projetado ('+curMonthLabel+')',BRLK(projFat),'Baseado no run-rate atual',null,'bl'),
-      kpi('Faturamento próximo mês',BRLK(nextFat),'Meta sugerida baseada no histórico',null,'pu'),
-      kpi('Crescimento mensal típico',PCT(growthFat),'Mediana dos últimos meses',null,growthFat>=0?'gr':'rd'),
-      kpi('Serviços projetados (mês)',NUM(projQtd),'Run-rate de '+NUM(cur.qtd)+' até agora',null,'am'),
-      kpi('Serviços próximo mês',NUM(nextQtd),'Meta de volume sugerida',null,'te'),
-      kpi('Dias registrados',NUM(cur.last_day)+' / '+NUM(cur.days_total),'Mês atual em andamento',null,'bl'),
-    ].join('');
-
-    // Chart: histórico faturamento
-    const last6=FC_HIST.slice(-7,-1);
-    const labels6=last6.map(r=>mL(r.m));
-    mkChart('c-fcFat',{type:'bar',data:{labels:[...labels6,curMonthLabel+' (parcial)',curMonthLabel+' (proj.)','Próx. mês (meta)'],
-      datasets:[{data:[...last6.map(r=>r.fat),cur.fat,projFat,nextFat],
-        backgroundColor:[...last6.map(()=>'rgba(13,158,80,.3)'),'#0d9e50','rgba(52,211,153,.6)','rgba(13,158,80,.7)'],borderRadius:4}]},
-      options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>' '+BRL(c.raw)}}}}});
-
-    mkChart('c-fcLb',{type:'bar',data:{labels:[...labels6,curMonthLabel+' (parcial)',curMonthLabel+' (proj.)','Próx. mês (meta)'],
-      datasets:[{data:[...last6.map(r=>r.fat),cur.fat,projFat,nextFat],
-        backgroundColor:[...last6.map(()=>'rgba(0,217,126,.25)'),'#00d97e','rgba(245,166,35,.55)','rgba(13,158,80,.65)'],borderRadius:4}]},
-      options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>' '+BRL(c.raw)}}}}});
-
-    // Forecast table — Soft categories
-    function fcRow(label,realized,proj,goal,growth){
-      const gCls=growth>0?'g':growth<0?'r':'a';
-      return`<tr style="border-bottom:1px solid var(--bor)">
-        <td style="padding:7px 12px;color:var(--txt2)">${label}</td>
-        <td class="r" style="padding:7px 12px;font-weight:500">${realized}</td>
-        <td class="r" style="padding:7px 12px;font-weight:600;color:var(--gr)">${proj}</td>
-        <td class="r" style="padding:7px 12px;font-weight:600;color:var(--pu)">${goal}</td>
-        <td class="r" style="padding:7px 12px"><span class="tag ${gCls}">${growth>0?'▲':growth<0?'▼':''} ${PCT(Math.abs(growth))}</span></td>
-      </tr>`;
-    }
-    const projBlind=fcProjectCurrentMonth('fat_blind'), nextBlind=fcNextMonthForecast('fat_blind');
-    const projAssist=fcProjectCurrentMonth('fat_assist'), nextAssist=fcNextMonthForecast('fat_assist');
-    const projPlano=fcProjectCurrentMonth('fat_plano'), nextPlano=fcNextMonthForecast('fat_plano');
-    document.getElementById('t-forecast').innerHTML=
-      fcRow('Faturamento total',BRL(cur.fat),BRL(projFat),BRL(nextFat),projFat>0?((nextFat-projFat)/projFat*100):0)+
-      fcRow('Serviços realizados',NUM(cur.qtd),NUM(projQtd),NUM(nextQtd),projQtd>0?((nextQtd-projQtd)/projQtd*100):0)+
-      fcRow('Blindagem',BRL(cur.fat_blind||0),BRL(projBlind),BRL(nextBlind),projBlind>0?((nextBlind-projBlind)/projBlind*100):0)+
-      fcRow('Assistência Técnica',BRL(cur.fat_assist||0),BRL(projAssist),BRL(nextAssist),projAssist>0?((nextAssist-projAssist)/projAssist*100):0)+
-      fcRow('Planos',BRL(cur.fat_plano||0),BRL(projPlano),BRL(nextPlano),projPlano>0?((nextPlano-projPlano)/projPlano*100):0);
-
-    // Trend: histórico 12 meses — qtd serviços
-    const last12=FC_HIST.slice(-12);
-    const labels12=last12.map(r=>mL(r.m));
-    mkChart('c-fcQtdTrend',{type:'line',data:{labels:labels12,datasets:[{
-      label:'Serviços realizados',data:last12.map(r=>r.qtd),
-      borderColor:'#0d9e50',backgroundColor:'rgba(13,158,80,.08)',borderWidth:2,pointRadius:3,fill:true,tension:.35}]},
-      options:{...cOpts({callback:v=>v}),plugins:{legend:{display:false},tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>' '+c.raw+' serviços'}}}}});
-
-    // Trend: faturamento por categoria
-    mkChart('c-fcLucroSplit',{type:'line',data:{labels:labels12,datasets:[
-      {label:'Blindagem',data:last12.map(r=>r.fat_blind||0),borderColor:'#0d9e50',backgroundColor:'rgba(13,158,80,.06)',borderWidth:2,pointRadius:3,fill:true,tension:.35},
-      {label:'Assistência',data:last12.map(r=>r.fat_assist||0),borderColor:'#34d399',backgroundColor:'rgba(52,211,153,.06)',borderWidth:2,pointRadius:3,fill:true,tension:.35},
-      {label:'Planos',data:last12.map(r=>r.fat_plano||0),borderColor:'#f5a623',backgroundColor:'rgba(245,166,35,.06)',borderWidth:2,pointRadius:3,fill:true,tension:.35},
-    ]},options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),
-      plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},
-        tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}}}});
-
-    // Tráfego
-    const trafHist=last12.filter(r=>r.trafego>0);
-    if(trafHist.length){
-      mkChart('c-fcTrafego',{type:'bar',data:{labels:trafHist.map(r=>mL(r.m)),datasets:[
-        {label:'Tráfego investido',data:trafHist.map(r=>r.trafego),backgroundColor:'#f5a623',borderRadius:4,yAxisID:'y'},
-        {label:'Faturamento gerado',data:trafHist.map(r=>r.fat),backgroundColor:'rgba(13,158,80,.4)',borderRadius:4,yAxisID:'y1'},
-      ]},options:{responsive:true,maintainAspectRatio:false,scales:{
-        x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},
-        y:{position:'left',grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+v.toLocaleString('pt-BR')}},
-        y1:{position:'right',grid:{display:false},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}
-      },plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},
-        tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}}}});
-    }
-
-    const aboxEl=document.getElementById('fcAbox');
-    if(aboxEl) aboxEl.innerHTML=`<div class="abox-hdr"><span style="font-size:17px">🔮</span><span class="abox-title">Como a previsão é calculada</span></div>
-      <div style="font-size:12px;color:var(--txt2);line-height:1.7">
-        <strong style="color:var(--txt)">Run-rate:</strong> faturamento acumulado no mês ÷ dias corridos × dias no mês.<br>
-        <strong style="color:var(--txt)">Meta próximo mês:</strong> mediana do crescimento MoM dos últimos meses aplicada sobre a projeção atual (cap ±15%).<br>
-        <strong style="color:var(--txt)">Categorias:</strong> projeção individual para Blindagem, Assistência e Planos baseada no mesmo histórico proporcional.<br>
-        <strong style="color:var(--txt)">Importante:</strong> esta aba usa exclusivamente dados de faturamento — nenhum custo operacional da Soft Blindagem entra nesse cálculo.
-      </div>`;
-    return;
-  }
-
-  // ══ REIS PHONES PREVISÃO (original) ═══════════════════════════
   const projLbCli=fcProjectCurrentMonth('lb_cli');
   const projLbLoj=fcProjectCurrentMonth('lb_loj');
   const projQtdLac=fcProjectCurrentMonth('qtd_lac');
   const projQtd1a=fcProjectCurrentMonth('qtd_1a');
   const projLbLac=fcProjectCurrentMonth('lb_lac');
   const projLb1a=fcProjectCurrentMonth('lb_1a');
+
+  // ── Next month forecast (trend-based) ──
+  const nextFat=fcNextMonthForecast('fat');
+  const nextLb=fcNextMonthForecast('lb');
+  const nextQtd=fcNextMonthForecast('qtd');
   const nextLbCli=fcNextMonthForecast('lb_cli');
   const nextLbLoj=FC_HIST.filter(r=>r.qtd_loj>0).length>=2?fcNextMonthForecast('lb_loj',Math.min(4,FC_HIST.filter(r=>r.qtd_loj>0).length)):0;
   const nextQtdLac=FC_HIST.filter(r=>r.qtd_lac>0).length>=2?fcNextMonthForecast('qtd_lac',Math.min(4,FC_HIST.filter(r=>r.qtd_lac>0).length)):0;
   const nextQtd1a=FC_HIST.filter(r=>r.qtd_1a>0).length>=2?fcNextMonthForecast('qtd_1a',Math.min(4,FC_HIST.filter(r=>r.qtd_1a>0).length)):0;
+
+  const growthFat=fcGrowthRate('fat');
+  const growthLb=fcGrowthRate('lb');
 
   // ── KPI cards ──
   document.getElementById('kg-fc').innerHTML=[
