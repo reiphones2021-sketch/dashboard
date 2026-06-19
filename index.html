@@ -212,11 +212,11 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 </div>
 <div class="tabs">
   <div class="tab active" onclick="showTab('visao',this)">📊 Visão Geral</div>
+  <div class="tab" onclick="showTab('previsao',this)">🔮 Previsão</div>
+  <div class="tab" onclick="showTab('custos',this)">💰 Custos & Lucro</div>
   <div class="tab" onclick="showTab('clientes',this)">👥 Clientes</div>
   <div class="tab" onclick="showTab('marketing',this)">📣 Marketing</div>
-  <div class="tab" onclick="showTab('custos',this)">💰 Custos & Lucro</div>
   <div class="tab" onclick="showTab('analise',this)">🤖 Análise</div>
-  <div class="tab" onclick="showTab('previsao',this)">🔮 Previsão</div>
 </div>
 
 <div class="content">
@@ -890,8 +890,8 @@ function rCustos(cur,prv,cs,csp){
   const ll=a.lb-co,llp=ap.lb-cop;
   document.getElementById('kg-cu').innerHTML=[
     kpi('Custos totais Reis',co>0?BRL(co):'Sem registro',co>0?NUM(cs.length)+' lançamentos':'Não registrado',co>0&&cop>0?dlt(co,cop):null,'rd'),
-    kpi('Lucro bruto',BRL(a.lb),PCT(a.mgb)+' margem',dlt(a.lb,ap.lb),'gr'),
-    kpi('Lucro líquido',co>0?BRL(ll):'—',co>0?PCT(a.fat>0?ll/a.fat*100:0)+' margem':'Custo não registrado',co>0&&cop>0?dlt(ll,llp):null,ll>=0||co===0?'gr':'rd'),
+    kpi('Lucro bruto',BRL(a.lb),'Venda − custo produto − taxa cartão',dlt(a.lb,ap.lb),'gr'),
+    kpi('Lucro líquido',co>0?BRL(ll):'—',co>0?'Lucro bruto − custos Reis Phones':'Custos não registrados',co>0&&cop>0?dlt(ll,llp):null,ll>=0||co===0?'gr':'rd'),
     kpi('Margem bruta CF',PCT(sp.cli.mgb),'iPhone cliente final',dlt(sp.cli.mgb,spp.cli.mgb),'am'),
     kpi('Margem bruta lojista',sp.loj.qtd>0?PCT(sp.loj.mgb):'—','iPhone lojista',null,'bl'),
     kpi('Taxa cartão',BRL(a.taxa),PCT(a.fat>0?a.taxa/a.fat*100:0)+' do fat.',dlt(a.taxa,ap.taxa),'pu'),
@@ -907,14 +907,61 @@ function rCustos(cur,prv,cs,csp){
   mkChart('c-lucros',{type:'line',data:{labels:lD.map(x=>mL(x.m)),datasets:[{label:'Lucro bruto',data:lD.map(x=>x.lb),borderColor:'#00d97e',backgroundColor:'rgba(0,217,126,.08)',borderWidth:2,pointRadius:3,fill:true,tension:.3},{label:'Lucro líquido',data:lD.map(x=>x.ll),borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,.06)',borderWidth:2,pointRadius:3,borderDash:[4,3],fill:true,tension:.3,spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}}},plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},tooltip:{backgroundColor:'#1a2235',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>c.raw!==null?` ${c.dataset.label}: ${BRL(c.raw)}`:' Sem dado'}}}}});
   document.getElementById('t-cu').innerHTML=[
     ['Faturamento',BRL(sp.cli.fat),BRL(sp.loj.fat),BRL(a.fat),BRL(ap.fat),dlt(a.fat,ap.fat)],
-    ['Lucro bruto',BRL(sp.cli.lb),BRL(sp.loj.lb),BRL(a.lb),BRL(ap.lb),dlt(a.lb,ap.lb)],
+    ['Lucro bruto (venda−custo−taxa)',BRL(sp.cli.lb),BRL(sp.loj.lb),BRL(a.lb),BRL(ap.lb),dlt(a.lb,ap.lb)],
     ['Margem bruta',PCT(sp.cli.mgb),sp.loj.qtd>0?PCT(sp.loj.mgb):'—',PCT(a.mgb),PCT(ap.mgb),dlt(a.mgb,ap.mgb)],
     ['Ticket (Lucro/iPhone)',BRL(sp.cli.ticket),sp.loj.qtd>0?BRL(sp.loj.ticket):'—',BRL(a.ticket),BRL(ap.ticket),dlt(a.ticket,ap.ticket)],
     ['Transações',NUM(sp.cli.qtd),NUM(sp.loj.qtd),NUM(a.qtd),NUM(ap.qtd),dlt(a.qtd,ap.qtd)],
-    ['Custos Reis','—','—',co>0?BRL(co):'Sem reg.',cop>0?BRL(cop):'—',co>0&&cop>0?dlt(co,cop):null],
-    ['Lucro líquido','—','—',co>0?BRL(ll):'—',cop>0?BRL(llp):'—',co>0&&cop>0?dlt(ll,llp):null],
+    ['Custos Reis Phones','—','—',co>0?BRL(co):'Sem reg.',cop>0?BRL(cop):'—',co>0&&cop>0?dlt(co,cop):null],
+    ['Lucro líquido (bruto−custos Reis)','—','—',co>0?BRL(ll):'—',cop>0?BRL(llp):'—',co>0&&cop>0?dlt(ll,llp):null],
     ['Taxa cartão','—','—',BRL(a.taxa),BRL(ap.taxa),dlt(a.taxa,ap.taxa)],
   ].map(([l,c1,c2,tot,prv2,d])=>`<tr style="border-bottom:1px solid var(--bor)"><td style="padding:7px 12px;color:var(--txt2)">${l}</td><td class="r" style="padding:7px 12px;color:var(--te)">${c1}</td><td class="r" style="padding:7px 12px;color:var(--am)">${c2}</td><td class="r" style="padding:7px 12px;font-weight:600">${tot}</td><td class="r" style="padding:7px 12px;color:var(--txt2)">${prv2}</td><td class="r" style="padding:7px 12px">${d?`<span class="kd ${d.cls}" style="font-size:11px">${d.s}</span>`:'—'}</td></tr>`).join('');
+
+  // ── Custo por venda ──────────────────────────────────
+  const qtdDev=cur.filter(r=>r.dev).length;
+  const custoPorVenda=qtdDev>0?co/qtdDev:0;
+  const lucroAposOp=a.lb>0&&co>0?((a.lb-co)/a.lb*100):null;
+  const catTots={ret:0,sal_s:0,com_s:0,sal_b:0,com_v:0,mkt:0,gar:0,log:0,merc:0,adm:0,out:0};
+  cs.forEach(r=>{if(catTots[r.cat]!==undefined)catTots[r.cat]+=r.v;else catTots.out+=r.v;});
+  const catRows=Object.entries({
+    'Retiradas sócios':catTots.ret,
+    'Salários/Comissões':catTots.sal_s+catTots.com_s+catTots.sal_b+catTots.com_v,
+    'Marketing/Tráfego':catTots.mkt,
+    'Garantias':catTots.gar,
+    'Logística':catTots.log,
+    'Administrativo':catTots.adm+catTots.out
+  }).filter(([,v])=>v>0);
+
+  const custEl=document.getElementById('t-cu').closest('.tw');
+  // Remove existing block to avoid duplication on re-render
+  const existingBlock=document.getElementById('custoPorVendaBlock');
+  if(existingBlock)existingBlock.remove();
+  if(co>0&&qtdDev>0){
+    const block=`<div id="custoPorVendaBlock"><div class="sh" style="margin-top:20px"><span class="st">Custo por aparelho vendido</span></div>
+    <div style="background:linear-gradient(135deg,rgba(245,166,35,.07),rgba(245,166,35,.03));border:1px solid rgba(245,166,35,.25);border-radius:var(--r);padding:18px 20px;margin-top:2px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:${catRows.length>0?'16':'0'}px;">
+        <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;border:1px solid rgba(245,166,35,.2);">
+          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Custo médio por venda</div>
+          <div style="font-size:22px;font-weight:700;color:var(--am)">${BRL(custoPorVenda)}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">${BRL(co)} ÷ ${NUM(qtdDev)} aparelhos</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;border:1px solid rgba(0,217,126,.2);">
+          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Lucro líquido por venda</div>
+          <div style="font-size:22px;font-weight:700;color:${ll/qtdDev>=0?'var(--gr)':'var(--rd)'}">${BRL(ll/qtdDev)}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">Lucro bruto ${BRL(a.lb/qtdDev)} − custo op. ${BRL(custoPorVenda)}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;border:1px solid var(--bor);">
+          <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Ponto de equilíbrio</div>
+          <div style="font-size:22px;font-weight:700;color:var(--bl)">${co>0?NUM(Math.ceil(co/Math.max(a.lb/Math.max(qtdDev,1),1))):'-'} vendas</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:3px;">Vendas necessárias para cobrir os custos op.</div>
+        </div>
+      </div>
+      ${catRows.length>0?`<div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Custo por categoria ÷ aparelho</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px;">
+        ${catRows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:6px;padding:7px 10px;font-size:12px;"><span style="color:var(--txt2)">${l}</span><span style="font-weight:600;color:var(--txt)">${BRL(v/qtdDev)}<span style="font-size:10px;color:var(--txt3);font-weight:400"> /venda</span></span></div>`).join('')}
+      </div>`:''}
+    </div></div>`;
+    custEl.insertAdjacentHTML('afterend', block);
+  }
   // Full discriminated costs table
   (function(){
     const cRows=CUSTOS.filter(r=>{
@@ -954,13 +1001,29 @@ function rAnalise(cur,prv,cs){
   const mods=topMods(cur,3).map(x=>x.m).join(', ');
   const fatDelta=ap.fat>0?((a.fat-ap.fat)/ap.fat*100):null;
   const trafVal=cs.filter(r=>r.cat==='traf').reduce((s,r)=>s+r.v,0);
+
+
   const cards=[
     {icon:'📈',col:a.fat>=(ap.fat||0)?'var(--gr)':'var(--am)',title:'Resultado do período',body:`Faturamento de ${BRL(a.fat)}${fatDelta!==null?' ('+(fatDelta>0?'▲':'▼')+Math.abs(fatDelta).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% vs '+mL(pm)+')':''}. Lucro bruto: ${BRL(a.lb)} (${PCT(a.mgb)}).${co>0?' Lucro líquido: '+BRL(ll)+'.':''}`},
     {icon:'🏷️',col:'var(--bl)',title:'Lojista vs Cliente Final',body:sp.loj.qtd>0?`CF: ${sp.cli.qtd} vendas, ticket ${BRL(sp.cli.ticket)}, margem ${PCT(sp.cli.mgb)}. Lojista: ${sp.loj.qtd} vendas, ticket ${BRL(sp.loj.ticket)}, margem ${PCT(sp.loj.mgb)}. ${sp.cli.mgb>=sp.loj.mgb?'CF com margem superior — priorize este canal.':'Lojista com margem maior — verifique o mix.'}`:`100% cliente final (${sp.cli.qtd} vendas). Ticket: ${BRL(sp.cli.ticket)}, margem: ${PCT(sp.cli.mgb)}.`},
     {icon:'🔁',col:taxaRet>=8?'var(--gr)':'var(--am)',title:'Retenção de clientes',body:`${novos} novos e ${recorr} recorrentes (taxa ${PCT(taxaRet)}). ${taxaRet>=10?'Ótima retenção!':taxaRet>=6?'Razoável — ações de reativação podem ajudar.':'Baixa — considere follow-up WhatsApp com clientes do mês anterior.'}`},
-    {icon:'📱',col:'var(--pu)',title:'Mix de produtos e pagamento',body:`${mods?'Top modelos: '+mods+'. ':''}Trocas: ${NUM(a.troca_q)} (${BRL(a.troca_v)}). ${(cur.filter(r=>r.meio==='P').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% PIX, ${(cur.filter(r=>r.meio==='C').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% cartão, ${(cur.filter(r=>r.meio==='X').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% combinado.${trafVal>0?' Tráfego: '+BRL(trafVal)+', ROAS: '+(a.fat/trafVal).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'x.':''}` },
+    {icon:'📱',col:'var(--pu)',title:'Mix de produtos e pagamento',body:`${mods?'Top modelos: '+mods+'. ':''}Trocas: ${NUM(a.troca_q)} (${BRL(a.troca_v)}). ${(cur.filter(r=>r.meio==='P').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% PIX, ${(cur.filter(r=>r.meio==='C').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% cartão, ${(cur.filter(r=>r.meio==='X').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% combinado.${trafVal>0?' Tráfego: '+BRL(trafVal)+', ROAS: '+(a.fat/trafVal).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'x.':''}` }
   ];
-  document.getElementById('analiseContent').innerHTML=`<div style="font-size:18px;font-weight:700;margin-bottom:4px;letter-spacing:-.3px">Análise — ${mL(curMes)}${diaIni===1&&diaFim===31?'':' ('+diaIni+'–'+diaFim+')'}</div><div style="font-size:12px;color:var(--txt2);margin-bottom:20px">Gerado automaticamente · ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:13px">${cards.map(c=>`<div style="background:var(--bg2);border:1px solid var(--bor);border-left:3px solid ${c.col};border-radius:var(--r);padding:15px 17px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:17px">${c.icon}</span><span style="font-size:13px;font-weight:600;color:${c.col}">${c.title}</span></div><div style="font-size:12.5px;color:var(--txt2);line-height:1.6">${c.body}</div></div>`).join('')}</div><div class="abox" style="margin-top:16px"><div class="abox-hdr"><span style="font-size:17px">📊</span><span class="abox-title">Resumo executivo</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">${[['Faturamento',BRL(a.fat)],['Lucro bruto',BRL(a.lb)],['Margem bruta',PCT(a.mgb)],['Transações',NUM(a.qtd)],['Clientes únicos',NUM(a.clientes)],['Ticket (Lucro/iPhone CF)',BRL(sp.cli.ticket)],['Trocas',NUM(a.troca_q)],['Taxa cartão',BRL(a.taxa)]].map(([l,v])=>`<div><div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${l}</div><div style="font-size:14px;font-weight:700">${v}</div></div>`).join('')}</div></div>`;
+
+
+  document.getElementById('analiseContent').innerHTML=`
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px;letter-spacing:-.3px">Análise — ${mL(curMes)}${diaIni===1&&diaFim===31?'':' ('+diaIni+'–'+diaFim+')'}</div>
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:20px">Gerado automaticamente · ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:13px">
+      ${cards.map(c=>`<div style="background:var(--bg2);border:1px solid var(--bor);border-left:3px solid ${c.col};border-radius:var(--r);padding:15px 17px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:17px">${c.icon}</span><span style="font-size:13px;font-weight:600;color:${c.col}">${c.title}</span></div><div style="font-size:12.5px;color:var(--txt2);line-height:1.6">${c.body}</div></div>`).join('')}
+    </div>
+
+    <div class="abox" style="margin-top:14px">
+      <div class="abox-hdr"><span style="font-size:17px">📊</span><span class="abox-title">Resumo executivo</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+        ${[['Faturamento',BRL(a.fat)],['Lucro bruto',BRL(a.lb)],['Margem bruta',PCT(a.mgb)],['Lucro líquido',co>0?BRL(ll):'—'],['Transações',NUM(a.qtd)],['Clientes únicos',NUM(a.clientes)],['Ticket (Lucro/iPhone CF)',BRL(sp.cli.ticket)],['Taxa cartão',BRL(a.taxa)]].map(([l,v])=>`<div><div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${l}</div><div style="font-size:14px;font-weight:700">${v}</div></div>`).join('')}
+      </div>
+    </div>`;
 }
 
 // TABS
