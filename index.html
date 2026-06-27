@@ -258,7 +258,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 <div id="p-visao" class="panel active">
   <div class="kg" id="kg-v"></div>
   <div class="cg c2">
-    <div class="card"><div class="ct">Faturamento x Lucro — últimos 6 meses</div><div style="height:200px"><canvas id="c-fatLb"></canvas></div></div>
+    <div class="card"><div class="ct" id="fat6mCt">Faturamento x Lucro — últimos 6 meses</div><div style="height:200px"><canvas id="c-fatLb"></canvas></div></div>
     <div class="card"><div class="ct" id="topModsCt">Top 10 aparelhos vendidos no período</div><div id="topMods" style="margin-top:2px;max-height:220px;overflow-y:auto"></div></div>
   </div>
   <div class="sh" id="splitSh"><span class="st" id="splitTitle">Lojista vs Cliente Final</span><span class="sb" id="splitBadge"></span></div>
@@ -1052,7 +1052,9 @@ function rVisao(cur,prv,cs,csp){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur),spp=aSplit(prv);
 
   if(isSoft()){
-    // ══ SOFT BLINDAGEM — same layout pattern as Reis Phones ══════
+    // ══ SOFT BLINDAGEM — Visão Geral ══════════════════════════════
+    // REIS PHONES DATA IS COMPLETELY SEPARATE — nothing from Reis appears here
+
     function catOf(prod){
       const p=String(prod||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       if(p.includes('ASSIST')) return 'assist';
@@ -1076,7 +1078,7 @@ function rVisao(cur,prv,cs,csp){
     const fatG=fatFn(rGar),fatG_p=fatFn(rGar_p);
     const fatAc=fatFn(rAcess),fatAc_p=fatFn(rAcess_p);
 
-    // ── KPI Cards (same style as Reis Phones) ────────────────────
+    // ── KPI Cards ─────────────────────────────────────────────────
     document.getElementById('kg-v').innerHTML=[
       kpi('Faturamento',BRL(a.fat),'Total do período',dlt(a.fat,ap.fat),'bl'),
       kpi('Serviços realizados',NUM(a.qtd),'Atendimentos',dlt(a.qtd,ap.qtd),'bl'),
@@ -1086,80 +1088,93 @@ function rVisao(cur,prv,cs,csp){
       kpi('Assistência',NUM(rAssist.length),'Fat. '+BRL(fatA),dlt(rAssist.length,rAssist_p.length),'te'),
     ].join('');
 
-    // ── 6-month chart: faturamento histórico (same as Reis) ──────
-    const months6=[...new Set(SALES.map(r=>r.m))].sort().slice(-6);
-    mkChart('c-fat6m',{type:'bar',data:{labels:months6.map(m=>mL(m)),
-      datasets:[
-        {label:'Faturamento',data:months6.map(m=>SALES.filter(r=>r.m===m).reduce((s,r)=>s+r.vtc,0)),backgroundColor:'rgba(29,90,154,.5)',borderRadius:4,order:2},
-      ]},
+    // ── Gráfico: faturamento histórico (SÓ faturamento, sem lucro) ─
+    const fat6mCt=document.getElementById('fat6mCt');
+    if(fat6mCt)fat6mCt.textContent='Faturamento — últimos 6 meses';
+    const months6s=[...new Set(SALES.map(r=>r.m))].sort().slice(-6);
+    mkChart('c-fatLb',{type:'bar',data:{labels:months6s.map(m=>mL(m)),
+      datasets:[{label:'Faturamento',data:months6s.map(m=>SALES.filter(r=>r.m===m).reduce((s,r)=>s+r.vtc,0)),
+        backgroundColor:'rgba(13,158,80,.55)',borderRadius:4}]},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#0d1f3c',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',callbacks:{label:c=>` ${BRL(c.raw)}`}}},
-        scales:{x:{grid:{color:'rgba(29,90,154,.12)'},ticks:{color:TXT2,font:{size:11}}},
-                y:{grid:{color:'rgba(29,90,154,.12)'},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}}}});
+        plugins:{legend:{display:false},
+          tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>` ${BRL(c.raw)}`}}},
+        scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},
+                y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}}}});
 
-    // ── Top 10 serviços (by product name, not model) ─────────────
+    // ── Top 10 serviços mais vendidos (usa prod, não modelo) ───────
+    const ctEl=document.getElementById('topModsCt');
+    if(ctEl)ctEl.textContent='Top 10 serviços mais vendidos';
     const pMap={};
     cur.forEach(r=>{const k=String(r.prod||'').trim().toUpperCase();if(k)pMap[k]=(pMap[k]||0)+1;});
     const tops=Object.entries(pMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
     const maxT=tops[0]?tops[0][1]:1;
-    const ctEl=document.getElementById('topModsCt');
-    if(ctEl)ctEl.textContent='Top 10 serviços no período';
     document.getElementById('topMods').innerHTML=tops.map(([n,c])=>`
       <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bor)">
         <span style="flex:1;font-size:12px;color:var(--txt)">${n}</span>
-        <div style="width:140px;height:6px;background:rgba(29,90,154,.2);border-radius:3px;overflow:hidden">
-          <div style="height:100%;background:var(--bll);border-radius:3px;width:${(c/maxT*100).toFixed(0)}%"></div>
+        <div style="width:130px;height:6px;background:rgba(13,158,80,.15);border-radius:3px;overflow:hidden">
+          <div style="height:100%;background:#0d9e50;border-radius:3px;width:${(c/maxT*100).toFixed(0)}%"></div>
         </div>
         <span style="font-size:12px;font-weight:600;color:var(--txt);width:24px;text-align:right">${c}</span>
       </div>`).join('');
 
-    // ── Category breakdown (replaces Lojista vs CF) ──────────────
+    // ── Ranking de itens mais vendidos (no lugar de lojista/CF) ────
     document.getElementById('splitSh').style.display='';
     document.getElementById('splitCards').style.display='';
     const stEl=document.getElementById('splitTitle');
-    if(stEl)stEl.textContent='Categorias de serviço';
+    if(stEl)stEl.textContent='Ranking de serviços';
     const sbEl=document.getElementById('splitBadge');
     if(sbEl)sbEl.textContent=`${NUM(a.qtd)} serviços · ${BRL(a.fat)}`;
 
     const catData=[
-      {label:'Blindagem',rows:rBlind,fat:fatB,fatP:fatB_p,col:'var(--bl)'},
-      {label:'Assistência Técnica',rows:rAssist,fat:fatA,fatP:fatA_p,col:'var(--te)'},
-      {label:'Planos',rows:rPlano,fat:fatP,fatP:fatP_p,col:'var(--gr)'},
-      {label:'Garantia Estendida',rows:rGar,fat:fatG,fatP:fatG_p,col:'var(--am)'},
-      {label:'Acessórios',rows:rAcess,fat:fatAc,fatP:fatAc_p,col:'var(--pu)'},
+      {label:'🛡 Blindagem',rows:rBlind,fat:fatB,fatP:fatB_p,col:'#0d9e50'},
+      {label:'🔧 Assistência Técnica',rows:rAssist,fat:fatA,fatP:fatA_p,col:'#34d399'},
+      {label:'📋 Planos',rows:rPlano,fat:fatP,fatP:fatP_p,col:'#f5a623'},
+      {label:'✅ Garantia Estendida',rows:rGar,fat:fatG,fatP:fatG_p,col:'#5b9bd5'},
+      {label:'🎧 Acessórios',rows:rAcess,fat:fatAc,fatP:fatAc_p,col:'#a78bfa'},
     ];
-    const makeCatCard=(cat)=>`
-      <div class="sc" style="border-left:3px solid ${cat.col}">
-        <div class="sc-title" style="color:${cat.col}">${cat.label}</div>
+    document.getElementById('sc-cli').outerHTML=`<div id="sc-cli" style="display:contents">${
+      catData.slice(0,3).map(c=>`<div class="sc" style="border-left:3px solid ${c.col}">
+        <div class="sc-title" style="color:${c.col}">${c.label}</div>
         <div class="cg c2" style="margin-top:10px">
-          ${scI('SERVIÇOS',NUM(cat.rows.length),dlt(cat.rows.length,cat.rows===rBlind?rBlind_p.length:cat.rows===rAssist?rAssist_p.length:cat.rows===rPlano?rPlano_p.length:cat.rows===rGar?rGar_p.length:rAcess_p.length),'bl')}
-          ${scI('FATURAMENTO',BRL(cat.fat),dlt(cat.fat,cat.fatP),'gr')}
-          ${scI('TICKET MÉDIO',BRL(cat.fat/Math.max(cat.rows.length,1)),null,'am')}
-          ${scI('% DO TOTAL',PCT(a.fat>0?cat.fat/a.fat*100:0),null,'pu')}
+          ${scI('SERVIÇOS',NUM(c.rows.length),dlt(c.rows.length,c.rows===rBlind?rBlind_p.length:c.rows===rAssist?rAssist_p.length:rPlano_p.length),'bl')}
+          ${scI('FATURAMENTO',BRL(c.fat),dlt(c.fat,c.fatP),'gr')}
+          ${scI('TICKET MÉDIO',BRL(c.fat/Math.max(c.rows.length,1)),null,'am')}
+          ${scI('% DO TOTAL',PCT(a.fat>0?c.fat/a.fat*100:0),null,'pu')}
         </div>
-      </div>`;
-    document.getElementById('sc-cli').outerHTML=`<div id="sc-cli" style="display:contents">${catData.slice(0,3).map(makeCatCard).join('')}</div>`;
-    document.getElementById('sc-loj').outerHTML=`<div id="sc-loj" style="display:contents">${catData.slice(3).map(makeCatCard).join('')}</div>`;
+      </div>`).join('')
+    }</div>`;
+    document.getElementById('sc-loj').outerHTML=`<div id="sc-loj" style="display:contents">${
+      catData.slice(3).map(c=>`<div class="sc" style="border-left:3px solid ${c.col}">
+        <div class="sc-title" style="color:${c.col}">${c.label}</div>
+        <div class="cg c2" style="margin-top:10px">
+          ${scI('SERVIÇOS',NUM(c.rows.length),dlt(c.rows.length,c.rows===rGar?rGar_p.length:rAcess_p.length),'bl')}
+          ${scI('FATURAMENTO',BRL(c.fat),dlt(c.fat,c.fatP),'gr')}
+          ${scI('TICKET MÉDIO',BRL(c.fat/Math.max(c.rows.length,1)),null,'am')}
+          ${scI('% DO TOTAL',PCT(a.fat>0?c.fat/a.fat*100:0),null,'pu')}
+        </div>
+      </div>`).join('')
+    }</div>`;
 
-    // ── Hide Reis-only sections ───────────────────────────────────
+    // ── Ocultar seções que não existem na Soft ─────────────────────
     document.getElementById('pgtoSh').style.display='none';
     document.getElementById('pgtoGrid').style.display='none';
     const garSh=document.getElementById('garSh');if(garSh)garSh.style.display='none';
     const garGrid=document.getElementById('garGrid');if(garGrid)garGrid.style.display='none';
 
-    // ── Comparativo table ─────────────────────────────────────────
-    const ap2=agg(prv);
+    // ── Comparativo com período anterior (dados da Soft) ───────────
+    const ap2=agg(prv); // prv = SALES da Soft filtrado pelo período anterior
     document.getElementById('cmpTable').innerHTML=`<table style="width:100%;border-collapse:collapse">
       <thead><tr>
         <th style="padding:6px 10px;color:var(--te);font-size:10px;text-align:left;text-transform:uppercase;border-bottom:1px solid var(--bor)">Métrica</th>
-        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${mL(curMes)}</th>
-        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${mL(prevM(curMes))}</th>
+        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${window._startStr?window._startStr.slice(0,10):''} → ${window._endStr?window._endStr.slice(0,10):''}</th>
+        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">Período anterior</th>
         <th style="padding:6px 10px;font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">Δ</th>
       </tr></thead>
       <tbody>${[
         ['Faturamento total',BRL(a.fat),BRL(ap2.fat),dlt(a.fat,ap2.fat)],
         ['Serviços realizados',NUM(a.qtd),NUM(ap2.qtd),dlt(a.qtd,ap2.qtd)],
         ['Ticket médio',BRL(a.fat/Math.max(a.qtd,1)),BRL(ap2.fat/Math.max(ap2.qtd,1)),dlt(a.fat/Math.max(a.qtd,1),ap2.fat/Math.max(ap2.qtd,1))],
+        ['Clientes únicos',NUM(a.clientes),NUM(ap2.clientes),dlt(a.clientes,ap2.clientes)],
         ['Blindagens',NUM(rBlind.length),NUM(rBlind_p.length),dlt(rBlind.length,rBlind_p.length)],
         ['Assistência técnica',NUM(rAssist.length),NUM(rAssist_p.length),dlt(rAssist.length,rAssist_p.length)],
         ['Planos',NUM(rPlano.length),NUM(rPlano_p.length),dlt(rPlano.length,rPlano_p.length)],
@@ -1182,6 +1197,8 @@ function rVisao(cur,prv,cs,csp){
   document.getElementById('kg-v').innerHTML=kGrid.join('');
 
   // ── 6-month fat x lb chart ────────────────────────────────────
+  const fat6mCtR=document.getElementById('fat6mCt');
+  if(fat6mCtR)fat6mCtR.textContent='Faturamento x Lucro — últimos 6 meses';
   const months6=[...new Set(SALES.filter(r=>r.dev).map(r=>r.m))].sort().slice(-6);
   mkChart('c-fatLb',{type:'bar',data:{labels:months6.map(m=>mL(m)),datasets:[
     {label:'Faturamento',data:months6.map(m=>SALES.filter(r=>r.dev&&r.m===m).reduce((s,r)=>s+r.vtc,0)),backgroundColor:'rgba(29,90,154,.5)',borderRadius:4,order:2},
@@ -1436,8 +1453,14 @@ function rCustos(cur,prv,cs,csp){
     const months=[...new Set([...cs,...csp].map(r=>r.m))].sort().slice(-6);
     const catLabels={ret:'Retiradas',sal_s:'Sal. Sandy',com_s:'Com. Sandy',sal_b:isReis()?'Estagiária':'Outros Sal.',traf:'Marketing',gar:'Garantias',adm:'Administrativo',log:'Logística',out:'Outros'};
     const cats2=Object.keys(catLabels).filter(k=>cs.some(r=>r.cat===k)||csp.some(r=>r.cat===k));
-    const tbody=document.getElementById('t-cu2');
+    const tbody=document.getElementById('t-full-custos');
+    const hdr=document.getElementById('t-full-custos-hdr');
     if(!tbody)return;
+    // Update section title per company
+    const shEl=tbody.closest('.tw')?.previousElementSibling?.querySelector('.st');
+    if(shEl)shEl.textContent=isReis()?'Custos discriminados — Reis Phones':'Custos discriminados — Soft Blindagem';
+    // Add month columns to header
+    if(hdr)hdr.innerHTML='<th>Categoria</th><th class="r">Total</th><th class="r">% dos custos</th>'+months.map(m=>`<th class="r">${mL(m)}</th>`).join('');
     const grand=cs.reduce((s,r)=>s+r.v,0);
     const tCols=months.map(m=>{
       const mv=cs.filter(r=>r.m===m).reduce((s,r)=>s+r.v,0);
