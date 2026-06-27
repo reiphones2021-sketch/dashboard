@@ -1007,6 +1007,7 @@ function dlt(c,p){if(!p||p===0)return null;const pct=(c-p)/Math.abs(p)*100;retur
 function kpi(l,v,sub,d,col){return `<div class="kc ${col}"><div class="kl">${l}</div><div class="kv ${col}">${v}</div><div class="ks">${sub}</div>${d?`<div class="kd ${d.cls}">${d.s} vs anterior</div>`:''}</div>`;}
 function brs(items,lf,vf,cf,fmt){const max=Math.max(...items.map(vf),1);return items.map(it=>`<div class="br-row"><div class="br-lbl" title="${lf(it)}">${lf(it)}</div><div class="br-bg"><div class="br-fill" style="width:${(vf(it)/max*100).toFixed(2)}%;background:${cf(it)}"></div></div><div class="br-val">${fmt?fmt(vf(it)):NUM(vf(it))}</div></div>`).join('');}
 function scG(s,col){const c=col==='cli'?'var(--te)':'var(--am)';return[['Vendas',NUM(s.qtd)],['Faturamento',BRL(s.fat)],['Lucro bruto',BRL(s.lb)],['Margem',PCT(s.mgb)],['Ticket (Lucro/iPhone)',BRL(s.ticket)],['Clientes únicos',NUM(s.clientes)]].map(([l,v])=>`<div class="sc-item"><div class="sc-item-l">${l}</div><div class="sc-item-v" style="color:${c}">${v}</div></div>`).join('');}
+function scI(label,value,delta,col){const colors={'bl':'var(--te)','gr':'var(--gr)','am':'var(--am)','pu':'var(--pu)','rd':'var(--rd)'};const c=colors[col]||'var(--txt)';return`<div class="sc-item"><div class="sc-item-l">${label}</div><div class="sc-item-v" style="color:${c}">${value}</div>${delta?`<div style="font-size:10px;margin-top:2px">${delta.s?`<span class="kd ${delta.cls}" style="font-size:10px">${delta.s}</span>`:delta}</div>`:'</div>'}`+`</div>`;}
 function cmpRow(l,c,p,d){return `<tr style="border-bottom:1px solid var(--bor)"><td style="padding:6px 10px;color:var(--txt2)">${l}</td><td class="r" style="padding:6px 10px;font-weight:600;color:var(--bl)">${c}</td><td class="r" style="padding:6px 10px;color:var(--txt2)">${p}</td><td class="r" style="padding:6px 10px">${d?`<span class="kd ${d.cls}" style="font-size:11px">${d.s}</span>`:'—'}</td></tr>`;}
 
 // RENDER ALL
@@ -1143,34 +1144,27 @@ function rVisao(cur,prv,cs,csp){
     if(sbEl)sbEl.textContent=`${NUM(a.qtd)} serviços · ${BRL(a.fat)}`;
 
     const catData=[
-      {label:'🛡 Blindagem',rows:rBlind,fat:fatB,fatP:fatB_p,col:'#0d9e50'},
-      {label:'🔧 Assistência Técnica',rows:rAssist,fat:fatA,fatP:fatA_p,col:'#34d399'},
-      {label:'📋 Planos',rows:rPlano,fat:fatP,fatP:fatP_p,col:'#f5a623'},
-      {label:'✅ Garantia Estendida',rows:rGar,fat:fatG,fatP:fatG_p,col:'#5b9bd5'},
-      {label:'🎧 Acessórios',rows:rAcess,fat:fatAc,fatP:fatAc_p,col:'#a78bfa'},
+      {label:'🛡 Blindagem',rows:rBlind,fat:fatB,fp:fatB_p,rpl:rBlind_p.length,col:'#0d9e50'},
+      {label:'🔧 Assistência Técnica',rows:rAssist,fat:fatA,fp:fatA_p,rpl:rAssist_p.length,col:'#34d399'},
+      {label:'📋 Planos',rows:rPlano,fat:fatP,fp:fatP_p,rpl:rPlano_p.length,col:'#f5a623'},
+      {label:'✅ Garantia Estendida',rows:rGar,fat:fatG,fp:fatG_p,rpl:rGar_p.length,col:'#5b9bd5'},
+      {label:'🎧 Acessórios',rows:rAcess,fat:fatAc,fp:fatAc_p,rpl:rAcess_p.length,col:'#a78bfa'},
     ];
-    document.getElementById('sc-cli').outerHTML=`<div id="sc-cli" style="display:contents">${
-      catData.slice(0,3).map(c=>`<div class="sc" style="border-left:3px solid ${c.col}">
+    function makeCatCard(c){
+      const tk=c.fat/Math.max(c.rows.length,1);
+      const pct=a.fat>0?c.fat/a.fat*100:0;
+      const dQ=dlt(c.rows.length,c.rpl),dF=dlt(c.fat,c.fp);
+      return`<div class="sc" style="border-left:3px solid ${c.col}">
         <div class="sc-title" style="color:${c.col}">${c.label}</div>
-        <div class="cg c2" style="margin-top:10px">
-          ${scI('SERVIÇOS',NUM(c.rows.length),dlt(c.rows.length,c.rows===rBlind?rBlind_p.length:c.rows===rAssist?rAssist_p.length:rPlano_p.length),'bl')}
-          ${scI('FATURAMENTO',BRL(c.fat),dlt(c.fat,c.fatP),'gr')}
-          ${scI('TICKET MÉDIO',BRL(c.fat/Math.max(c.rows.length,1)),null,'am')}
-          ${scI('% DO TOTAL',PCT(a.fat>0?c.fat/a.fat*100:0),null,'pu')}
+        <div class="sc-grid" style="margin-top:10px">
+          <div class="sc-item"><div class="sc-item-l">SERVIÇOS</div><div class="sc-item-v" style="color:${c.col}">${NUM(c.rows.length)}</div>${dQ?`<div style="font-size:10px">${dQ}</div>`:''}</div>
+          <div class="sc-item"><div class="sc-item-l">FATURAMENTO</div><div class="sc-item-v" style="color:var(--gr)">${BRL(c.fat)}</div>${dF?`<div style="font-size:10px">${dF}</div>`:''}</div>
+          <div class="sc-item"><div class="sc-item-l">TICKET MÉDIO</div><div class="sc-item-v" style="color:var(--am)">${BRL(tk)}</div></div>
+          <div class="sc-item"><div class="sc-item-l">% DO TOTAL</div><div class="sc-item-v" style="color:var(--pu)">${PCT(pct)}</div></div>
         </div>
-      </div>`).join('')
-    }</div>`;
-    document.getElementById('sc-loj').outerHTML=`<div id="sc-loj" style="display:contents">${
-      catData.slice(3).map(c=>`<div class="sc" style="border-left:3px solid ${c.col}">
-        <div class="sc-title" style="color:${c.col}">${c.label}</div>
-        <div class="cg c2" style="margin-top:10px">
-          ${scI('SERVIÇOS',NUM(c.rows.length),dlt(c.rows.length,c.rows===rGar?rGar_p.length:rAcess_p.length),'bl')}
-          ${scI('FATURAMENTO',BRL(c.fat),dlt(c.fat,c.fatP),'gr')}
-          ${scI('TICKET MÉDIO',BRL(c.fat/Math.max(c.rows.length,1)),null,'am')}
-          ${scI('% DO TOTAL',PCT(a.fat>0?c.fat/a.fat*100:0),null,'pu')}
-        </div>
-      </div>`).join('')
-    }</div>`;
+      </div>`;
+    }
+    document.getElementById('splitCards').innerHTML=catData.map(makeCatCard).join('');
 
     // ── Ocultar seções que não existem na Soft ─────────────────────
     document.getElementById('pgtoSh').style.display='none';
