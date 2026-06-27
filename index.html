@@ -263,10 +263,11 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="card"><div class="ct" id="topModsCt">Top 10 aparelhos vendidos no período</div><div id="topMods" style="margin-top:2px;max-height:220px;overflow-y:auto"></div></div>
   </div>
   <div class="sh" id="splitSh"><span class="st" id="splitTitle">Lojista vs Cliente Final</span><span class="sb" id="splitBadge"></span></div>
-  <div class="split">
+  <div class="split" id="splitCards">
     <div class="sc"><div class="sc-title cli">🛒 Cliente Final</div><div class="sc-grid" id="sc-cli"></div></div>
     <div class="sc"><div class="sc-title loj">🏪 Lojista</div><div class="sc-grid" id="sc-loj"></div></div>
   </div>
+  <div id="cmpTable" style="margin-bottom:12px"></div>
   <div class="sh" id="pgtoSh"><span class="st">Forma de Pagamento</span></div>
   <div class="cg c2" id="pgtoGrid">
     <div class="card"><div class="ct">Mix de pagamentos</div><div style="height:195px"><canvas id="c-pagPie"></canvas></div></div>
@@ -313,7 +314,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="card"><div class="ct">Lucro bruto vs Lucro líquido (últimos 6 meses)</div><div style="height:215px"><canvas id="c-lucros"></canvas></div></div>
   </div>
   <div class="sh"><span class="st">Comparativo com período anterior</span></div>
-  <div class="tw"><table><thead><tr><th>Métrica</th><th>Cliente Final</th><th>Lojista</th><th>Total período</th><th>Período anterior</th><th>Δ</th></tr></thead><tbody id="t-cu"></tbody></table></div>
+  <div class="tw"><table><thead><tr><th>Métrica</th><th id="thCF">Cliente Final</th><th id="thLoj">Lojista</th><th>Total período</th><th>Período anterior</th><th>Δ</th></tr></thead><tbody id="t-cu"></tbody></table></div>
   <div class="sh" style="margin-top:20px"><span class="st">Custos discriminados — Reis Phones</span></div>
   <div class="tw"><table><thead><tr id="t-full-custos-hdr"><th>Categoria</th><th class="r">Total</th><th class="r">% dos custos</th></tr></thead><tbody id="t-full-custos"></tbody></table></div>
 </div>
@@ -373,7 +374,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="cw" style="height:210px"><canvas id="c-fcTrafego"></canvas></div>
   </div>
 
-  <div class="abox" style="margin-top:18px">
+  <div class="abox" id="fcAbox" style="margin-top:18px">
     <div class="abox-hdr"><span style="font-size:17px">🔮</span><span class="abox-title">Como a previsão é calculada</span></div>
     <div style="font-size:12.5px;color:var(--txt2);line-height:1.7">
       <strong style="color:var(--txt)">Mês atual (run-rate):</strong> projeta o resultado final do mês com base na média diária realizada até hoje, multiplicada pelos dias totais do mês.<br>
