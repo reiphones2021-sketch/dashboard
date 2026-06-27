@@ -308,7 +308,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 <div id="p-custos" class="panel">
   <div class="kg" id="kg-cu"></div>
   <div class="cg c2">
-    <div class="card" id="card-custPie"><div class="ct">Composição dos custos Reis Phones</div><div style="height:195px"><canvas id="c-custPie"></canvas></div></div>
+    <div class="card" id="card-custPie"><div class="ct" id="custPieTit">Composição dos custos</div><div style="height:195px"><canvas id="c-custPie"></canvas></div></div>
     <div class="card"><div class="ct">Lucro bruto vs Lucro líquido (últimos 6 meses)</div><div style="height:215px"><canvas id="c-lucros"></canvas></div></div>
   </div>
   <div class="sh"><span class="st">Comparativo com período anterior</span></div>
@@ -1397,7 +1397,41 @@ function rCustos(cur,prv,cs,csp){
     custEl.insertAdjacentHTML('afterend', block);
   }
 
-  // ── Detailed cost breakdown table by month ──────────────────────
+  const custPieTit=document.getElementById('custPieTit');
+  if(custPieTit)custPieTit.textContent=isReis()?'Composição dos custos Reis Phones':'Composição dos custos Soft Blindagem';
+  // ── Composição dos custos (pie) ───────────────────────────────
+  const custPieEl=document.getElementById('card-custPie');
+  if(custPieEl) custPieEl.style.display=co>0?'':'none';
+  if(co>0){
+    const pieLabels={ret:'Retiradas',sal_s:'Sal. Sandy',com_s:'Com. Sandy',sal_b:'Estagiária/Outros',traf:'Marketing',gar:'Garantias',adm:'Administrativo',log:'Logística',out:'Outros'};
+    const pieColors={ret:'#ff5c6a',sal_s:'#f5a623',com_s:'#e8a000',sal_b:'#a78bfa',traf:'#2d7acc',gar:'#00d97e',adm:'#38bdf8',log:'#5b9bd5',out:'#556070'};
+    const pieEntries=Object.entries(catTots).filter(([,v])=>v>0);
+    mkChart('c-custPie',{type:'doughnut',data:{
+      labels:pieEntries.map(([k])=>pieLabels[k]||k),
+      datasets:[{data:pieEntries.map(([,v])=>v),backgroundColor:pieEntries.map(([k])=>pieColors[k]||'#556070'),borderWidth:0,hoverOffset:6}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+        plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:6}},
+          tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,
+            callbacks:{label:c=>` ${c.label}: ${BRL(c.raw)} (${(c.raw/co*100).toFixed(1)}%)`}}}}});
+  }
+
+  // ── Lucro bruto vs Líquido últimos 6 meses ────────────────────
+  const months6c=[...new Set(SALES.filter(r=>r.dev).map(r=>r.m))].sort().slice(-6);
+  const allCusts=CUSTOS; // full cost history
+  mkChart('c-lucros',{type:'bar',data:{labels:months6c.map(m=>mL(m)),datasets:[
+    {label:'Lucro bruto',data:months6c.map(m=>SALES.filter(r=>r.dev&&r.m===m).reduce((s,r)=>s+r.lb,0)),backgroundColor:'rgba(29,90,154,.55)',borderRadius:4},
+    {label:'Lucro líquido',data:months6c.map(m=>{
+      const lb=SALES.filter(r=>r.dev&&r.m===m).reduce((s,r)=>s+r.lb,0);
+      const co2=allCusts.filter(r=>r.m===m).reduce((s,r)=>s+r.v,0);
+      return Math.max(0,lb-co2);
+    }),backgroundColor:'rgba(0,217,126,.7)',borderRadius:4},
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},
+      tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}},
+    scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},
+            y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}}}});
+
+  // ── Detailed cost table by month ──────────────────────────────
   (()=>{
     const months=[...new Set([...cs,...csp].map(r=>r.m))].sort().slice(-6);
     const catLabels={ret:'Retiradas',sal_s:'Sal. Sandy',com_s:'Com. Sandy',sal_b:isReis()?'Estagiária':'Outros Sal.',traf:'Marketing',gar:'Garantias',adm:'Administrativo',log:'Logística',out:'Outros'};
