@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="version" content="v8-202606271720"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reis Phones — Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -566,10 +567,10 @@ function parseCustAPICompany(values, company){
   const iData=idx('DATA'),iCentro=idx('CENTRO'),iDesc=idx('DESCRI'),iValor=idx('VALOR'),iDem=idx('DEMANDA');
   return values.slice(1).map(r=>{
     const get=(i,def='')=>i>=0&&i<r.length?r[i]:def;
-    const centro=String(get(iCentro)).toUpperCase();
-    // Filter by company
+    const centro=String(get(iCentro)).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    // Filter by company — flexible match
     if(company==='REIS'&&!centro.includes('REIS'))return null;
-    if(company==='SOFT'&&!centro.includes('SOFT'))return null;
+    if(company==='SOFT'&&!(centro.includes('SOFT')||centro.includes('BLIND')))return null;
     const dt=parseDt(get(iData));if(!dt||dt<'2025-04-01')return null;
     const v=toN(get(iValor));if(!v)return null;
     const desc=String(get(iDesc)).toUpperCase().trim();
@@ -733,16 +734,31 @@ async function loadData(manual=false){
       CUSTOS = parseCustAPI(custVals);
     } else {
       // ── Soft Blindagem ──
-      SHEET_ID=CUST_SHEET_ID; // use Reis sheet for costs
+      SHEET_ID=CUST_SHEET_ID;
       lt.textContent='Carregando vendas Soft Blindagem...';
-      const [rSoft, custRaw] = await Promise.all([
-        fetch(SOFT_CSV_URL+'&t='+Date.now()),
-        fetchRangeByGid(parseInt(CUST_GID), "A:F")
-      ]);
+      let csvSoft='', custRaw=[];
+      try{
+        const rSoft = await fetch(SOFT_CSV_URL+'&t='+Date.now());
+        if(!rSoft.ok) throw new Error('CSV HTTP '+rSoft.status);
+        csvSoft = await rSoft.text();
+        console.log('Soft CSV loaded, length:', csvSoft.length);
+      }catch(eCsv){
+        console.warn('Soft CSV falhou:',eCsv);
+        document.getElementById('lastUpd').textContent='⚠ CSV Soft falhou: '+eCsv.message;
+      }
+      try{
+        custRaw = await fetchRangeByGid(parseInt(CUST_GID), "A:F");
+        console.log('Custos loaded, rows:', custRaw.length);
+      }catch(eCust){
+        console.warn('Custos Soft falhou:',eCust);
+      }
       lt.textContent='Processando dados...';
-      const csvSoft = await rSoft.text();
-      SALES  = parseSoftCSV(csvSoft);
-      CUSTOS = parseCustAPICompany(custRaw, 'SOFT');
+      SALES  = csvSoft ? parseSoftCSV(csvSoft) : [];
+      CUSTOS = custRaw.length ? parseCustAPICompany(custRaw, 'SOFT') : [];
+      console.log('Soft SALES:', SALES.length, 'CUSTOS:', CUSTOS.length);
+      if(!SALES.length){
+        document.getElementById('lastUpd').textContent='⚠ Soft: sem dados — verifique o CSV publicado';
+      }
     }
     document.getElementById('lastUpd').textContent='✓ Atualizado: '+new Date().toLocaleTimeString('pt-BR')+' (tempo real)';
   }catch(e){
