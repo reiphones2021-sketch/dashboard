@@ -273,13 +273,13 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="card"><div class="ct">Mix de pagamentos</div><div style="height:195px"><canvas id="c-pagPie"></canvas></div></div>
     <div class="card"><div class="ct">Valores por forma de pagamento</div><div id="pagDetail" style="margin-top:4px"></div></div>
   </div>
-  <div class="sh"><span class="st">Aparelhos na Troca</span></div>
-  <div class="cg c2">
+  <div class="sh" id="trocaSh"><span class="st">Aparelhos na Troca</span></div>
+  <div class="cg c2" id="trocaGrid">
     <div class="card"><div class="ct">Resumo de trocas</div><div id="trocaStats"></div></div>
     <div class="card"><div class="ct">Comparativo com período anterior</div><div id="compTable"></div></div>
   </div>
-  <div class="sh"><span class="st">Lacrado vs Semi-novo (1 ano de garantia)</span></div>
-  <div class="card"><div class="ct">Média de faturamento e lucro — histórico completo</div><div id="garCmp"></div></div>
+  <div class="sh" id="lacradoSh"><span class="st">Lacrado vs Semi-novo (1 ano de garantia)</span></div>
+  <div class="card" id="lacradoCard"><div class="ct">Média de faturamento e lucro — histórico completo</div><div id="garCmp"></div></div>
 </div>
 
 <div id="p-clientes" class="panel">
@@ -1169,6 +1169,10 @@ function rVisao(cur,prv,cs,csp){
     // ── Ocultar seções que não existem na Soft ─────────────────────
     document.getElementById('pgtoSh').style.display='none';
     document.getElementById('pgtoGrid').style.display='none';
+    document.getElementById('trocaSh').style.display='none';
+    document.getElementById('trocaGrid').style.display='none';
+    document.getElementById('lacradoSh').style.display='none';
+    document.getElementById('lacradoCard').style.display='none';
     const garSh=document.getElementById('garSh');if(garSh)garSh.style.display='none';
     const garGrid=document.getElementById('garGrid');if(garGrid)garGrid.style.display='none';
 
@@ -1206,6 +1210,14 @@ function rVisao(cur,prv,cs,csp){
     kpi('Trocas recebidas',NUM(a.troca_q),'Total '+BRL(a.troca_v),dlt(a.troca_q,ap.troca_q),'pu'),
   ]:[];
   document.getElementById('kg-v').innerHTML=kGrid.join('');
+
+  // ── Show Reis-only sections ────────────────────────────────────
+  document.getElementById('pgtoSh').style.display='';
+  document.getElementById('pgtoGrid').style.display='';
+  document.getElementById('trocaSh').style.display='';
+  document.getElementById('trocaGrid').style.display='';
+  document.getElementById('lacradoSh').style.display='';
+  document.getElementById('lacradoCard').style.display='';
 
   // ── 6-month fat x lb chart ────────────────────────────────────
   const fat6mCtR=document.getElementById('fat6mCt');
