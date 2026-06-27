@@ -1293,8 +1293,11 @@ function rVisao(cur,prv,cs,csp){
 // ── CLIENTES
 function rClientes(cur,prv){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur),spp=aSplit(prv);
+  // Adapt labels for Soft Blindagem
+  const unidLabel=isSoft()?'serviços':'aparelhos';
   const pm=prevM(curMes);const cliPrev=new Set(SALES.filter(r=>r.m===pm).map(r=>r.cli));
-  const novos=new Set(cur.filter(r=>r.cli&&!cliPrev.has(r.cli)).map(r=>r.cli)).size;
+  const rowsCli=isSoft()?cur:cur.filter(r=>r.dev);
+  const novos=new Set(rowsCli.filter(r=>r.cli&&!cliPrev.has(r.cli)).map(r=>r.cli)).size;
   const recorr=new Set(cur.filter(r=>r.cli&&cliPrev.has(r.cli)).map(r=>r.cli)).size;
   const fatRec=cur.filter(r=>r.cli&&cliPrev.has(r.cli)).reduce((s,r)=>s+(r.vtc||0),0);
   const taxaRet=a.clientes>0?(recorr/a.clientes*100):0;
@@ -1505,7 +1508,8 @@ function rAnalise(cur,prv,cs){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur);
   const co=cs.reduce((s,r)=>s+r.v,0),ll=a.lb-co;
   const pm=prevM(curMes);const cliPrev=new Set(SALES.filter(r=>r.m===pm).map(r=>r.cli));
-  const novos=new Set(cur.filter(r=>r.cli&&!cliPrev.has(r.cli)).map(r=>r.cli)).size;
+  const rowsCli=isSoft()?cur:cur.filter(r=>r.dev);
+  const novos=new Set(rowsCli.filter(r=>r.cli&&!cliPrev.has(r.cli)).map(r=>r.cli)).size;
   const recorr=new Set(cur.filter(r=>r.cli&&cliPrev.has(r.cli)).map(r=>r.cli)).size;
   const taxaRet=a.clientes>0?(recorr/a.clientes*100):0;
   const mods=topMods(cur,3).map(x=>x.m).join(', ');
