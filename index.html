@@ -149,7 +149,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
       <button class="company-btn" id="btnSoft" onclick="switchCompany('soft')">🛡 Soft Blindagem</button>
     </div>
     <div class="badge-live" id="badgeLive">AO VIVO</div>
-    <button class="btn-rf" id="btnRf" onclick="loadData(true)">⟳ Atualizar dados</button>
+    <button class="btn-rf" id="btnRf" onclick="_cache[ACTIVE_COMPANY]={sales:null,custos:null};loadData(true)">⟳ Atualizar dados</button>
     <div class="last-upd" id="lastUpd"></div>
   </div>
 </div>
@@ -686,17 +686,24 @@ async function parseSoftAPI(values){
 }
 
 // ══════════════════════════════════════════════ COMPANY SWITCHER
+// Cache loaded data per company to avoid reloading on every switch
+var _cache = {reis:{sales:null,custos:null}, soft:{sales:null,custos:null}};
+
 function switchCompany(co){
+  if(ACTIVE_COMPANY===co) return; // already on this company, do nothing
   ACTIVE_COMPANY=co;
+
   // Update buttons
   document.getElementById('btnReis').classList.toggle('active',co==='reis');
   document.getElementById('btnSoft').classList.toggle('active',co==='soft');
+
   // Update logo name
   const nm=document.querySelector('.logo-nm');
   const sb=document.querySelector('.logo-sb');
   if(nm)nm.textContent=co==='reis'?'Reis Phones':'Soft Blindagem';
   if(sb)sb.textContent='Dashboard Executivo · Dados ao vivo';
-  // Update header and CSS accent color based on company
+
+  // Update accent color
   const root=document.documentElement;
   if(co==='reis'){
     root.style.setProperty('--bl','#1d5a9a');
@@ -711,8 +718,18 @@ function switchCompany(co){
   }
   const badge=document.getElementById('badgeLive');
   if(badge)badge.style.background=co==='reis'?'rgba(29,90,154,.25)':'rgba(10,158,80,.2)';
-  // Reload data for the selected company
-  loadData(true);
+
+  // Use cache if available — instant switch, no API call
+  const cached=_cache[co];
+  if(cached.sales!==null){
+    SALES=cached.sales;
+    CUSTOS=cached.custos;
+    document.getElementById('lastUpd').textContent='✓ '+new Date().toLocaleTimeString('pt-BR')+' (cache)';
+    initSel();renderAll();
+  } else {
+    // First time loading this company
+    loadData(true);
+  }
 }
 
 async function loadData(manual=false){
@@ -773,6 +790,8 @@ async function loadData(manual=false){
     document.getElementById('lastUpd').textContent='⚠ Dados locais (verifique a API key)';
   }finally{
     ov.style.display='none';btn.classList.remove('loading');
+    // Save to cache for instant company switching
+    _cache[ACTIVE_COMPANY]={sales:SALES, custos:CUSTOS};
     initSel();renderAll();
   }
 }
@@ -782,7 +801,7 @@ async function loadData(manual=false){
 // ══ DATE RANGE PICKER ════════════════════════════════════════════
 var drpSTs=null, drpETs=null, drpAwaiting=false;
 var drpNavL={y:new Date().getFullYear(),m:new Date().getMonth()};
-var drpBkS=null, drpBkE=null, drpActivePreset='este_mes_completo';
+var drpBkS=null, drpBkE=null, drpActivePreset='este_mes_hoje';
 var DRP_MN=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 var DRP_LBL={fixo:'Fixo',hoje:'Hoje',ontem:'Ontem',este_mes_hoje:'Este mês, até agora',este_mes_completo:'Este mês completo',este_mes_1_15:'1–15 deste mês',este_mes_16_fim:'16 ao fim do mês',mes_ant_completo:'Mês anterior',mes_ant_1_15:'Mês ant. 1–15',mes_ant_16_fim:'Mês ant. 16–fim',ult7:'Últimos 7 dias',ult14:'Últimos 14 dias',ult30:'Últimos 30 dias',avancado:'Avançado'};
 
@@ -866,7 +885,9 @@ function drpOpen(){
 }
 
 function drpClose(restore){
-  if(restore){drpSTs=drpBkS;drpETs=drpBkE;drpAwaiting=false;}
+  // Always reset awaiting state — prevents stuck selection on reopen
+  drpAwaiting=false;
+  if(restore){drpSTs=drpBkS;drpETs=drpBkE;}
   document.getElementById('drpPopup').classList.remove('open');
   document.getElementById('drpTrigger').classList.remove('open');
   document.getElementById('drpOverlay').classList.remove('open');
@@ -905,7 +926,11 @@ function drpApplyPreset(p){
   var btn=document.getElementById('btnAp');if(btn)btn.disabled=!drpSTs||!drpETs;
 }
 
+var _drpWired=false;
 function drpWireEvents(){
+  // Wire only once — prevents duplicate listeners on company switch
+  if(_drpWired) return;
+  _drpWired=true;
   var trigger=document.getElementById('drpTrigger');
   var overlay=document.getElementById('drpOverlay');
   if(!trigger)return;
@@ -922,8 +947,11 @@ function drpWireEvents(){
   if(inpS)inpS.addEventListener('input',function(){inpS.value=drpFmtI(inpS.value);if(inpS.value.length===10){var ts=drpPtToTs(inpS.value);if(ts){drpSTs=ts;inpS.className='ok';drpSetNav(ts);drpRenderCals();}else inpS.className='err';}});
   if(inpE)inpE.addEventListener('input',function(){inpE.value=drpFmtI(inpE.value);if(inpE.value.length===10){var ts=drpPtToTs(inpE.value);if(ts){drpETs=ts;inpE.className='ok';window._endStr=drpIso(ts);drpRenderCals();}else inpE.className='err';}});
   document.getElementById('btnCc').addEventListener('click',function(e){e.stopPropagation();drpClose(true);});
-  document.getElementById('btnAp').addEventListener('click',function(e){e.stopPropagation();drpClose(false);drpUpdateTrigger();applyPeriod();});
-  // Wire calendar grids ONCE here — not on every rebuild
+  document.getElementById('btnAp').addEventListener('click',function(e){
+    e.stopPropagation();
+    if(drpAwaiting && drpSTs){drpETs=drpSTs;window._startStr=drpIso(drpSTs);window._endStr=drpIso(drpETs);drpAwaiting=false;}
+    drpClose(false);drpUpdateTrigger();applyPeriod();
+  });
   drpWireCalGrids();
 }
 
@@ -941,7 +969,7 @@ function aggSoftSplit(rows){
 
 function initSel(){
   drpWireEvents();
-  drpApplyPreset('este_mes_completo');
+  drpApplyPreset('este_mes_hoje');
   drpUpdateTrigger();
   applyPeriod();
 }
