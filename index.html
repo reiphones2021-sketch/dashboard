@@ -690,14 +690,14 @@ async function parseSoftAPI(values){
 var _cache = {reis:{sales:null,custos:null}, soft:{sales:null,custos:null}};
 
 function switchCompany(co){
-  if(ACTIVE_COMPANY===co) return; // already on this company, do nothing
+  if(ACTIVE_COMPANY===co) return;
   ACTIVE_COMPANY=co;
 
   // Update buttons
   document.getElementById('btnReis').classList.toggle('active',co==='reis');
   document.getElementById('btnSoft').classList.toggle('active',co==='soft');
 
-  // Update logo name
+  // Update logo
   const nm=document.querySelector('.logo-nm');
   const sb=document.querySelector('.logo-sb');
   if(nm)nm.textContent=co==='reis'?'Reis Phones':'Soft Blindagem';
@@ -719,15 +719,14 @@ function switchCompany(co){
   const badge=document.getElementById('badgeLive');
   if(badge)badge.style.background=co==='reis'?'rgba(29,90,154,.25)':'rgba(10,158,80,.2)';
 
-  // Use cache if available — instant switch, no API call
+  // Cache hit — instant render, keep current period
   const cached=_cache[co];
-  if(cached.sales!==null){
+  if(cached && cached.sales!==null){
     SALES=cached.sales;
     CUSTOS=cached.custos;
     document.getElementById('lastUpd').textContent='✓ '+new Date().toLocaleTimeString('pt-BR')+' (cache)';
-    initSel();renderAll();
+    applyPeriod(); // re-filters and re-renders with current period intact
   } else {
-    // First time loading this company
     loadData(true);
   }
 }
@@ -792,7 +791,7 @@ async function loadData(manual=false){
     ov.style.display='none';btn.classList.remove('loading');
     // Save to cache for instant company switching
     _cache[ACTIVE_COMPANY]={sales:SALES, custos:CUSTOS};
-    initSel();renderAll();
+    initSel(true);renderAll();
   }
 }
 
@@ -967,10 +966,12 @@ function aggSoftSplit(rows){
   return {cli:a, loj:agg([]), all:a, cli_r:rows, loj_r:[]};
 }
 
-function initSel(){
+function initSel(applyDefault){
   drpWireEvents();
-  drpApplyPreset('este_mes_hoje');
-  drpUpdateTrigger();
+  if(applyDefault){
+    drpApplyPreset('este_mes_hoje');
+    drpUpdateTrigger();
+  }
   applyPeriod();
 }
 
@@ -982,8 +983,17 @@ function applyPeriod(){
   diaFim=+endStr.slice(8,10);
   var n=SALES.filter(function(r){return r.dt>=startStr&&r.dt<=endStr;}).length;
   var pi=document.getElementById('pinfo');if(pi)pi.textContent=n+(isSoft()?' serviços':' vendas');
+  // Display: previous month same days
   var pc=document.getElementById('pcmp');
-  if(pc){var dur=new Date(endStr)-new Date(startStr);var pEnd=new Date(new Date(startStr)-1);var pStart=new Date(pEnd-dur);pc.textContent='↔ vs '+pStart.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+' – '+pEnd.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});}
+  if(pc){
+    var sDate=new Date(startStr+'T12:00:00');
+    var eDate=new Date(endStr+'T12:00:00');
+    var prevDate=new Date(sDate.getFullYear(),sDate.getMonth()-1,1);
+    var lastDayPrev=new Date(prevDate.getFullYear(),prevDate.getMonth()+1,0).getDate();
+    var pStart=new Date(prevDate.getFullYear(),prevDate.getMonth(),sDate.getDate());
+    var pEnd=new Date(prevDate.getFullYear(),prevDate.getMonth(),Math.min(eDate.getDate(),lastDayPrev));
+    pc.textContent='↔ vs '+pStart.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+' – '+pEnd.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+  }
   renderAll();
 }
 
@@ -997,12 +1007,22 @@ const fC=(m)=>{
 }
 const fSPrev=(startStr,endStr)=>{
   if(!startStr||!endStr)return[];
-  const dur=new Date(endStr)-new Date(startStr);
-  const pEnd=new Date(new Date(startStr)-1);
-  const pStart=new Date(pEnd-dur);
-  const ps=pStart.toISOString().slice(0,10),pe=pEnd.toISOString().slice(0,10);
+  // Compare same day range in the previous month
+  // e.g. 2026-06-01 → 2026-06-27 compares with 2026-05-01 → 2026-05-27
+  const sDate=new Date(startStr+'T12:00:00');
+  const eDate=new Date(endStr+'T12:00:00');
+  const sDay=sDate.getDate(), eDay=eDate.getDate();
+  const sMonth=sDate.getMonth(), sYear=sDate.getFullYear();
+  // Previous month
+  const prevDate=new Date(sYear, sMonth-1, 1);
+  const prevYear=prevDate.getFullYear();
+  const prevMonth=prevDate.getMonth();
+  // Clamp end day to last day of previous month
+  const lastDayPrev=new Date(prevYear,prevMonth+1,0).getDate();
+  const ps=`${prevYear}-${String(prevMonth+1).padStart(2,'0')}-${String(sDay).padStart(2,'0')}`;
+  const pe=`${prevYear}-${String(prevMonth+1).padStart(2,'0')}-${String(Math.min(eDay,lastDayPrev)).padStart(2,'0')}`;
   return SALES.filter(r=>r.dt>=ps&&r.dt<=pe);
-};;
+};
 
 // AGGREGATE — ticket = sum(lb iPhone) / count(iPhone)
 function agg(rows){
@@ -1084,11 +1104,15 @@ function renderAll(){
   // csp: previous period costs
   const csp=(()=>{
     if(!window._startStr||!window._endStr) return CUSTOS.filter(r=>r.m===prevM(curMes));
-    const dur=new Date(window._endStr)-new Date(window._startStr);
-    const pEnd=new Date(new Date(window._startStr)-1);
-    const pStart=new Date(pEnd-dur);
-    const ps=pStart.toISOString().slice(0,7),pe=pEnd.toISOString().slice(0,7);
-    return CUSTOS.filter(r=>r.m>=ps&&r.m<=pe);
+    const sDate=new Date(window._startStr+'T12:00:00');
+    const eDate=new Date(window._endStr+'T12:00:00');
+    const prevDate=new Date(sDate.getFullYear(),sDate.getMonth()-1,1);
+    const prevYear=prevDate.getFullYear();
+    const prevMonth=prevDate.getMonth();
+    const lastDayPrev=new Date(prevYear,prevMonth+1,0).getDate();
+    const ps=`${prevYear}-${String(prevMonth+1).padStart(2,'0')}-${String(sDate.getDate()).padStart(2,'0')}`;
+    const pe=`${prevYear}-${String(prevMonth+1).padStart(2,'0')}-${String(Math.min(eDate.getDate(),lastDayPrev)).padStart(2,'0')}`;
+    return CUSTOS.filter(r=>r.m===`${prevYear}-${String(prevMonth+1).padStart(2,'0')}`);
   })();
   rVisao(cur,prv,cs,csp);rClientes(cur,prv);rMarketing(cur,prv);rCustos(cur,prv,cs,csp);rAnalise(cur,prv,cs);renderPrevisao();
 }
