@@ -1404,18 +1404,28 @@ function rClientes(cur,prv){
   const taxaRet=a.clientes>0?(recorr/a.clientes*100):0;
   document.getElementById('kg-c').innerHTML=[
     kpi('Clientes únicos',NUM(a.clientes),'No período',dlt(a.clientes,ap.clientes),'bl'),
-    kpi('Clientes novos',NUM(novos),'Não compraram mês anterior',null,'te'),
+    kpi('Clientes novos',NUM(novos),'Não compraram período anterior',null,'te'),
     kpi('Recorrentes',NUM(recorr),'Taxa '+PCT(taxaRet),null,'gr'),
     kpi('Fat. recorrentes',BRL(fatRec),'Clientes que voltaram',null,'pu'),
-    kpi('Ticket CF (Lucro/iPhone)',BRL(sp.cli.ticket),'Cliente final',dlt(sp.cli.ticket,spp.cli.ticket),'am'),
-    kpi('Ticket Lojista (Lucro/iPhone)',sp.loj.qtd>0?BRL(sp.loj.ticket):'—','Lojista',null,'rd'),
+    ...(isReis()?[
+      kpi('Ticket CF (Lucro/iPhone)',BRL(sp.cli.ticket),'Cliente final',dlt(sp.cli.ticket,spp.cli.ticket),'am'),
+      kpi('Ticket Lojista (Lucro/iPhone)',sp.loj.qtd>0?BRL(sp.loj.ticket):'—','Lojista',null,'rd'),
+    ]:[
+      kpi('Ticket médio',BRL(a.fat/Math.max(a.qtd,1)),'Faturamento ÷ serviços',dlt(a.fat/Math.max(a.qtd,1),ap.fat/Math.max(ap.qtd,1)),'am'),
+      kpi('Serviços realizados',NUM(a.qtd),'No período',dlt(a.qtd,ap.qtd),'rd'),
+    ]),
   ].join('');
   mkChart('c-cliPie',{type:'doughnut',data:{labels:['Novos','Recorrentes'],datasets:[{data:[novos,recorr],backgroundColor:['#2d7acc','#00d97e'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.label}: ${c.raw}`}}}}});
   const vMap={};cur.forEach(r=>{if(!vMap[r.vend])vMap[r.vend]={fat:0,q:0};vMap[r.vend].fat+=r.vtc||0;vMap[r.vend].q++;});
   const vArr=Object.entries(vMap).sort((a,b)=>b[1].fat-a[1].fat);
   mkChart('c-vends-c',{type:'bar',data:{labels:vArr.map(([n])=>n),datasets:[{data:vArr.map(([,d])=>d.fat),backgroundColor:vArr.map((_,i)=>['#2d7acc','#00d97e','#f5a623','#5b9bd5','#22d3ee'][i%5]),borderRadius:5}]},options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${BRL(c.raw)}`}}}}});
-  document.getElementById('cli-sc-cli').innerHTML=scG(sp.cli,'cli');
-  document.getElementById('cli-sc-loj').innerHTML=sp.loj.qtd>0?scG(sp.loj,'loj'):'<div style="color:var(--txt3);font-size:12px;padding:8px 0;grid-column:1/-1">Sem vendas lojista neste período</div>';
+  document.getElementById('cli-sc-cli').innerHTML=isReis()?scG(sp.cli,'cli'):`
+    <div class="sc-item"><div class="sc-item-l">SERVIÇOS</div><div class="sc-item-v" style="color:var(--te)">${NUM(a.qtd)}</div></div>
+    <div class="sc-item"><div class="sc-item-l">FATURAMENTO</div><div class="sc-item-v" style="color:var(--gr)">${BRL(a.fat)}</div></div>
+    <div class="sc-item"><div class="sc-item-l">TICKET MÉDIO</div><div class="sc-item-v" style="color:var(--am)">${BRL(a.fat/Math.max(a.qtd,1))}</div></div>
+    <div class="sc-item"><div class="sc-item-l">CLIENTES ÚNICOS</div><div class="sc-item-v" style="color:var(--pu)">${NUM(a.clientes)}</div></div>`;
+  const cliScLoj=document.getElementById('cli-sc-loj');
+  if(cliScLoj){if(isReis()){cliScLoj.innerHTML=sp.loj.qtd>0?scG(sp.loj,'loj'):'<div style="color:var(--txt3);font-size:12px;padding:8px 0;grid-column:1/-1">Sem vendas lojista neste período</div>';}else{cliScLoj.innerHTML='';const lojPai=cliScLoj.closest('.sc');if(lojPai)lojPai.style.display='none';}}
 }
 
 // ── MARKETING
@@ -1424,17 +1434,24 @@ function rMarketing(cur,prv){
   const cs=fC(curMes);const trafVal=cs.filter(r=>r.cat==='traf').reduce((s,r)=>s+r.v,0);
   const roas=trafVal>0?(a.fat/trafVal):0;
   document.getElementById('kg-m').innerHTML=[
-    kpi('Ticket CF (Lucro/iPhone)',BRL(sp.cli.ticket),'Somente cliente final',dlt(sp.cli.ticket,spp.cli.ticket),'gr'),
+    ...(isReis()?[kpi('Ticket CF (Lucro/iPhone)',BRL(sp.cli.ticket),'Somente cliente final',dlt(sp.cli.ticket,spp.cli.ticket),'gr')]:[kpi('Ticket médio',BRL(a.fat/Math.max(a.qtd,1)),'Faturamento ÷ serviços',dlt(a.fat/Math.max(a.qtd,1),ap.fat/Math.max(ap.qtd,1)),'gr')]),
     kpi(isReis()?'Ticket Lojista (Lucro/iPhone)':'Serviço mais vendido',isReis()?(sp.loj.qtd>0?BRL(sp.loj.ticket):'—'):(()=>{const t=topMods(cur,1);return t.length?t[0].m:'—';})(),isReis()?'Somente lojista':'Produto top do período',null,'am'),
     kpi('Ticket geral (Lucro/iPhone)',BRL(a.ticket),'CF + Lojista',dlt(a.ticket,ap.ticket),'bl'),
     kpi('ROAS',trafVal>0?roas.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'x':'Sem dado',trafVal>0?'Tráfego: '+BRL(trafVal):'Não registrado',null,'pu'),
     kpi('Margem CF',PCT(sp.cli.mgb),'iPhone cliente final',dlt(sp.cli.mgb,spp.cli.mgb),'te'),
     kpi('Margem Lojista',sp.loj.qtd>0?PCT(sp.loj.mgb):'—','iPhone lojista',null,'rd'),
   ].join('');
+  if(isReis()){
   mkChart('c-tickComp',{type:'bar',data:{labels:['Cliente Final','Lojista'],datasets:[{data:[sp.cli.ticket||0,sp.loj.ticket||0],backgroundColor:['#22d3ee','#f5a623'],borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:12}}},y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>BRL(v)}}},plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` Ticket: ${BRL(c.raw)}`}}}}});
-  const mC=topMods(sp.cli_r,10),mL2=topMods(sp.loj_r,10);
-  document.getElementById('modCliBars').innerHTML=mC.length?brs(mC,x=>x.m,x=>x.q,()=>'#22d3ee'):'<div style="color:var(--txt3);font-size:12px">Sem dados</div>';
-  document.getElementById('modLojBars').innerHTML=mL2.length?brs(mL2,x=>x.m,x=>x.q,()=>'#f5a623'):'<div style="color:var(--txt3);font-size:12px">Sem vendas lojista</div>';
+  }
+  // For Soft: topMods by prod (service name); for Reis: by mod (iPhone model)
+  const _topSrc=isSoft()?cur.map(r=>({...r,mod:r.prod||r.mod})):sp.cli_r;
+  const mC=topMods(_topSrc,10),mL2=topMods(sp.loj_r,10);
+  const mktModTitle=document.getElementById('modCliBars')?.closest('.card')?.querySelector('.ct');
+  if(mktModTitle)mktModTitle.textContent=isSoft()?'Top 10 serviços':'Top 10 modelos — CF';
+  document.getElementById('modCliBars').innerHTML=mC.length?brs(mC,x=>x.m,x=>x.q,()=>isSoft()?'#0d9e50':'#22d3ee'):'<div style="color:var(--txt3);font-size:12px">Sem dados</div>';
+  if(document.getElementById('modLojBars'))document.getElementById('modLojBars').closest('.card').style.display=isReis()?'':'none';
+  if(isReis())document.getElementById('modLojBars').innerHTML=mL2.length?brs(mL2,x=>x.m,x=>x.q,()=>'#f5a623'):'<div style="color:var(--txt3);font-size:12px">Sem vendas lojista</div>';
   const vMap={};SALES.filter(r=>r.m===curMes&&r.d>=diaIni&&r.d<=diaFim).forEach(r=>{if(!vMap[r.vend])vMap[r.vend]={fat:0,q:0};vMap[r.vend].fat+=r.vtc||0;vMap[r.vend].q++;});
   const vArr=Object.entries(vMap).sort((a,b)=>b[1].fat-a[1].fat);
   mkChart('c-vends',{type:'bar',data:{labels:vArr.map(([n])=>n),datasets:[{data:vArr.map(([,d])=>d.fat),backgroundColor:vArr.map((_,i)=>['#2d7acc','#00d97e','#f5a623','#5b9bd5','#22d3ee'][i%5]),borderRadius:5}]},options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${BRL(c.raw)}`}}}}});
@@ -1921,16 +1938,7 @@ function renderPrevisao(){
   }]},options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>' '+BRL(c.raw)}}}}});
 
   // ── Forecast table ──
-  function fcRow(label,realized,proj,goal,growth){
-    const gCls=growth>0?'g':growth<0?'r':'a';
-    return `<tr style="border-bottom:1px solid var(--bor)">
-      <td style="padding:7px 12px;color:var(--txt2)">${label}</td>
-      <td class="r" style="padding:7px 12px;font-weight:500">${realized}</td>
-      <td class="r" style="padding:7px 12px;font-weight:600;color:var(--gr)">${proj}</td>
-      <td class="r" style="padding:7px 12px;font-weight:600;color:var(--pu)">${goal}</td>
-      <td class="r" style="padding:7px 12px"><span class="tag ${gCls}">${growth>0?'▲':growth<0?'▼':''} ${PCT(Math.abs(growth))}</span></td>
-    </tr>`;
-  }
+  
   const fatGrowth=cur.fat>0?((nextFat-projFat)/projFat*100):0;
   const lbGrowth=projLb>0?((nextLb-projLb)/projLb*100):0;
   const qtdGrowth=projQtd>0?((nextQtd-projQtd)/projQtd*100):0;
@@ -2028,7 +2036,6 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     CUSTOS = _cache[prevCo].custos;
   }
 });
-
 </script>
 </body>
 </html>
