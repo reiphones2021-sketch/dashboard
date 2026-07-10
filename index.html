@@ -314,7 +314,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="card"><div class="ct">Lucro bruto vs Lucro líquido (últimos 6 meses)</div><div style="height:215px"><canvas id="c-lucros"></canvas></div></div>
   </div>
   <div class="sh"><span class="st">Comparativo com período anterior</span></div>
-  <div class="tw"><table><thead><tr><th>Métrica</th><th id="thCF">Cliente Final</th><th id="thLoj">Lojista</th><th>Total período</th><th>Período anterior</th><th>Δ</th></tr></thead><tbody id="t-cu"></tbody></table></div>
+  <div class="tw"><table><thead><tr><th>Métrica</th><th id="thCF">Cliente Final</th><th id="thLoj">Lojista</th><th id="thTotal">Total período</th><th id="thPrev">Período anterior</th><th>Δ</th></tr></thead><tbody id="t-cu"></tbody></table></div>
   <div class="sh" style="margin-top:20px"><span class="st">Custos discriminados — Reis Phones</span></div>
   <div class="tw"><table><thead><tr id="t-full-custos-hdr"><th>Categoria</th><th class="r">Total</th><th class="r">% dos custos</th></tr></thead><tbody id="t-full-custos"></tbody></table></div>
 </div>
@@ -1051,8 +1051,28 @@ function aSplit(rows){
 function topMods(rows,n=10){const cnt={},fat={};rows.filter(r=>r.mod&&r.dev).forEach(r=>{cnt[r.mod]=(cnt[r.mod]||0)+1;fat[r.mod]=(fat[r.mod]||0)+(r.vtc||0);});return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([m,q])=>({m,q,fat:fat[m]}));}
 function dlt(c,p){if(!p||p===0)return null;const pct=(c-p)/Math.abs(p)*100;return{pct,cls:pct>0?'up':pct<0?'dn':'fl',s:(pct>0?'▲':'▼')+Math.abs(pct).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'};}
 
+// ── Period label helpers — used everywhere for consistent labels ──
+function curPeriodLabel(){
+  if(!window._startStr||!window._endStr) return mL(curMes);
+  const ed=new Date(window._endStr+'T12:00:00');
+  const lastDay=new Date(ed.getFullYear(),ed.getMonth()+1,0).getDate();
+  const isFullMonth=(diaIni===1&&ed.getDate()===lastDay);
+  return isFullMonth?mL(curMes):mL(curMes)+' ('+diaIni+'–'+diaFim+')';
+}
+function prvPeriodLabel(){
+  if(!window._startStr||!window._endStr) return mL(prevM(curMes));
+  const sd=new Date(window._startStr+'T12:00:00');
+  const ed=new Date(window._endStr+'T12:00:00');
+  const pm=new Date(sd.getFullYear(),sd.getMonth()-1,1);
+  const pmStr=pm.getFullYear()+'-'+String(pm.getMonth()+1).padStart(2,'0');
+  const lastDayPm=new Date(pm.getFullYear(),pm.getMonth()+1,0).getDate();
+  const lastDay=new Date(ed.getFullYear(),ed.getMonth()+1,0).getDate();
+  const isFullMonth=(diaIni===1&&ed.getDate()===lastDay);
+  return isFullMonth?mL(pmStr):mL(pmStr)+' ('+diaIni+'–'+Math.min(diaFim,lastDayPm)+')';
+}
+
 // UI
-function kpi(l,v,sub,d,col){return `<div class="kc ${col}"><div class="kl">${l}</div><div class="kv ${col}">${v}</div><div class="ks">${sub}</div>${d?`<div class="kd ${d.cls}">${d.s} vs anterior</div>`:''}</div>`;}
+function kpi(l,v,sub,d,col){return `<div class="kc ${col}"><div class="kl">${l}</div><div class="kv ${col}">${v}</div><div class="ks">${sub}</div>${d?`<div class="kd ${d.cls}">${d.s} vs ${prvPeriodLabel()}</div>`:''}</div>`;}
 function brs(items,lf,vf,cf,fmt){const max=Math.max(...items.map(vf),1);return items.map(it=>`<div class="br-row"><div class="br-lbl" title="${lf(it)}">${lf(it)}</div><div class="br-bg"><div class="br-fill" style="width:${(vf(it)/max*100).toFixed(2)}%;background:${cf(it)}"></div></div><div class="br-val">${fmt?fmt(vf(it)):NUM(vf(it))}</div></div>`).join('');}
 function scG(s,col){const c=col==='cli'?'var(--te)':'var(--am)';return[['Vendas',NUM(s.qtd)],['Faturamento',BRL(s.fat)],['Lucro bruto',BRL(s.lb)],['Margem',PCT(s.mgb)],['Ticket (Lucro/iPhone)',BRL(s.ticket)],['Clientes únicos',NUM(s.clientes)]].map(([l,v])=>`<div class="sc-item"><div class="sc-item-l">${l}</div><div class="sc-item-v" style="color:${c}">${v}</div></div>`).join('');}
 function scI(label,value,delta,col){const colors={'bl':'var(--te)','gr':'var(--gr)','am':'var(--am)','pu':'var(--pu)','rd':'var(--rd)'};const c=colors[col]||'var(--txt)';return`<div class="sc-item"><div class="sc-item-l">${label}</div><div class="sc-item-v" style="color:${c}">${value}</div>${delta?`<div style="font-size:10px;margin-top:2px">${delta.s?`<span class="kd ${delta.cls}" style="font-size:10px">${delta.s}</span>`:delta}</div>`:'</div>'}`+`</div>`;}
@@ -1233,8 +1253,8 @@ function rVisao(cur,prv,cs,csp){
     document.getElementById('cmpTable').innerHTML=`<table style="width:100%;border-collapse:collapse">
       <thead><tr>
         <th style="padding:6px 10px;color:var(--te);font-size:10px;text-align:left;text-transform:uppercase;border-bottom:1px solid var(--bor)">Métrica</th>
-        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${window._startStr?mL(window._startStr.slice(0,7))+(diaIni===1&&diaFim===new Date(window._endStr+'T12:00:00').getDate()?'':' ('+diaIni+'–'+diaFim+')'):mL(curMes)}</th>
-        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${(()=>{if(!window._startStr)return'Mês anterior';const sd=new Date(window._startStr+'T12:00:00');const pm=new Date(sd.getFullYear(),sd.getMonth()-1,1);const pmStr=pm.getFullYear()+'-'+String(pm.getMonth()+1).padStart(2,'0');const lastDay=new Date(pm.getFullYear(),pm.getMonth()+1,0).getDate();return mL(pmStr)+(diaIni===1&&diaFim===new Date(window._endStr+'T12:00:00').getDate()?'':' ('+diaIni+'–'+Math.min(diaFim,lastDay)+')');})()}</th>
+        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${curPeriodLabel()}</th>
+        <th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${prvPeriodLabel()}</th>
         <th style="padding:6px 10px;font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">Δ</th>
       </tr></thead>
       <tbody>${[
@@ -1326,8 +1346,8 @@ function rVisao(cur,prv,cs,csp){
   const ap2=agg(prv);
   // Build period labels showing actual dates compared
   const _cs=window._startStr,_ce=window._endStr;
-  const _curLbl=_cs&&_ce?(diaIni===1&&diaFim===new Date(_ce+'T12:00:00').getDate()&&new Date(_ce+'T12:00:00').getDate()===new Date(new Date(_cs.slice(0,7)+'-01T12:00:00').getFullYear(), new Date(_cs.slice(0,7)+'-01T12:00:00').getMonth()+1, 0).getDate() ? mL(curMes) : mL(curMes)+' ('+diaIni+'–'+diaFim+')'):mL(curMes);
-  const _prvLbl=_cs?(()=>{const sd=new Date(_cs+'T12:00:00');const pm=new Date(sd.getFullYear(),sd.getMonth()-1,1);const pmStr=pm.getFullYear()+'-'+String(pm.getMonth()+1).padStart(2,'0');return diaIni===1&&diaFim===new Date(_ce+'T12:00:00').getDate()&&new Date(_ce+'T12:00:00').getDate()===new Date(new Date(_cs.slice(0,7)+'-01T12:00:00').getFullYear(), new Date(_cs.slice(0,7)+'-01T12:00:00').getMonth()+1, 0).getDate() ? mL(pmStr) : mL(pmStr)+' ('+diaIni+'–'+Math.min(diaFim,new Date(pm.getFullYear(),pm.getMonth()+1,0).getDate())+')';})():mL(prevM(curMes));
+  const _curLbl=curPeriodLabel();
+  const _prvLbl=prvPeriodLabel();
   document.getElementById('compTable').innerHTML=`<table style="width:100%"><thead><tr><th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--bor)">Métrica</th><th style="padding:6px 10px;color:var(--bl);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${_curLbl}</th><th style="padding:6px 10px;color:var(--txt2);font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">${_prvLbl}</th><th style="padding:6px 10px;font-size:10px;text-align:right;text-transform:uppercase;border-bottom:1px solid var(--bor)">Δ</th></tr></thead><tbody>${[['Faturamento',BRL(a.fat),BRL(ap2.fat),dlt(a.fat,ap2.fat)],['Lucro bruto',BRL(a.lb),BRL(ap2.lb),dlt(a.lb,ap2.lb)],['Margem bruta',PCT(a.mgb),PCT(ap2.mgb),dlt(a.mgb,ap2.mgb)],['Transações',NUM(a.qtd),NUM(ap2.qtd),dlt(a.qtd,ap2.qtd)],['Ticket (Lucro/IP CF)',BRL(sp.cli.ticket),BRL(spp.cli.ticket),dlt(sp.cli.ticket,spp.cli.ticket)],['Trocas',NUM(a.troca_q),NUM(ap2.troca_q),dlt(a.troca_q,ap2.troca_q)],['Taxa cartão',BRL(a.taxa),BRL(ap2.taxa),dlt(a.taxa,ap2.taxa)]].map(([l,c,p,d])=>cmpRow(l,c,p,d)).join('')}</tbody></table>`;
 
   // garantia: período selecionado, só lacrado e 1ano
@@ -1421,6 +1441,8 @@ function rCustos(cur,prv,cs,csp){
   // ── Main comparison table ──────────────────────────────────────
   const thCF=document.getElementById('thCF');if(thCF)thCF.textContent=isReis()?'Cliente Final':'—';
   const thLoj=document.getElementById('thLoj');if(thLoj)thLoj.textContent=isReis()?'Lojista':'—';
+  const thTotal=document.getElementById('thTotal');if(thTotal)thTotal.textContent=curPeriodLabel();
+  const thPrev=document.getElementById('thPrev');if(thPrev)thPrev.textContent=prvPeriodLabel();
   const custEl=document.getElementById('t-cu').closest('.tw');
 
   const tableRows=isReis()?[
@@ -1580,7 +1602,7 @@ function rAnalise(cur,prv,cs){
 
 
   const cards=[
-    {icon:'📈',col:a.fat>=(ap.fat||0)?'var(--gr)':'var(--am)',title:'Resultado do período',body:`Faturamento de ${BRL(a.fat)}${fatDelta!==null?' ('+(fatDelta>0?'▲':'▼')+Math.abs(fatDelta).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% vs '+mL(pm)+')':''}. Lucro bruto: ${BRL(a.lb)} (${PCT(a.mgb)}).${co>0?' Lucro líquido: '+BRL(ll)+'.':''}`},
+    {icon:'📈',col:a.fat>=(ap.fat||0)?'var(--gr)':'var(--am)',title:'Resultado do período',body:`Faturamento de ${BRL(a.fat)}${fatDelta!==null?' ('+(fatDelta>0?'▲':'▼')+Math.abs(fatDelta).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'% vs '+prvPeriodLabel()+')':''}. Lucro bruto: ${BRL(a.lb)} (${PCT(a.mgb)}).${co>0?' Lucro líquido: '+BRL(ll)+'.':''}`},
     ...(isReis()?[{icon:'🏷️',col:'var(--bl)',title:'Lojista vs Cliente Final',body:sp.loj.qtd>0?`CF: ${sp.cli.qtd} vendas, ticket ${BRL(sp.cli.ticket)}, margem ${PCT(sp.cli.mgb)}. Lojista: ${sp.loj.qtd} vendas, ticket ${BRL(sp.loj.ticket)}, margem ${PCT(sp.loj.mgb)}. ${sp.cli.mgb>=sp.loj.mgb?'CF com margem superior — priorize este canal.':'Lojista com margem maior — verifique o mix.'}`:`100% cliente final (${sp.cli.qtd} vendas). Ticket: ${BRL(sp.cli.ticket)}, margem: ${PCT(sp.cli.mgb)}.`}]:[{icon:'🛡',col:'var(--bl)',title:'Mix de serviços',body:(()=>{const tops=topMods(cur,3).map(x=>x.m).join(', ');return `${a.qtd} serviços realizados no período. Ticket médio: ${BRL(a.fat/Math.max(a.qtd,1))}. ${tops?'Top serviços: '+tops+'.':''} Clientes únicos atendidos: ${NUM(a.clientes)}.`;})()}]),
     {icon:'🔁',col:taxaRet>=8?'var(--gr)':'var(--am)',title:'Retenção de clientes',body:`${novos} novos e ${recorr} recorrentes (taxa ${PCT(taxaRet)}). ${taxaRet>=10?'Ótima retenção!':taxaRet>=6?'Razoável — ações de reativação podem ajudar.':'Baixa — considere follow-up WhatsApp com clientes do mês anterior.'}`},
     {icon:'📱',col:'var(--pu)',title:'Mix de produtos e pagamento',body:`${mods?'Top modelos: '+mods+'. ':''}Trocas: ${NUM(a.troca_q)} (${BRL(a.troca_v)}). ${(cur.filter(r=>r.meio==='P').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% PIX, ${(cur.filter(r=>r.meio==='C').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% cartão, ${(cur.filter(r=>r.meio==='X').length/Math.max(a.qtd,1)*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}% combinado.${trafVal>0?' Tráfego: '+BRL(trafVal)+', ROAS: '+(a.fat/trafVal).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'x.':''}` }
@@ -1588,7 +1610,7 @@ function rAnalise(cur,prv,cs){
 
 
   document.getElementById('analiseContent').innerHTML=`
-    <div style="font-size:18px;font-weight:700;margin-bottom:4px;letter-spacing:-.3px">Análise — ${mL(curMes)}${diaIni===1&&diaFim===31?'':' ('+diaIni+'–'+diaFim+')'}</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px;letter-spacing:-.3px">Análise — ${curPeriodLabel()}</div>
     <div style="font-size:12px;color:var(--txt2);margin-bottom:20px">Gerado automaticamente · ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:13px">
       ${cards.map(c=>`<div style="background:var(--bg2);border:1px solid var(--bor);border-left:3px solid ${c.col};border-radius:var(--r);padding:15px 17px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:17px">${c.icon}</span><span style="font-size:13px;font-weight:600;color:${c.col}">${c.title}</span></div><div style="font-size:12.5px;color:var(--txt2);line-height:1.6">${c.body}</div></div>`).join('')}
