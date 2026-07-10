@@ -725,11 +725,16 @@ function switchCompany(co){
     SALES=cached.sales;
     CUSTOS=cached.custos;
     document.getElementById('lastUpd').textContent='✓ '+new Date().toLocaleTimeString('pt-BR')+' (cache)';
-    applyPeriod(); // re-filters and re-renders with current period intact
+    applyPeriod();
   } else {
+    // _firstLoad is already false here (user already saw the dashboard)
+    // so loadData will call applyPeriod() instead of initSel()
     loadData(true);
   }
 }
+
+// Track if this is the very first load ever
+var _firstLoad = true;
 
 async function loadData(manual=false){
   const btn=document.getElementById('btnRf');
@@ -740,7 +745,6 @@ async function loadData(manual=false){
   lt.textContent='Conectando ao Google Sheets...';
   try{
     if(ACTIVE_COMPANY==='reis'){
-      // ── Reis Phones ──
       SHEET_ID=REIS_SHEET_ID;
       lt.textContent='Carregando faturamento Reis Phones...';
       const fatVals  = await fetchRange("FATURAMENTO!A:T");
@@ -750,7 +754,6 @@ async function loadData(manual=false){
       SALES  = parseFatAPI(fatVals);
       CUSTOS = parseCustAPI(custVals);
     } else {
-      // ── Soft Blindagem ──
       SHEET_ID=CUST_SHEET_ID;
       lt.textContent='Carregando vendas Soft Blindagem...';
       let csvSoft='', custRaw=[];
@@ -788,10 +791,18 @@ async function loadData(manual=false){
     }
     document.getElementById('lastUpd').textContent='⚠ Dados locais (verifique a API key)';
   }finally{
-    ov.style.display='none';btn.classList.remove('loading');
-    // Save to cache for instant company switching
+    ov.style.display='none';
+    btn.classList.remove('loading');
+    // Save to cache
     _cache[ACTIVE_COMPANY]={sales:SALES, custos:CUSTOS};
-    initSel(true);renderAll();
+    if(_firstLoad){
+      // First ever load: apply default period (this month to today)
+      _firstLoad=false;
+      initSel(true);
+    } else {
+      // Company switch or manual refresh: keep the period the user selected
+      applyPeriod();
+    }
   }
 }
 
@@ -1979,7 +1990,36 @@ function showTab(id,el){document.querySelectorAll('.panel').forEach(p=>p.classLi
 
 // BOOT
 Chart.defaults.font.family='system-ui,-apple-system,sans-serif';
-window.addEventListener('DOMContentLoaded',()=>loadData(false));
+window.addEventListener('DOMContentLoaded', async ()=>{
+  // Load the active company first (shows dashboard immediately)
+  await loadData(false);
+  // Then silently preload the other company in the background
+  const other = ACTIVE_COMPANY==='reis'?'soft':'reis';
+  const prevCo = ACTIVE_COMPANY;
+  ACTIVE_COMPANY = other;
+  try{
+    if(other==='reis'){
+      SHEET_ID=REIS_SHEET_ID;
+      const fatVals  = await fetchRange("FATURAMENTO!A:T");
+      const custVals = await fetchRangeByGid(1574021542, "A:F");
+      _cache.reis={sales:parseFatAPI(fatVals), custos:parseCustAPI(custVals)};
+    } else {
+      SHEET_ID=CUST_SHEET_ID;
+      const rSoft = await fetch(SOFT_CSV_URL+'&t='+Date.now());
+      const csvSoft = await rSoft.text();
+      const custRaw = await fetchRangeByGid(parseInt(CUST_GID), "A:F");
+      _cache.soft={sales:parseSoftCSV(csvSoft), custos:parseCustAPICompany(custRaw,'SOFT')};
+    }
+    console.log('Background preload done:', other, '→', _cache[other].sales.length, 'records');
+  } catch(e){
+    console.warn('Background preload failed for', other, e);
+    _cache[other]={sales:null,custos:null};
+  } finally {
+    ACTIVE_COMPANY = prevCo;
+    SALES = _cache[prevCo].sales;
+    CUSTOS = _cache[prevCo].custos;
+  }
+});
 
 </script>
 </body>
