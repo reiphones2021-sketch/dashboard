@@ -1270,7 +1270,13 @@ function rVisao(cur,prv,cs,csp){
         </div>
       </div>`;
     }
-    document.getElementById('splitCards').innerHTML=catData.map(makeCatCard).join('');
+    // Render category cards into splitCards
+    // Keep sc-cli and sc-loj in DOM for Reis Phones to use later
+    const _splitCards = document.getElementById('splitCards');
+    _splitCards.innerHTML =
+      catData.map(makeCatCard).join('') +
+      '<div id="sc-cli" style="display:none"></div>' +
+      '<div id="sc-loj" style="display:none"></div>';
 
     // ── Ocultar seções que não existem na Soft ─────────────────────
     document.getElementById('pgtoSh').style.display='none';
@@ -1354,6 +1360,13 @@ function rVisao(cur,prv,cs,csp){
 
   // split
   document.getElementById('splitBadge').textContent=isSoft()?sp.cli.qtd+' serviços realizados':sp.cli.qtd+' cliente final · '+sp.loj.qtd+' lojista';
+  // Restore splitCards structure (may have been replaced by Soft ranking)
+  const _sc = document.getElementById('splitCards');
+  if(_sc && !document.getElementById('sc-cli')?.closest('.sc')) {
+    _sc.innerHTML = `
+      <div class="sc"><div class="sc-title cli">🛒 Cliente Final</div><div class="sc-grid" id="sc-cli"></div></div>
+      <div class="sc"><div class="sc-title loj">🏪 Lojista</div><div class="sc-grid" id="sc-loj"></div></div>`;
+  }
   document.getElementById('sc-cli').innerHTML=scG(sp.cli,'cli');
   document.getElementById('sc-loj').innerHTML=isSoft()?'<div style="color:var(--txt3);font-size:12px;padding:8px 0;grid-column:1/-1">Soft Blindagem não possui canal lojista</div>':sp.loj.qtd>0?scG(sp.loj,'loj'):'<div style="color:var(--txt3);font-size:12px;padding:8px 0;grid-column:1/-1">Sem vendas lojista neste período</div>';
   const stEl=document.getElementById('splitTitle');
@@ -1805,6 +1818,17 @@ function fcAvgLast(field, nMonths){
 }
 
 function renderPrevisao(){
+  // Forecast table row helper
+  function fcRow(label,realized,proj,goal,growth){
+      const gCls=growth>0?'g':growth<0?'r':'a';
+      return`<tr style="border-bottom:1px solid var(--bor)">
+        <td style="padding:7px 12px;color:var(--txt2)">${label}</td>
+        <td class="r" style="padding:7px 12px;font-weight:500">${realized}</td>
+        <td class="r" style="padding:7px 12px;font-weight:600;color:var(--gr)">${proj}</td>
+        <td class="r" style="padding:7px 12px;font-weight:600;color:var(--pu)">${goal}</td>
+        <td class="r" style="padding:7px 12px"><span class="tag ${gCls}">${growth>0?'▲':growth<0?'▼':''} ${PCT(Math.abs(growth))}</span></td>
+      </tr>`;
+    }
   const garSh=document.getElementById('garSh');
   const garGrid=document.getElementById('garGrid');
   if(garSh)garSh.style.display=isReis()?'':'none';
@@ -1852,17 +1876,9 @@ function renderPrevisao(){
       options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),
         plugins:{legend:{display:false},tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>' '+BRL(c.raw)}}}}});
 
+
     // Forecast table — Soft categories
-    function fcRow(label,realized,proj,goal,growth){
-      const gCls=growth>0?'g':growth<0?'r':'a';
-      return`<tr style="border-bottom:1px solid var(--bor)">
-        <td style="padding:7px 12px;color:var(--txt2)">${label}</td>
-        <td class="r" style="padding:7px 12px;font-weight:500">${realized}</td>
-        <td class="r" style="padding:7px 12px;font-weight:600;color:var(--gr)">${proj}</td>
-        <td class="r" style="padding:7px 12px;font-weight:600;color:var(--pu)">${goal}</td>
-        <td class="r" style="padding:7px 12px"><span class="tag ${gCls}">${growth>0?'▲':growth<0?'▼':''} ${PCT(Math.abs(growth))}</span></td>
-      </tr>`;
-    }
+
     const projBlind=fcProjectCurrentMonth('fat_blind'), nextBlind=fcNextMonthForecast('fat_blind');
     const projAssist=fcProjectCurrentMonth('fat_assist'), nextAssist=fcNextMonthForecast('fat_assist');
     const projPlano=fcProjectCurrentMonth('fat_plano'), nextPlano=fcNextMonthForecast('fat_plano');
