@@ -1091,6 +1091,11 @@ function cmpRow(l,c,p,d){return `<tr style="border-bottom:1px solid var(--bor)">
 
 // RENDER ALL
 function renderAll(){
+  // Temporarily make ALL panels display:block so Chart.js can calculate
+  // canvas dimensions correctly (charts in hidden panels get wrong size)
+  const panels = document.querySelectorAll('.panel');
+  panels.forEach(p => { p.style.display='block'; p.style.visibility='hidden'; });
+
   // Show/hide records bar (only for Reis Phones)
   const recBar=document.getElementById('recordsBar');
   if(recBar) recBar.style.display=isReis()?'flex':'none';
@@ -1146,6 +1151,9 @@ function renderAll(){
     return CUSTOS.filter(r=>r.m===`${prevYear}-${String(prevMonth+1).padStart(2,'0')}`);
   })();
   rVisao(cur,prv,cs,csp);rClientes(cur,prv);rMarketing(cur,prv);rCustos(cur,prv,cs,csp);rAnalise(cur,prv,cs);renderPrevisao();
+
+  // Restore — remove inline styles so CSS (.panel / .panel.active) takes over again
+  panels.forEach(p => { p.style.display=''; p.style.visibility=''; });
 }
 
 // ── VISÃO GERAL
