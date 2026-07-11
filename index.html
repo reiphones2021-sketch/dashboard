@@ -135,6 +135,26 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .drp-sub-item:hover{background:rgba(29,90,154,.2);color:var(--te);}
 /* ═══════════════════════════════════════════════════════ */
 ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#1d5a9a;border-radius:3px;}
+
+/* ── Command Center: Hero metric ───────────────────────── */
+.hero-metric{
+  padding:18px 28px 14px;
+  background:linear-gradient(135deg,rgba(29,90,154,.12),rgba(29,90,154,.06));
+  border-bottom:1px solid rgba(29,90,154,.2);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:8px;
+}
+.hero-metric.soft-hero{
+  background:linear-gradient(135deg,rgba(13,158,80,.12),rgba(13,158,80,.06));
+  border-bottom:1px solid rgba(13,158,80,.2);
+}
+.hero-main{text-align:center;flex:1;}
+.hero-eyebrow{font-size:10px;font-weight:700;color:var(--te);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px;}
+.hero-value{font-size:46px;font-weight:900;color:var(--txt);letter-spacing:-2px;line-height:1;}
+.hero-delta{font-size:12px;color:var(--txt2);margin-top:6px;}
+.hero-side{font-size:11px;color:var(--txt3);text-align:right;min-width:180px;}
+.hero-side .hs-row{margin-bottom:4px;}
+.hero-side .hs-val{font-weight:700;color:var(--txt2);}
 </style>
 </head>
 <body>
@@ -236,6 +256,24 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   <span class="pinfo" id="pinfo" style="margin-left:8px"></span>
   <span class="pcmp" id="pcmp"></span>
 </div>
+<div id="heroMetric" class="hero-metric" style="display:none">
+  <div class="hero-side" id="heroLeft">
+    <div class="hs-row">Período: <span class="hs-val" id="heroPeriod"></span></div>
+    <div class="hs-row">Vendas: <span class="hs-val" id="heroQtd"></span></div>
+    <div class="hs-row">Margem: <span class="hs-val" id="heroMargem"></span></div>
+  </div>
+  <div class="hero-main">
+    <div class="hero-eyebrow" id="heroEyebrow">LUCRO BRUTO</div>
+    <div class="hero-value" id="heroValue">—</div>
+    <div class="hero-delta" id="heroDelta"></div>
+  </div>
+  <div class="hero-side" style="text-align:left" id="heroRight">
+    <div class="hs-row">Ticket CF: <span class="hs-val" id="heroTicket"></span></div>
+    <div class="hs-row">Trocas: <span class="hs-val" id="heroTrocas"></span></div>
+    <div class="hs-row">Taxa cartão: <span class="hs-val" id="heroTaxa"></span></div>
+  </div>
+</div>
+
 <div class="tabs">
   <div class="tab active" onclick="showTab('visao',this)">📊 Visão Geral</div>
   <div class="tab" onclick="showTab('previsao',this)">🔮 Previsão</div>
@@ -1164,6 +1202,37 @@ function renderAll(){
     const ps=`${prevYear}-${String(prevMonth+1).padStart(2,'0')}-${String(sDate.getDate()).padStart(2,'0')}`;
     const pe=`${prevYear}-${String(prevMonth+1).padStart(2,'0')}-${String(Math.min(eDate.getDate(),lastDayPrev)).padStart(2,'0')}`;
     return CUSTOS.filter(r=>r.m===`${prevYear}-${String(prevMonth+1).padStart(2,'0')}`);
+  })();
+  // ── Hero metric (Command Center) — uses cur/prv/a/ap ────────
+  (()=>{
+    const heroEl = document.getElementById('heroMetric');
+    if(!heroEl) return;
+    const a2=agg(cur), ap2=agg(prv);
+    const sp2=aSplit(cur);
+    heroEl.style.display = 'flex';
+    const heroLabel = isReis() ? 'LUCRO BRUTO' : 'FATURAMENTO';
+    const heroVal   = isReis() ? a2.lb : a2.fat;
+    const heroValP  = isReis() ? ap2.lb : ap2.fat;
+    const heroDeltaV = dlt(heroVal, heroValP);
+    heroEl.className = 'hero-metric' + (isSoft() ? ' soft-hero' : '');
+    document.getElementById('heroEyebrow').textContent = heroLabel;
+    document.getElementById('heroValue').textContent   = BRL(heroVal);
+    const hd = document.getElementById('heroDelta');
+    if(hd){
+      hd.innerHTML = heroDeltaV ? `<span class="kd ${heroDeltaV.cls}">${heroDeltaV.s}</span> <span style="color:var(--txt3)">vs ${prvPeriodLabel()}</span>` : '';
+    }
+    document.getElementById('heroPeriod').textContent = curPeriodLabel();
+    document.getElementById('heroQtd').textContent    = isReis() ? NUM(a2.qtd)+' vendas' : NUM(a2.qtd)+' serviços';
+    document.getElementById('heroMargem').textContent = isReis() ? PCT(a2.mgb) : '—';
+    const heroRight = document.getElementById('heroRight');
+    if(isReis()){
+      document.getElementById('heroTicket').textContent = BRL(sp2.cli.ticket);
+      document.getElementById('heroTrocas').textContent = NUM(a2.troca_q);
+      document.getElementById('heroTaxa').textContent   = BRL(a2.taxa);
+      if(heroRight) heroRight.style.display = '';
+    } else {
+      if(heroRight) heroRight.style.display = 'none';
+    }
   })();
   rVisao(cur,prv,cs,csp);rClientes(cur,prv);rMarketing(cur,prv);rCustos(cur,prv,cs,csp);rAnalise(cur,prv,cs);renderPrevisao();
 
