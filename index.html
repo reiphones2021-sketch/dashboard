@@ -937,17 +937,26 @@ function ensureCompanyData(co, forceRefresh=false){
 // Manual "Atualizar dados" button — force-refetches the CURRENT company only.
 async function refreshCurrentCompany(){
   const co = ACTIVE_COMPANY;
+  const other = co==='reis'?'soft':'reis';
   const btn=document.getElementById('btnRf');
   btn.classList.add('loading');
-  const data = await ensureCompanyData(co, true);
+  // Force-refetch the company currently on screen — this replaces whatever
+  // was cached for it, wiping out any previously mismatched/stale data.
+  await ensureCompanyData(co, true);
   btn.classList.remove('loading');
-  // Only apply if still on the same company (user could have switched away)
+  // Only touch the visible UI if still on the same company (user could have
+  // switched away while this was loading) — renderAll() itself will always
+  // pull the correct company's data from cache, so this is just cosmetic
+  // (last-updated timestamp + immediate re-render instead of waiting).
   if(ACTIVE_COMPANY===co){
-    SALES=data.sales;
-    CUSTOS=data.custos;
     document.getElementById('lastUpd').textContent='✓ Atualizado: '+new Date().toLocaleTimeString('pt-BR')+' (tempo real)';
     applyPeriod();
   }
+  // Also silently force-refresh the OTHER company in the background. This
+  // means "Atualizar dados" self-heals both companies' caches, not just the
+  // one currently visible — so any stale/corrupted state anywhere gets
+  // wiped out and replaced with a fresh, correct fetch.
+  ensureCompanyData(other, true).catch(()=>{});
 }
 
 // PERIOD
@@ -1235,6 +1244,26 @@ function cmpRow(l,c,p,d){return `<tr style="border-bottom:1px solid var(--bor)">
 
 // RENDER ALL
 function renderAll(){
+  // ══ HARD DATA LOCK ═══════════════════════════════════════════════
+  // Never trust that SALES/CUSTOS were correctly assigned by whatever
+  // code path triggered this render. ALWAYS re-derive them here, fresh,
+  // from the active company's own cache slot. This makes it structurally
+  // impossible for one company's data to ever appear while viewing the
+  // other — no matter what async timing or code path led to this call.
+  const _lockedCo = ACTIVE_COMPANY;
+  const _lockedData = _cache[_lockedCo];
+  if(!_lockedData || _lockedData.sales===null){
+    // Active company's data isn't ready yet — do NOT render with whatever
+    // stale SALES/CUSTOS happen to be sitting in the globals right now.
+    // The caller that eventually loads this company's data will call
+    // renderAll() again once it's actually ready.
+    console.warn('renderAll() skipped — no data cached yet for', _lockedCo);
+    return;
+  }
+  SALES  = _lockedData.sales;
+  CUSTOS = _lockedData.custos;
+  // ═════════════════════════════════════════════════════════════════
+
   // Make all panels display:block so Chart.js can size canvases correctly
   // We do this synchronously before any render call
   const panels = Array.from(document.querySelectorAll('.panel'));
