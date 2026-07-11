@@ -354,7 +354,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="card"><div class="ct">Novos vs Recorrentes</div><div style="height:195px"><canvas id="c-cliPie"></canvas></div></div>
     <div class="card"><div class="ct">Faturamento por vendedor</div><div style="height:215px"><canvas id="c-vends-c"></canvas></div></div>
   </div>
-  <div class="sh"><span class="st">Cliente Final vs Lojista</span></div>
+  <div class="sh"><span class="st" id="cliSplitTitle">Cliente Final vs Lojista</span></div>
   <div class="split">
     <div class="sc"><div class="sc-title cli">🛒 Cliente Final</div><div class="sc-grid" id="cli-sc-cli"></div></div>
     <div class="sc"><div class="sc-title loj">🏪 Lojista</div><div class="sc-grid" id="cli-sc-loj"></div></div>
@@ -417,7 +417,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
       <div class="cw" style="height:210px"><canvas id="c-fcQtdTrend"></canvas></div>
     </div>
     <div class="card">
-      <div class="ct">Lucro bruto — Cliente Final vs Lojista (tendência)</div>
+      <div class="ct" id="fcLucroSplitTitle">Lucro bruto — Cliente Final vs Lojista (tendência)</div>
       <div class="cw" style="height:210px"><canvas id="c-fcLucroSplit"></canvas></div>
     </div>
   </div>
@@ -1503,6 +1503,12 @@ function rVisao(cur,prv,cs,csp){
 
 
   // ══ REIS PHONES — Visão Geral (original) ════════════════════
+  // IMPORTANT: clear cmpTable here — this element is only ever populated by
+  // the Soft branch above (its category comparison table). If we don't
+  // explicitly clear it, Soft's leftover HTML stays sitting in the DOM
+  // forever after the first visit to Soft, silently showing through under
+  // the Reis view since nothing else here ever touches this element.
+  document.getElementById('cmpTable').innerHTML='';
   const kGrid=isReis()?[
     kpi('Faturamento',BRL(a.fat),'Total coletado',dlt(a.fat,ap.fat),'bl'),
     kpi('Lucro bruto',BRL(a.lb),'Margem '+PCT(a.mgb),dlt(a.lb,ap.lb),'gr'),
@@ -1644,6 +1650,8 @@ function rClientes(cur,prv){
     <div class="sc-item"><div class="sc-item-l">CLIENTES ÚNICOS</div><div class="sc-item-v" style="color:var(--pu)">${NUM(a.clientes)}</div></div>`;
   const cliScLoj=document.getElementById('cli-sc-loj');
   if(cliScLoj){if(isReis()){cliScLoj.innerHTML=sp.loj.qtd>0?scG(sp.loj,'loj'):'<div style="color:var(--txt3);font-size:12px;padding:8px 0;grid-column:1/-1">Sem vendas lojista neste período</div>';}else{cliScLoj.innerHTML='';const lojPai=cliScLoj.closest('.sc');if(lojPai)lojPai.style.display='none';}}
+  const cliSplitTitleEl=document.getElementById('cliSplitTitle');
+  if(cliSplitTitleEl)cliSplitTitleEl.textContent=isReis()?'Cliente Final vs Lojista':'Perfil de Clientes';
 }
 
 // ── MARKETING
@@ -1654,13 +1662,21 @@ function rMarketing(cur,prv){
   document.getElementById('kg-m').innerHTML=[
     ...(isReis()?[kpi('Ticket CF (Lucro/iPhone)',BRL(sp.cli.ticket),'Somente cliente final',dlt(sp.cli.ticket,spp.cli.ticket),'gr')]:[kpi('Ticket médio',BRL(a.fat/Math.max(a.qtd,1)),'Faturamento ÷ serviços',dlt(a.fat/Math.max(a.qtd,1),ap.fat/Math.max(ap.qtd,1)),'gr')]),
     kpi(isReis()?'Ticket Lojista (Lucro/iPhone)':'Serviço mais vendido',isReis()?(sp.loj.qtd>0?BRL(sp.loj.ticket):'—'):(()=>{const t=topMods(cur,1);return t.length?t[0].m:'—';})(),isReis()?'Somente lojista':'Produto top do período',null,'am'),
-    kpi('Ticket geral (Lucro/iPhone)',BRL(a.ticket),'CF + Lojista',dlt(a.ticket,ap.ticket),'bl'),
+    kpi('Ticket geral (Lucro/iPhone)',BRL(a.ticket),isReis()?'CF + Lojista':'Todos os serviços',dlt(a.ticket,ap.ticket),'bl'),
     kpi('ROAS',trafVal>0?roas.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'x':'Sem dado',trafVal>0?'Tráfego: '+BRL(trafVal):'Não registrado',null,'pu'),
-    kpi('Margem CF',PCT(sp.cli.mgb),'iPhone cliente final',dlt(sp.cli.mgb,spp.cli.mgb),'te'),
-    kpi('Margem Lojista',sp.loj.qtd>0?PCT(sp.loj.mgb):'—','iPhone lojista',null,'rd'),
+    ...(isReis()?[
+      kpi('Margem CF',PCT(sp.cli.mgb),'iPhone cliente final',dlt(sp.cli.mgb,spp.cli.mgb),'te'),
+      kpi('Margem Lojista',sp.loj.qtd>0?PCT(sp.loj.mgb):'—','iPhone lojista',null,'rd'),
+    ]:[
+      kpi('Margem geral',PCT(a.mgb),'Faturamento do período',null,'te'),
+    ]),
   ].join('');
+  const tickCompTitle=document.getElementById('c-tickComp')?.closest('.card')?.querySelector('.ct');
+  if(tickCompTitle)tickCompTitle.textContent=isReis()?'Ticket médio (Lucro/iPhone) — CF vs Lojista':'Ticket médio por serviço';
   if(isReis()){
   mkChart('c-tickComp',{type:'bar',data:{labels:['Cliente Final','Lojista'],datasets:[{data:[sp.cli.ticket||0,sp.loj.ticket||0],backgroundColor:['#22d3ee','#f5a623'],borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:12}}},y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>BRL(v)}}},plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` Ticket: ${BRL(c.raw)}`}}}}});
+  } else {
+    mkChart('c-tickComp',{type:'bar',data:{labels:['Ticket médio'],datasets:[{data:[a.fat/Math.max(a.qtd,1)],backgroundColor:['#0d9e50'],borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:12}}},y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>BRL(v)}}},plugins:{legend:{display:false},tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>` Ticket: ${BRL(c.raw)}`}}}}});
   }
   // For Soft: topMods by prod (service name); for Reis: by mod (iPhone model)
   const _topSrc=isSoft()?cur.map(r=>({...r,mod:r.prod||r.mod})):sp.cli_r;
@@ -2008,6 +2024,8 @@ function fcAvgLast(field, nMonths){
 }
 
 function renderPrevisao(){
+  const fcLucroSplitTitleEl=document.getElementById('fcLucroSplitTitle');
+  if(fcLucroSplitTitleEl)fcLucroSplitTitleEl.textContent=isReis()?'Lucro bruto — Cliente Final vs Lojista (tendência)':'Faturamento por categoria (tendência)';
   // Forecast table row helper
   function fcRow(label,realized,proj,goal,growth){
       const gCls=growth>0?'g':growth<0?'r':'a';
