@@ -1270,15 +1270,18 @@ function renderAll(){
   const wasActive = panels.map(p=>p.classList.contains('active'));
   panels.forEach(p=>p.style.display='block');
 
-  // Show/hide records bar (only for Reis Phones)
+  // Show records bar for both companies now
   const recBar=document.getElementById('recordsBar');
-  if(recBar) recBar.style.display=isReis()?'flex':'none';
+  if(recBar) recBar.style.display='flex';
 
-  // Calculate records from ALL Reis Phones history
-  if(isReis()&&recBar){
-    const allDev=SALES.filter(r=>r.dev);
+  // Calculate records — Reis uses full history, Soft only counts from 04/2025 onward
+  if(recBar){
+    const SOFT_RECORDS_FROM='2025-04'; // Soft Blindagem: só considerar recordes a partir daqui
+    const allDev = isSoft()
+      ? SALES.filter(r=>r.dev && r.m>=SOFT_RECORDS_FROM)
+      : SALES.filter(r=>r.dev);
 
-    // Best DAY by lucro bruto
+    // Best DAY by lucro bruto (Reis) / faturamento (Soft — same field, r.lb)
     const dayLb={};
     const dayQtd={};
     allDev.forEach(r=>{
@@ -1288,7 +1291,7 @@ function renderAll(){
     const bestDayLb=Object.entries(dayLb).sort((a,b)=>b[1]-a[1])[0];
     const bestDayQtd=Object.entries(dayQtd).sort((a,b)=>b[1]-a[1])[0];
 
-    // Best MONTH by lucro bruto
+    // Best MONTH by lucro bruto (Reis) / faturamento (Soft)
     const mesLb={};
     const mesQtd={};
     allDev.forEach(r=>{
@@ -1299,13 +1302,17 @@ function renderAll(){
     const bestMesQtd=Object.entries(mesQtd).sort((a,b)=>b[1]-a[1])[0];
 
     function fmtDt(dt){const d=new Date(dt+'T12:00:00');return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});}
+    const _unidRec = isSoft() ? 'serviços' : 'aparelhos';
+    const _metricLbl = isSoft() ? 'Faturamento' : 'Lucro bruto';
 
     if(bestDayLb) document.getElementById('recDiaLb').innerHTML=
-      `📅 Melhor dia: <strong style="color:var(--gr)">${BRL(bestDayLb[1])}</strong> · <strong style="color:var(--te)">${dayQtd[bestDayLb[0]]} aparelhos</strong> <span style="color:var(--txt3)">(${fmtDt(bestDayLb[0])})</span>`;
+      `📅 Melhor dia: <strong style="color:var(--gr)">${BRL(bestDayLb[1])}</strong> · <strong style="color:var(--te)">${dayQtd[bestDayLb[0]]} ${_unidRec}</strong> <span style="color:var(--txt3)">(${fmtDt(bestDayLb[0])})</span>`;
     document.getElementById('recDiaQtd').innerHTML='';
     if(bestMesLb) document.getElementById('recMesLb').innerHTML=
-      `📆 Melhor mês: <strong style="color:var(--gr)">${BRL(bestMesLb[1])}</strong> · <strong style="color:var(--te)">${mesQtd[bestMesLb[0]]} aparelhos</strong> <span style="color:var(--txt3)">(${mL(bestMesLb[0])})</span>`;
+      `📆 Melhor mês: <strong style="color:var(--gr)">${BRL(bestMesLb[1])}</strong> · <strong style="color:var(--te)">${mesQtd[bestMesLb[0]]} ${_unidRec}</strong> <span style="color:var(--txt3)">(${mL(bestMesLb[0])})</span>`;
     document.getElementById('recMesQtd').innerHTML='';
+    if(!bestDayLb){document.getElementById('recDiaLb').innerHTML='';}
+    if(!bestMesLb){document.getElementById('recMesLb').innerHTML='';}
   }
 
   const cur=window._startStr&&window._endStr?SALES.filter(r=>r.dt>=window._startStr&&r.dt<=window._endStr):fS(curMes,diaIni,diaFim);
