@@ -857,24 +857,24 @@ function switchCompany(co){
 var _firstLoad = true;
 
 async function loadData(manual=false, isSwitch=false){
+  const co=ACTIVE_COMPANY; // capture the target company NOW — never trust the live global again in this call
   const btn=document.getElementById('btnRf');
   const ov=document.getElementById('loaderOv');
   const lt=document.getElementById('loaderTxt');
   btn.classList.add('loading');
   if(!manual||isSwitch)ov.style.display='flex';
   lt.textContent=isSwitch?'Carregando dados de '+getCompanyName()+'...':'Conectando ao Google Sheets...';
+  let newSales=[], newCustos=[];
   try{
-    if(ACTIVE_COMPANY==='reis'){
-      SHEET_ID=REIS_SHEET_ID;
+    if(co==='reis'){
       lt.textContent='Carregando faturamento Reis Phones...';
       const fatVals  = await fetchRange("FATURAMENTO!A:T");
       lt.textContent='Carregando custos...';
       const custVals = await fetchRangeByGid(1574021542, "A:F");
       lt.textContent='Processando dados...';
-      SALES  = parseFatAPI(fatVals);
-      CUSTOS = parseCustAPI(custVals);
+      newSales  = parseFatAPI(fatVals);
+      newCustos = parseCustAPI(custVals);
     } else {
-      SHEET_ID=CUST_SHEET_ID;
       lt.textContent='Carregando vendas Soft Blindagem...';
       let csvSoft='', custRaw=[];
       try{
@@ -884,7 +884,7 @@ async function loadData(manual=false, isSwitch=false){
         console.log('Soft CSV loaded, length:', csvSoft.length);
       }catch(eCsv){
         console.warn('Soft CSV falhou:',eCsv);
-        document.getElementById('lastUpd').textContent='⚠ CSV Soft falhou: '+eCsv.message;
+        if(ACTIVE_COMPANY===co) document.getElementById('lastUpd').textContent='⚠ CSV Soft falhou: '+eCsv.message;
       }
       try{
         custRaw = await fetchRangeByGid(parseInt(CUST_GID), "A:F");
@@ -893,30 +893,38 @@ async function loadData(manual=false, isSwitch=false){
         console.warn('Custos Soft falhou:',eCust);
       }
       lt.textContent='Processando dados...';
-      SALES  = csvSoft ? parseSoftCSV(csvSoft) : [];
-      CUSTOS = custRaw.length ? parseCustAPICompany(custRaw, 'SOFT') : [];
-      console.log('Soft SALES:', SALES.length, 'CUSTOS:', CUSTOS.length);
-      if(!SALES.length){
+      newSales  = csvSoft ? parseSoftCSV(csvSoft) : [];
+      newCustos = custRaw.length ? parseCustAPICompany(custRaw, 'SOFT') : [];
+      console.log('Soft SALES:', newSales.length, 'CUSTOS:', newCustos.length);
+      if(!newSales.length && ACTIVE_COMPANY===co){
         document.getElementById('lastUpd').textContent='⚠ Soft: sem dados — verifique o CSV publicado';
       }
     }
-    document.getElementById('lastUpd').textContent='✓ Atualizado: '+new Date().toLocaleTimeString('pt-BR')+' (tempo real)';
+    if(ACTIVE_COMPANY===co) document.getElementById('lastUpd').textContent='✓ Atualizado: '+new Date().toLocaleTimeString('pt-BR')+' (tempo real)';
   }catch(e){
     console.warn('Sheets API falhou:',e);
-    SALES=[];CUSTOS=[];
-    document.getElementById('lastUpd').textContent='⚠ Dados locais (verifique a API key)';
+    newSales=[];newCustos=[];
+    if(ACTIVE_COMPANY===co) document.getElementById('lastUpd').textContent='⚠ Dados locais (verifique a API key)';
   }finally{
     ov.style.display='none';
     btn.classList.remove('loading');
-    // Save to cache
-    _cache[ACTIVE_COMPANY]={sales:SALES, custos:CUSTOS};
-    if(_firstLoad){
-      // First ever load: apply default period (this month to today)
-      _firstLoad=false;
-      initSel(true);
-    } else {
-      // Company switch or manual refresh: keep the period the user selected
-      applyPeriod();
+    // Always cache the result under the company it actually belongs to —
+    // regardless of what the user has switched to in the meantime.
+    _cache[co]={sales:newSales, custos:newCustos};
+    // Only touch the live SALES/CUSTOS + re-render if the user is still
+    // looking at this same company. If they've switched away already,
+    // switchCompany()'s own cache-hit path will pick up _cache[co] later.
+    if(ACTIVE_COMPANY===co){
+      SALES=newSales;
+      CUSTOS=newCustos;
+      if(_firstLoad){
+        // First ever load: apply default period (this month to today)
+        _firstLoad=false;
+        initSel(true);
+      } else {
+        // Company switch or manual refresh: keep the period the user selected
+        applyPeriod();
+      }
     }
   }
 }
@@ -2183,18 +2191,17 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   document.getElementById('bgLogoSoft').style.backgroundImage = _softLogoBg;
   // Load the active company first (shows dashboard immediately)
   await loadData(false);
-  // Then silently preload the other company in the background
+  // Then silently preload the other company in the background.
+  // IMPORTANT: this must NEVER mutate ACTIVE_COMPANY or SALES/CUSTOS —
+  // doing so previously caused a race condition where switching companies
+  // mid-preload would get silently reverted once this background fetch finished.
   const other = ACTIVE_COMPANY==='reis'?'soft':'reis';
-  const prevCo = ACTIVE_COMPANY;
-  ACTIVE_COMPANY = other;
   try{
     if(other==='reis'){
-      SHEET_ID=REIS_SHEET_ID;
       const fatVals  = await fetchRange("FATURAMENTO!A:T");
       const custVals = await fetchRangeByGid(1574021542, "A:F");
       _cache.reis={sales:parseFatAPI(fatVals), custos:parseCustAPI(custVals)};
     } else {
-      SHEET_ID=CUST_SHEET_ID;
       const rSoft = await fetch(SOFT_CSV_URL+'&t='+Date.now());
       const csvSoft = await rSoft.text();
       const custRaw = await fetchRangeByGid(parseInt(CUST_GID), "A:F");
@@ -2204,10 +2211,6 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   } catch(e){
     console.warn('Background preload failed for', other, e);
     _cache[other]={sales:null,custos:null};
-  } finally {
-    ACTIVE_COMPANY = prevCo;
-    SALES = _cache[prevCo].sales;
-    CUSTOS = _cache[prevCo].custos;
   }
 });
 </script>
