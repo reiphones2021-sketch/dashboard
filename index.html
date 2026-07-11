@@ -2,7 +2,37 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="version" content="v8-202606271720"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!--
+  ═══════════════════════════════════════════════════════════════════
+  BASELINE ESTÁVEL — v9-STABLE-20260711
+  ═══════════════════════════════════════════════════════════════════
+  Esta versão foi revisada e testada minuciosamente em 11/07/2026:
+  - Arquitetura de carregamento por empresa reescrita (promessas
+    memoizadas por empresa — sem condições de corrida possíveis).
+  - renderAll() trava os dados sempre na empresa ativa no momento do
+    render — impossível misturar dados entre Reis Phones e Soft
+    Blindagem, não importa o histórico de cliques/timing.
+  - Auditoria completa: nenhum elemento de UI é deixado "órfão" entre
+    as duas empresas (bug do cmpTable e rótulos "Lojista" na Soft
+    corrigidos).
+  - Bug de "[object Object]" nos cards de ranking de serviços (Soft)
+    corrigido.
+  - Barra de recordes funcionando para as duas empresas (Soft
+    considera apenas dados a partir de 04/2025).
+  - Logos/marcas d'água das duas empresas corrigidas.
+  - Testado com 2+ anos de dados sintéticos ricos, em todas as 6 abas,
+    nas duas empresas, sem nenhum erro de JS, sem vazamento de dados
+    entre empresas, sem "[object Object]"/NaN/undefined visível.
+
+  🔒 A partir desta versão: em edições futuras, NÃO alterar a lógica
+  já existente (parsers, cálculos, arquitetura de cache/promessas,
+  renderAll, switchCompany, ensureCompanyData) a menos que o pedido
+  seja EXPLICITAMENTE sobre corrigir algo nessas partes. Novas
+  funcionalidades devem ser adicionadas de forma aditiva, sem tocar
+  no que já foi validado.
+  ═══════════════════════════════════════════════════════════════════
+-->
+<meta name="version" content="v9-STABLE-20260711"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reis Phones — Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
