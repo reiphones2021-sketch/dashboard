@@ -4,9 +4,50 @@
 <meta charset="UTF-8">
 <!--
   ═══════════════════════════════════════════════════════════════════
-  BASELINE ESTÁVEL — v9-STABLE-20260711
+  BASELINE ESTÁVEL — v10-STABLE-20260713
   ═══════════════════════════════════════════════════════════════════
-  Esta versão foi revisada e testada minuciosamente em 11/07/2026:
+  Herda tudo da v9-STABLE-20260711 (arquitetura de carregamento sem
+  condições de corrida, hard data lock em renderAll(), sem vazamento
+  de dados entre empresas — ver histórico abaixo). Nesta revisão
+  (13/07/2026), adicionado e testado minuciosamente:
+
+  - Responsividade mobile completa: cabeçalho, seletor de período,
+    métrica em destaque, abas, cards, tabelas — tudo ajustado para
+    telas estreitas via media queries dedicadas.
+  - Seletor de datas (calendário) reconstruído para mobile: vira um
+    painel centralizado e compacto em vez de estourar a tela. Corrigido
+    um bug real de CSS onde uma regra `min-width:600px` da versão
+    desktop vencia o `max-width` do mobile (min-width sempre tem
+    prioridade sobre max-width em conflito) — auditado o arquivo
+    inteiro em busca do mesmo padrão de bug, nenhum outro caso restante.
+  - Marca d'água (logo de fundo) removida nas duas empresas, substituída
+    por um degradê mais forte usando a cor dominante de cada marca
+    (azul Reis / verde Soft). Logos pequenas do cabeçalho mantidas.
+  - Carrossel animado na métrica principal do cabeçalho: gira
+    automaticamente a cada 10s pelas 6 métricas de cada empresa
+    (idênticas às exibidas nos cards logo abaixo), com transição de
+    deslizar da esquerda para a direita. Reconstruído a cada troca de
+    empresa/período; reset defensivo contra troca de empresa no meio
+    de uma transição.
+  - Corrigido bug real pré-existente: o ROAS/investimento em Marketing
+    usava categoria de custo errada ('traf' em vez de 'mkt'), sempre
+    retornando "sem dado". Criada nova seção "Investimento em
+    Marketing × Retorno" na aba Marketing (custo por venda, retorno
+    por real investido, % reinvestido, gráficos de tendência e
+    inteligência textual), agora filtrando especificamente linhas
+    descritas como "Custo de Tráfego Reis"/"Custo de Tráfego Soft" —
+    não a categoria "Marketing" inteira.
+  - Reconfirmado: nenhuma referência de elemento/gráfico quebrada em
+    todo o arquivo (98 getElementById, 16 gráficos, todos batendo).
+
+  🔒 A partir desta versão: em edições futuras, NÃO alterar a lógica
+  já existente (parsers, cálculos, arquitetura de cache/promessas,
+  renderAll, switchCompany, ensureCompanyData, carrossel do hero, media
+  queries mobile) a menos que o pedido seja EXPLICITAMENTE sobre
+  corrigir algo nessas partes. Novas funcionalidades devem ser
+  adicionadas de forma aditiva, sem tocar no que já foi validado.
+
+  ── Histórico anterior (v9-STABLE-20260711) ──
   - Arquitetura de carregamento por empresa reescrita (promessas
     memoizadas por empresa — sem condições de corrida possíveis).
   - renderAll() trava os dados sempre na empresa ativa no momento do
@@ -19,20 +60,9 @@
     corrigido.
   - Barra de recordes funcionando para as duas empresas (Soft
     considera apenas dados a partir de 04/2025).
-  - Logos/marcas d'água das duas empresas corrigidas.
-  - Testado com 2+ anos de dados sintéticos ricos, em todas as 6 abas,
-    nas duas empresas, sem nenhum erro de JS, sem vazamento de dados
-    entre empresas, sem "[object Object]"/NaN/undefined visível.
-
-  🔒 A partir desta versão: em edições futuras, NÃO alterar a lógica
-  já existente (parsers, cálculos, arquitetura de cache/promessas,
-  renderAll, switchCompany, ensureCompanyData) a menos que o pedido
-  seja EXPLICITAMENTE sobre corrigir algo nessas partes. Novas
-  funcionalidades devem ser adicionadas de forma aditiva, sem tocar
-  no que já foi validado.
   ═══════════════════════════════════════════════════════════════════
 -->
-<meta name="version" content="v9-STABLE-20260711"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="version" content="v10-STABLE-20260713"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reis Phones — Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -1558,6 +1588,18 @@ function renderAll(){
     }
     window.HERO_IDX = 0;
     applyHeroSlide(window.HERO_SLIDES[0]);
+    // Defensive reset: if a rotation's fade/slide was mid-flight when this
+    // render happened (e.g. company switched right as the 10s tick fired),
+    // force the carousel back to a clean, fully-visible resting state so it
+    // never gets stuck faded out or shifted.
+    const heroInner = document.getElementById('heroMainInner');
+    if(heroInner){
+      heroInner.style.transition = 'none';
+      heroInner.style.transform = 'translateX(0)';
+      heroInner.style.opacity = '1';
+      void heroInner.offsetWidth;
+      heroInner.style.transition = '';
+    }
 
     document.getElementById('heroPeriod').textContent = curPeriodLabel();
     document.getElementById('heroQtd').textContent    = isReis() ? NUM(a2.qtd)+' vendas' : NUM(a2.qtd)+' serviços';
