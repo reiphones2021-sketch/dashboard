@@ -209,6 +209,98 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .hero-side{font-size:11px;color:var(--txt3);text-align:right;min-width:180px;}
 .hero-side .hs-row{margin-bottom:4px;}
 .hero-side .hs-val{font-weight:700;color:var(--txt2);}
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE OVERHAUL
+   ══════════════════════════════════════════════════════════════ */
+@media(max-width:640px){
+  /* Header: tighter padding, allow the logo block and switcher to wrap cleanly */
+  .hdr{padding:12px 14px;gap:8px;}
+  .logo{gap:8px;}
+  .logo img{width:38px!important;height:38px!important;}
+  .logo-nm{font-size:15px;}
+  .logo-sb{font-size:10px;}
+  .hdr-r{gap:6px;width:100%;justify-content:flex-start;}
+  .company-sw{order:1;}
+  .company-btn{padding:5px 10px;font-size:11px;}
+  .badge-live{padding:3px 9px;font-size:10px;}
+  .btn-rf{padding:5px 10px;font-size:11px;}
+  .last-upd{font-size:10px;width:100%;}
+
+  /* Period bar: let the date trigger take full width so it doesn't clip */
+  .pbar{padding:9px 14px;gap:8px;}
+  .drp-wrap{width:100%;}
+  .drp-trigger{min-width:0;width:100%;font-size:11.5px;padding:8px 12px;}
+  .pinfo,.pcmp{font-size:10.5px;}
+
+  /* Hero metric: stack the three blocks instead of cramming side by side */
+  .hero-metric{padding:14px 14px 12px;flex-direction:column;text-align:center;}
+  .hero-side{text-align:center!important;min-width:0;width:100%;font-size:10.5px;}
+  .hero-value{font-size:34px;letter-spacing:-1px;}
+  .hero-eyebrow{font-size:9px;}
+
+  /* Tabs: tighter so more of them are visible before scrolling */
+  .tabs{padding:0 10px;}
+  .tab{padding:9px 11px;font-size:11.5px;}
+
+  /* Content: reclaim side padding for narrow screens */
+  .content{padding:14px 12px;}
+  .kg{grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px;}
+  .kc{padding:12px 13px;}
+  .kv{font-size:17px;}
+
+  .cg{gap:10px;}
+  .card{padding:13px 14px;}
+
+  .sc{padding:12px 13px;}
+  .sc-grid{gap:6px;}
+  .sc-item{padding:7px 9px;}
+  .sc-item-v{font-size:13px;}
+
+  /* Records bar: smaller text so more fits before needing to scroll */
+  #recordsBar{padding:5px 14px;font-size:10.5px;}
+
+  /* Bar-rows (top models, etc): shrink the fixed label width */
+  .br-lbl{width:88px;font-size:10.5px;}
+  .br-val{width:66px;font-size:10.5px;}
+
+  /* Tables: smaller font so more columns are readable before scrolling */
+  table{font-size:11px;}
+  thead th{padding:6px 8px;}
+  tbody td{padding:6px 8px;}
+
+  .gar-grid{grid-template-columns:repeat(auto-fit,minmax(135px,1fr));}
+  .abox{padding:13px 15px;}
+
+  /* ══ Date range picker: the critical fix — the popup was fixed at
+     600px+155px and would overflow any phone screen. On mobile it
+     becomes a centered fixed panel, sized to the viewport, with the
+     two calendars stacked and the shortcuts list moved below instead
+     of beside. ══ */
+  .drp-popup{
+    position:fixed!important;
+    top:auto!important;bottom:10px;left:50%!important;
+    transform:translateX(-50%);
+    width:calc(100vw - 20px);max-width:400px;
+    max-height:85vh;overflow-y:auto;
+    flex-direction:column!important;
+  }
+  .drp-cals{grid-template-columns:1fr;gap:14px;}
+  .drp-right{
+    width:100%;border-left:none;border-top:1px solid rgba(29,90,154,.3);
+    flex-direction:row;flex-wrap:wrap;padding:8px 6px;
+  }
+  .drp-ps-item{flex:1 1 45%;font-size:11px;padding:7px 8px;}
+  .drp-submenu{position:fixed;left:50%!important;right:auto!important;top:auto!important;bottom:10px;transform:translateX(-50%);width:calc(100vw - 40px);max-width:340px;}
+  .drp-adv-row{grid-template-columns:1fr;}
+  .drp-overlay.open{background:rgba(10,22,40,.6);}
+}
+
+@media(max-width:400px){
+  .hero-value{font-size:28px;}
+  .kg{grid-template-columns:repeat(auto-fit,minmax(105px,1fr));}
+  .sc-grid{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
@@ -401,6 +493,13 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="card"><div class="ct">Top 10 — Lojista</div><div id="modLojBars" style="margin-top:2px;max-height:220px;overflow-y:auto"></div></div>
     <div class="card"><div class="ct">Faturamento por vendedor</div><div style="height:215px"><canvas id="c-vends"></canvas></div></div>
   </div>
+  <div class="sh"><span class="st">Investimento em Marketing × Retorno</span><span class="sb" id="mktRoiBadge"></span></div>
+  <div class="kg" id="kg-mkt-roi"></div>
+  <div class="cg c2">
+    <div class="card"><div class="ct" id="mktRoiChartTitle">Investimento x Lucro Bruto — últimos 6 meses</div><div style="height:210px"><canvas id="c-mktRoi"></canvas></div></div>
+    <div class="card"><div class="ct">Custo por venda (CPA) — tendência</div><div style="height:210px"><canvas id="c-mktCpa"></canvas></div></div>
+  </div>
+  <div class="abox" id="mktInsightBox" style="margin-top:16px"></div>
 </div>
 
 <div id="p-custos" class="panel">
@@ -547,6 +646,15 @@ const GRID='rgba(29,90,154,.12)',TXT2='#7fa8d0';
 const ML={'2024-08':'Ago/24','2024-09':'Set/24','2024-10':'Out/24','2024-11':'Nov/24','2024-12':'Dez/24','2025-01':'Jan/25','2025-02':'Fev/25','2025-03':'Mar/25','2025-04':'Abr/25','2025-05':'Mai/25','2025-06':'Jun/25','2025-07':'Jul/25','2025-08':'Ago/25','2025-09':'Set/25','2025-10':'Out/25','2025-11':'Nov/25','2025-12':'Dez/25','2026-01':'Jan/26','2026-02':'Fev/26','2026-03':'Mar/26','2026-04':'Abr/26','2026-05':'Mai/26','2026-06':'Jun/26'};
 const mL=s=>ML[s]||s;
 function prevM(m){const[y,mo]=m.split('-').map(Number);const d=new Date(y,mo-2,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+// Identifies cost rows that are specifically ad-spend/tráfego pago (not the
+// broader "Marketing" demand category, which can also include design,
+// impressão, etc). Matches DESCRIÇÃO containing "TRÁFEGO" + the company name
+// ("REIS" or "SOFT"), e.g. "Custo de Tráfego Reis" / "Custo de Tráfego Soft".
+function isTrafCost(row){
+  const d=String(row.desc||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if(!d.includes('TRAFEGO'))return false;
+  return isReis() ? d.includes('REIS') : d.includes('SOFT');
+}
 function mkChart(id,cfg){
   if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}
   const el=document.getElementById(id);
@@ -1696,7 +1804,7 @@ function rClientes(cur,prv){
 // ── MARKETING
 function rMarketing(cur,prv){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur),spp=aSplit(prv);
-  const cs=fC(curMes);const trafVal=cs.filter(r=>r.cat==='traf').reduce((s,r)=>s+r.v,0);
+  const cs=fC(curMes);const trafVal=cs.filter(r=>isTrafCost(r)).reduce((s,r)=>s+r.v,0);
   const roas=trafVal>0?(a.fat/trafVal):0;
   document.getElementById('kg-m').innerHTML=[
     ...(isReis()?[kpi('Ticket CF (Lucro/iPhone)',BRL(sp.cli.ticket),'Somente cliente final',dlt(sp.cli.ticket,spp.cli.ticket),'gr')]:[kpi('Ticket médio',BRL(a.fat/Math.max(a.qtd,1)),'Faturamento ÷ serviços',dlt(a.fat/Math.max(a.qtd,1),ap.fat/Math.max(ap.qtd,1)),'gr')]),
@@ -1728,6 +1836,95 @@ function rMarketing(cur,prv){
   const vMap={};SALES.filter(r=>r.m===curMes&&r.d>=diaIni&&r.d<=diaFim).forEach(r=>{if(!vMap[r.vend])vMap[r.vend]={fat:0,q:0};vMap[r.vend].fat+=r.vtc||0;vMap[r.vend].q++;});
   const vArr=Object.entries(vMap).sort((a,b)=>b[1].fat-a[1].fat);
   mkChart('c-vends',{type:'bar',data:{labels:vArr.map(([n])=>n),datasets:[{data:vArr.map(([,d])=>d.fat),backgroundColor:vArr.map((_,i)=>['#2d7acc','#00d97e','#f5a623','#5b9bd5','#22d3ee'][i%5]),borderRadius:5}]},options:{...cOpts({callback:v=>'R$'+(v>=1000?(v/1000).toFixed(0)+'K':v.toFixed(0))}),plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${BRL(c.raw)}`}}}}});
+
+  // ══ INVESTIMENTO EM MARKETING × RETORNO ═══════════════════════════
+  // Cruza o custo lançado na planilha como "Marketing" (categoria 'mkt')
+  // com o resultado do período: Lucro Bruto para a Reis Phones,
+  // Faturamento Total para a Soft Blindagem.
+  (()=>{
+    const resultLabel = isReis() ? 'Lucro Bruto' : 'Faturamento Total';
+    const resultCur = isReis() ? a.lb : a.fat;
+    const resultPrev = isReis() ? ap.lb : ap.fat;
+
+    // custos do período anterior (mesmo padrão usado em renderAll para csp)
+    const csp = (()=>{
+      if(!window._startStr||!window._endStr) return CUSTOS.filter(r=>r.m===prevM(curMes));
+      const sDate=new Date(window._startStr+'T12:00:00');
+      const prevDate=new Date(sDate.getFullYear(),sDate.getMonth()-1,1);
+      const prevYear=prevDate.getFullYear(),prevMonth=prevDate.getMonth();
+      return CUSTOS.filter(r=>r.m===`${prevYear}-${String(prevMonth+1).padStart(2,'0')}`);
+    })();
+    const investCur = trafVal; // já calculado acima com a categoria correta ('mkt')
+    const investPrev = csp.filter(r=>isTrafCost(r)).reduce((s,r)=>s+r.v,0);
+    const cpaCur = investCur>0 ? investCur/Math.max(a.qtd,1) : 0;
+    const cpaPrev = investPrev>0 ? investPrev/Math.max(ap.qtd,1) : 0;
+    const retornoPorReal = investCur>0 ? resultCur/investCur : 0;
+    const retornoPorRealPrev = investPrev>0 ? resultPrev/investPrev : 0;
+    const pctReinvestido = resultCur>0 ? investCur/resultCur*100 : 0;
+
+    document.getElementById('mktRoiBadge').textContent = curPeriodLabel();
+    document.getElementById('kg-mkt-roi').innerHTML=[
+      kpi('Investimento em Marketing',BRL(investCur),'Lançado na planilha de custos',investPrev>0?dlt(investCur,investPrev):null,'am'),
+      kpi('Custo por '+(isReis()?'venda':'serviço'),investCur>0?BRL(cpaCur):'Sem investimento','Investimento ÷ '+(isReis()?'aparelhos vendidos':'serviços realizados'),(investCur>0&&investPrev>0)?dlt(cpaCur,cpaPrev):null,'rd'),
+      kpi('Retorno por R$1 investido',investCur>0?BRL(retornoPorReal):'—',resultLabel+' gerado por real investido',(investCur>0&&investPrev>0)?dlt(retornoPorReal,retornoPorRealPrev):null,'gr'),
+      kpi('% reinvestido em Marketing',resultCur>0?PCT(pctReinvestido):'—',resultLabel+' destinado a marketing',null,'pu'),
+    ].join('');
+
+    // Tendência últimos 6 meses: investimento x resultado
+    const months6mk=[...new Set(SALES.map(r=>r.m))].sort().slice(-6);
+    const investByMonth = months6mk.map(m=>CUSTOS.filter(r=>r.m===m&&isTrafCost(r)).reduce((s,r)=>s+r.v,0));
+    const resultByMonth = months6mk.map(m=>{
+      if(isReis()) return SALES.filter(r=>r.dev&&r.m===m).reduce((s,r)=>s+r.lb,0);
+      return SALES.filter(r=>r.m===m).reduce((s,r)=>s+r.vtc,0);
+    });
+    const qtdByMonth = months6mk.map(m=>isReis()?SALES.filter(r=>r.dev&&r.m===m).length:SALES.filter(r=>r.m===m).length);
+    const cpaByMonth = months6mk.map((m,i)=>investByMonth[i]>0?investByMonth[i]/Math.max(qtdByMonth[i],1):null);
+
+    const roiTitleEl=document.getElementById('mktRoiChartTitle');
+    if(roiTitleEl)roiTitleEl.textContent='Investimento x '+resultLabel+' — últimos 6 meses';
+    const mainColor = isReis() ? 'rgba(0,217,126,.55)' : 'rgba(13,158,80,.55)';
+    const investColor = isReis() ? '#f5a623' : '#f5a623';
+    mkChart('c-mktRoi',{type:'bar',data:{labels:months6mk.map(m=>mL(m)),datasets:[
+      {label:'Investimento em Marketing',data:investByMonth,backgroundColor:investColor,borderRadius:4},
+      {label:resultLabel,data:resultByMonth,backgroundColor:mainColor,borderRadius:4},
+    ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},
+        tooltip:{backgroundColor:isReis()?'#0f1e35':'#071a10',borderColor:isReis()?'rgba(29,90,154,.4)':'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},
+              y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}}}});
+
+    mkChart('c-mktCpa',{type:'line',data:{labels:months6mk.map(m=>mL(m)),datasets:[
+      {label:'Custo por '+(isReis()?'venda':'serviço'),data:cpaByMonth,borderColor:'#5b9bd5',backgroundColor:'rgba(91,155,213,.08)',borderWidth:2,pointRadius:3,fill:true,tension:.3,spanGaps:true},
+    ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>c.raw==null?' Sem investimento':` ${BRL(c.raw)}`}}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},
+              y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>BRL(v)}}}}});
+
+    // Insight inteligente sobre o investimento em marketing
+    const box=document.getElementById('mktInsightBox');
+    if(box){
+      let msg='';
+      if(investCur<=0){
+        msg=`Nenhum investimento em Marketing foi lançado na planilha de custos neste período (${curPeriodLabel()}). Assim que houver lançamentos na categoria "Marketing", esta seção calcula automaticamente o custo por ${isReis()?'venda':'serviço'} e o retorno gerado.`;
+      } else {
+        const investDelta = investPrev>0 ? ((investCur-investPrev)/investPrev*100) : null;
+        const resultDelta = resultPrev>0 ? ((resultCur-resultPrev)/resultPrev*100) : null;
+        let correlacao='';
+        if(investDelta!==null && resultDelta!==null){
+          const investDeltaS=Math.abs(investDelta).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+          const resultDeltaS=Math.abs(resultDelta).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+          if(investDelta>0 && resultDelta>investDelta) correlacao=`O investimento subiu ${investDeltaS}% e o ${resultLabel.toLowerCase()} cresceu ainda mais (${resultDeltaS}%) — trajetória saudável, o dinheiro investido está performando bem.`;
+          else if(investDelta>0 && resultDelta<0) correlacao=`Atenção: o investimento subiu ${investDeltaS}%, mas o ${resultLabel.toLowerCase()} caiu ${resultDeltaS}% — vale revisar os anúncios ou a oferta antes de aumentar o orçamento de novo.`;
+          else if(investDelta<0 && resultDelta>=0) correlacao=`O investimento caiu ${investDeltaS}% e o ${resultLabel.toLowerCase()} se manteve ou até cresceu — sinal de que o negócio está menos dependente de tráfego pago neste período.`;
+          else correlacao=`Investimento e ${resultLabel.toLowerCase()} andaram próximos neste período (${investDelta>=0?'+':'-'}${investDeltaS}% vs ${resultDelta>=0?'+':'-'}${resultDeltaS}%).`;
+        }
+        msg=`Neste período (${curPeriodLabel()}), foram investidos ${BRL(investCur)} em Marketing — equivalente a ${PCT(pctReinvestido)} do ${resultLabel.toLowerCase()} gerado. `+
+          `Cada R$ 1,00 investido retornou ${BRL(retornoPorReal)} em ${resultLabel.toLowerCase()} (retorno de ${retornoPorReal.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}x). `+
+          `O custo médio para gerar ${isReis()?'uma venda':'um serviço'} foi de ${BRL(cpaCur)} — ou seja, para conquistar mais uma ${isReis()?'venda':'atendimento'}, é razoável esperar a necessidade de mais ou menos esse valor em tráfego pago, mantendo o mix de campanhas atual. ${correlacao}`;
+      }
+      box.innerHTML=`<div class="abox-hdr"><span style="font-size:17px">🎯</span><span class="abox-title">Inteligência de investimento em Marketing</span></div><div style="font-size:12.5px;color:var(--txt2);line-height:1.7">${msg}</div>`;
+    }
+  })();
 }
 
 // ── CUSTOS
@@ -1907,7 +2104,7 @@ function rAnalise(cur,prv,cs){
   const taxaRet=a.clientes>0?(recorr/a.clientes*100):0;
   const mods=topMods(cur,3).map(x=>x.m).join(', ');
   const fatDelta=ap.fat>0?((a.fat-ap.fat)/ap.fat*100):null;
-  const trafVal=cs.filter(r=>r.cat==='traf').reduce((s,r)=>s+r.v,0);
+  const trafVal=cs.filter(r=>isTrafCost(r)).reduce((s,r)=>s+r.v,0);
 
 
   const cards=[
@@ -1958,7 +2155,7 @@ function buildFCHist(){
   return months.map(m=>{
     const rows=SALES.filter(r=>r.m===m);
     const sum=(arr,f)=>arr.reduce((s,r)=>s+(r[f]||0),0);
-    const trafRows=CUSTOS.filter(r=>r.m===m&&r.cat==='mkt');
+    const trafRows=CUSTOS.filter(r=>r.m===m&&isTrafCost(r));
     const dInMonth=daysInMonth(m);
     const lastDay=(m===GLOBAL_LAST_MONTH)?GLOBAL_LAST_DAY:dInMonth;
     if(isReis()){
