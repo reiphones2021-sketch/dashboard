@@ -190,7 +190,8 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   background:linear-gradient(135deg,rgba(13,158,80,.12),rgba(13,158,80,.06));
   border-bottom:1px solid rgba(13,158,80,.2);
 }
-.hero-main{text-align:center;flex:1;}
+.hero-main{text-align:center;flex:1;overflow:hidden;}
+.hero-main-inner{transition:transform .45s ease, opacity .45s ease;}
 .hero-eyebrow{font-size:10px;font-weight:700;color:var(--te);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px;}
 .hero-value{font-size:46px;font-weight:900;color:var(--txt);letter-spacing:-2px;line-height:1;}
 .hero-delta{font-size:12px;color:var(--txt2);margin-top:6px;}
@@ -269,7 +270,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     position:fixed!important;
     top:auto!important;bottom:10px;left:50%!important;
     transform:translateX(-50%);
-    width:calc(100vw - 32px);max-width:180px;min-width:0!important;
+    width:calc(100vw - 32px);max-width:235px;min-width:0!important;
     max-height:80vh;overflow-y:auto;
     flex-direction:column!important;
   }
@@ -288,7 +289,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     flex-direction:row;flex-wrap:wrap;padding:6px 2px;gap:1px;
   }
   .drp-ps-item{flex:1 1 45%;font-size:10px;padding:5px 3px;}
-  .drp-submenu{position:fixed;left:50%!important;right:auto!important;top:auto!important;bottom:10px;transform:translateX(-50%);width:calc(100vw - 48px);max-width:180px;min-width:0!important;}
+  .drp-submenu{position:fixed;left:50%!important;right:auto!important;top:auto!important;bottom:10px;transform:translateX(-50%);width:calc(100vw - 48px);max-width:235px;min-width:0!important;}
   .drp-sub-item{font-size:10.5px;padding:5px 5px;}
   .drp-adv{padding:6px 4px!important;}
   .drp-adv-row{grid-template-columns:1fr;gap:5px!important;}
@@ -415,9 +416,11 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="hs-row">Margem: <span class="hs-val" id="heroMargem"></span></div>
   </div>
   <div class="hero-main">
-    <div class="hero-eyebrow" id="heroEyebrow">LUCRO BRUTO</div>
-    <div class="hero-value" id="heroValue">—</div>
-    <div class="hero-delta" id="heroDelta"></div>
+    <div class="hero-main-inner" id="heroMainInner">
+      <div class="hero-eyebrow" id="heroEyebrow">LUCRO BRUTO</div>
+      <div class="hero-value" id="heroValue">—</div>
+      <div class="hero-delta" id="heroDelta"></div>
+    </div>
   </div>
   <div class="hero-side" style="text-align:left" id="heroRight">
     <div class="hs-row">Ticket CF: <span class="hs-val" id="heroTicket"></span></div>
@@ -656,6 +659,19 @@ function isTrafCost(row){
   const d=String(row.desc||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   if(!d.includes('TRAFEGO'))return false;
   return isReis() ? d.includes('REIS') : d.includes('SOFT');
+}
+// Shared Soft Blindagem product classifier (mirrors the local catOf() used
+// inside rVisao's Soft branch) — used by the hero carousel too.
+function catOfSoft(prod){
+  const p=String(prod||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if(p.includes('ASSIST')) return 'assist';
+  if(p.includes('BLINDAGEM')||p.includes('BLINDADO')||p.includes('STICKER')||
+     p.includes('RELOGIO')||p.includes('TABLET')||p.includes('NOTEBOOK')||
+     p.includes('MULTIMIDIA')||p.includes('CAMERA')||
+     (p.includes('SUPORTE')&&p.includes('BLIND'))) return 'blind';
+  if(p.includes('PLANO')||p.includes('UPGRADE')) return 'plano';
+  if(p.includes('GARANTIA')) return 'gar';
+  return 'acess';
 }
 function mkChart(id,cfg){
   if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}
@@ -1381,6 +1397,45 @@ function scI(label,value,delta,col){const colors={'bl':'var(--te)','gr':'var(--g
 function cmpRow(l,c,p,d){return `<tr style="border-bottom:1px solid var(--bor)"><td style="padding:6px 10px;color:var(--txt2)">${l}</td><td class="r" style="padding:6px 10px;font-weight:600;color:var(--bl)">${c}</td><td class="r" style="padding:6px 10px;color:var(--txt2)">${p}</td><td class="r" style="padding:6px 10px">${d?`<span class="kd ${d.cls}" style="font-size:11px">${d.s}</span>`:'—'}</td></tr>`;}
 
 // RENDER ALL
+// ── Hero carousel: applies one metric slide, and animates the transition
+// to the next one every 10s (slides old value out to the right, brings
+// the next one in from the left — a continuous left-to-right motion).
+function applyHeroSlide(slide){
+  if(!slide) return;
+  const eb=document.getElementById('heroEyebrow');
+  const vv=document.getElementById('heroValue');
+  const hd=document.getElementById('heroDelta');
+  if(eb) eb.textContent = slide.label;
+  if(vv) vv.textContent = slide.fmt(slide.val);
+  const d = dlt(slide.val, slide.prev);
+  if(hd) hd.innerHTML = d ? `<span class="kd ${d.cls}">${d.s}</span> <span style="color:var(--txt3)">vs ${prvPeriodLabel()}</span>` : '';
+}
+function rotateHeroSlide(){
+  const slides = window.HERO_SLIDES;
+  if(!slides || slides.length<2) return;
+  const inner = document.getElementById('heroMainInner');
+  if(!inner) return;
+  // Step 1: slide the current metric out to the right, fading it out
+  inner.style.transform = 'translateX(24px)';
+  inner.style.opacity = '0';
+  setTimeout(()=>{
+    window.HERO_IDX = (window.HERO_IDX+1) % slides.length;
+    applyHeroSlide(slides[window.HERO_IDX]);
+    // Step 2: snap the (now updated) content to the left, invisible, with
+    // transitions disabled so this positioning jump isn't itself animated
+    inner.style.transition = 'none';
+    inner.style.transform = 'translateX(-24px)';
+    inner.style.opacity = '0';
+    void inner.offsetWidth; // force reflow so the browser "sees" the jump
+    // Step 3: re-enable the transition and animate into the resting position
+    requestAnimationFrame(()=>{
+      inner.style.transition = '';
+      inner.style.transform = 'translateX(0)';
+      inner.style.opacity = '1';
+    });
+  }, 450);
+}
+
 function renderAll(){
   // ══ HARD DATA LOCK ═══════════════════════════════════════════════
   // Never trust that SALES/CUSTOS were correctly assigned by whatever
@@ -1474,19 +1529,36 @@ function renderAll(){
     const heroEl = document.getElementById('heroMetric');
     if(!heroEl) return;
     const a2=agg(cur), ap2=agg(prv);
-    const sp2=aSplit(cur);
+    const sp2=aSplit(cur), spp2=aSplit(prv);
     heroEl.style.display = 'flex';
-    const heroLabel = isReis() ? 'LUCRO BRUTO' : 'FATURAMENTO';
-    const heroVal   = isReis() ? a2.lb : a2.fat;
-    const heroValP  = isReis() ? ap2.lb : ap2.fat;
-    const heroDeltaV = dlt(heroVal, heroValP);
     heroEl.className = 'hero-metric' + (isSoft() ? ' soft-hero' : '');
-    document.getElementById('heroEyebrow').textContent = heroLabel;
-    document.getElementById('heroValue').textContent   = BRL(heroVal);
-    const hd = document.getElementById('heroDelta');
-    if(hd){
-      hd.innerHTML = heroDeltaV ? `<span class="kd ${heroDeltaV.cls}">${heroDeltaV.s}</span> <span style="color:var(--txt3)">vs ${prvPeriodLabel()}</span>` : '';
+
+    // Build the rotating set of headline metrics for this company/period —
+    // these mirror exactly the 6 KPI cards shown just below in Visão Geral.
+    if(isReis()){
+      window.HERO_SLIDES = [
+        {label:'FATURAMENTO', val:a2.fat, prev:ap2.fat, fmt:BRL},
+        {label:'LUCRO BRUTO', val:a2.lb, prev:ap2.lb, fmt:BRL},
+        {label:'TICKET CF (LUCRO/IPHONE)', val:sp2.cli.ticket, prev:spp2.cli.ticket, fmt:BRL},
+        {label:'APARELHOS VENDIDOS', val:a2.qtd, prev:ap2.qtd, fmt:NUM},
+        {label:'TAXA DE CARTÃO', val:a2.taxa, prev:ap2.taxa, fmt:BRL},
+        {label:'TROCAS RECEBIDAS', val:a2.troca_q, prev:ap2.troca_q, fmt:NUM},
+      ];
+    } else {
+      const rBlind2=cur.filter(r=>catOfSoft(r.prod)==='blind'),   rBlind2_p=prv.filter(r=>catOfSoft(r.prod)==='blind');
+      const rAssist2=cur.filter(r=>catOfSoft(r.prod)==='assist'), rAssist2_p=prv.filter(r=>catOfSoft(r.prod)==='assist');
+      window.HERO_SLIDES = [
+        {label:'FATURAMENTO', val:a2.fat, prev:ap2.fat, fmt:BRL},
+        {label:'SERVIÇOS REALIZADOS', val:a2.qtd, prev:ap2.qtd, fmt:NUM},
+        {label:'TICKET MÉDIO', val:a2.fat/Math.max(a2.qtd,1), prev:ap2.fat/Math.max(ap2.qtd,1), fmt:BRL},
+        {label:'CLIENTES ÚNICOS', val:a2.clientes, prev:ap2.clientes, fmt:NUM},
+        {label:'BLINDAGENS', val:rBlind2.length, prev:rBlind2_p.length, fmt:NUM},
+        {label:'ASSISTÊNCIA TÉCNICA', val:rAssist2.length, prev:rAssist2_p.length, fmt:NUM},
+      ];
     }
+    window.HERO_IDX = 0;
+    applyHeroSlide(window.HERO_SLIDES[0]);
+
     document.getElementById('heroPeriod').textContent = curPeriodLabel();
     document.getElementById('heroQtd').textContent    = isReis() ? NUM(a2.qtd)+' vendas' : NUM(a2.qtd)+' serviços';
     document.getElementById('heroMargem').textContent = isReis() ? PCT(a2.mgb) : '—';
@@ -1498,6 +1570,13 @@ function renderAll(){
       if(heroRight) heroRight.style.display = '';
     } else {
       if(heroRight) heroRight.style.display = 'none';
+    }
+
+    // Start the rotation loop exactly once — renderAll() runs on every
+    // period/company change, but we don't want to stack multiple intervals.
+    if(!window._heroRotationStarted){
+      window._heroRotationStarted = true;
+      setInterval(rotateHeroSlide, 10000);
     }
   })();
   rVisao(cur,prv,cs,csp);rClientes(cur,prv);rMarketing(cur,prv);rCustos(cur,prv,cs,csp);rAnalise(cur,prv,cs);renderPrevisao();
