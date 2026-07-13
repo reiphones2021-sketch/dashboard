@@ -281,18 +281,34 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     position:fixed!important;
     top:auto!important;bottom:10px;left:50%!important;
     transform:translateX(-50%);
-    width:calc(100vw - 20px);max-width:400px;
-    max-height:85vh;overflow-y:auto;
+    width:calc(100vw - 32px);max-width:300px;
+    max-height:80vh;overflow-y:auto;
     flex-direction:column!important;
   }
-  .drp-cals{grid-template-columns:1fr;gap:14px;}
+  .drp-popup > div:not(.drp-right){min-width:0!important;}
+  .drp-popup > div:not(.drp-right) > div:first-child{padding:10px 10px 0!important;}
+  .drp-popup > div:not(.drp-right) > div:first-child > div:last-child{font-size:10.5px;padding:4px 9px!important;}
+  .drp-cals{grid-template-columns:1fr;gap:8px;}
+  .drp-popup > div:not(.drp-right) > div:nth-child(2){padding:8px 10px!important;}
+  .drp-cal-hdr{margin-bottom:4px!important;}
+  .drp-cal-title{font-size:9.5px;}
+  .drp-cnav{width:20px;height:20px;font-size:11px;}
+  .drp-dow span{font-size:8px;padding:1px 0;}
+  .drp-d{padding:3px 1px;font-size:10.5px;line-height:1.1;}
   .drp-right{
     width:100%;border-left:none;border-top:1px solid rgba(29,90,154,.3);
-    flex-direction:row;flex-wrap:wrap;padding:8px 6px;
+    flex-direction:row;flex-wrap:wrap;padding:6px 5px;gap:1px;
   }
-  .drp-ps-item{flex:1 1 45%;font-size:11px;padding:7px 8px;}
-  .drp-submenu{position:fixed;left:50%!important;right:auto!important;top:auto!important;bottom:10px;transform:translateX(-50%);width:calc(100vw - 40px);max-width:340px;}
-  .drp-adv-row{grid-template-columns:1fr;}
+  .drp-ps-item{flex:1 1 45%;font-size:10px;padding:5px 6px;}
+  .drp-submenu{position:fixed;left:50%!important;right:auto!important;top:auto!important;bottom:10px;transform:translateX(-50%);width:calc(100vw - 48px);max-width:260px;}
+  .drp-sub-item{font-size:10.5px;padding:5px 8px;}
+  .drp-adv{padding:6px 10px!important;}
+  .drp-adv-row{grid-template-columns:1fr;gap:5px!important;}
+  .drp-adv label{font-size:9px!important;margin-bottom:2px!important;}
+  .drp-adv input{padding:5px 8px!important;font-size:11px!important;}
+  .drp-foot{padding:6px 10px!important;}
+  .drp-hint{font-size:10px;}
+  .drp-fb{padding:5px 11px;font-size:11px;}
   .drp-overlay.open{background:rgba(10,22,40,.6);}
 }
 
