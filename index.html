@@ -485,7 +485,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   <div class="sh"><span class="st">Vendas Diárias & Vendedores</span></div>
   <div class="card" style="margin-bottom:13px"><div class="ct">Vendas diárias — <span id="dailySalesMonthLabel"></span></div><div style="height:230px"><canvas id="c-dailySales"></canvas></div></div>
   <div class="cg c2">
-    <div class="card"><div class="ct">Faturamento por vendedor</div><div style="height:230px"><canvas id="c-vendPie"></canvas></div></div>
+    <div class="card"><div class="ct" id="vendPieTitle">Faturamento por vendedor</div><div style="height:230px"><canvas id="c-vendPie"></canvas></div></div>
     <div class="card"><div class="ct">Detalhamento por vendedor</div><div id="vendDetail" style="margin-top:6px"></div></div>
   </div>
   <div class="sh" id="splitSh"><span class="st" id="splitTitle">Lojista vs Cliente Final</span><span class="sb" id="splitBadge"></span></div>
@@ -1585,9 +1585,14 @@ function rVisao(cur,prv,cs,csp){
       scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:15}},
               y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:10},callback:v=>'R$'+(v/1000).toFixed(1)+'K'}}}}});
 
-    // Faturamento por vendedor — pizza + detalhamento
+    // Vendedor — pizza + detalhamento (Lucro Bruto na Reis, Faturamento na Soft)
+    const vendMetricField=isReis()?'lb':'vtc';
+    const vendMetricLabel=isReis()?'Lucro bruto por vendedor':'Faturamento por vendedor';
+    const vendPieTitleEl=document.getElementById('vendPieTitle');
+    if(vendPieTitleEl)vendPieTitleEl.textContent=vendMetricLabel;
     const vendMap={};
-    cur.forEach(r=>{if(!r.vend)return;vendMap[r.vend]=(vendMap[r.vend]||0)+(r.vtc||0);});
+    const vendRows=isReis()?cur.filter(r=>r.dev):cur;
+    vendRows.forEach(r=>{if(!r.vend)return;vendMap[r.vend]=(vendMap[r.vend]||0)+(r[vendMetricField]||0);});
     const vendArr=Object.entries(vendMap).sort((a,b)=>b[1]-a[1]);
     const palette=['#7cb342','#ba68c8','#e57373','#4fc3f7','#ffb74d','#90a4ae','#a1887f','#4db6ac'];
     mkChart('c-vendPie',{type:'pie',data:{labels:vendArr.map(([n])=>n),datasets:[{data:vendArr.map(([,v])=>v),backgroundColor:vendArr.map((_,i)=>palette[i%palette.length]),borderWidth:0}]},
