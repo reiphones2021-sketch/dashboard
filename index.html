@@ -1592,23 +1592,29 @@ function rVisao(cur,prv,cs,csp){
     if(vendPieTitleEl)vendPieTitleEl.textContent=vendMetricLabel;
     const vendMap={};
     const vendRows=isReis()?cur.filter(r=>r.dev):cur;
-    vendRows.forEach(r=>{if(!r.vend)return;vendMap[r.vend]=(vendMap[r.vend]||0)+(r[vendMetricField]||0);});
-    const vendArr=Object.entries(vendMap).sort((a,b)=>b[1]-a[1]);
+    vendRows.forEach(r=>{
+      if(!r.vend)return;
+      if(!vendMap[r.vend])vendMap[r.vend]={val:0,qtd:0};
+      vendMap[r.vend].val+=(r[vendMetricField]||0);
+      vendMap[r.vend].qtd++;
+    });
+    const vendArr=Object.entries(vendMap).sort((a,b)=>b[1].val-a[1].val);
     const palette=['#7cb342','#ba68c8','#e57373','#4fc3f7','#ffb74d','#90a4ae','#a1887f','#4db6ac'];
-    mkChart('c-vendPie',{type:'pie',data:{labels:vendArr.map(([n])=>n),datasets:[{data:vendArr.map(([,v])=>v),backgroundColor:vendArr.map((_,i)=>palette[i%palette.length]),borderWidth:0}]},
+    mkChart('c-vendPie',{type:'pie',data:{labels:vendArr.map(([n])=>n),datasets:[{data:vendArr.map(([,d])=>d.val),backgroundColor:vendArr.map((_,i)=>palette[i%palette.length]),borderWidth:0}]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},
-          tooltip:{backgroundColor:isReis()?'#0f1e35':'#071a10',borderColor:isReis()?'rgba(29,90,154,.4)':'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.label}: ${BRL(c.raw)}`}}}}});
+          tooltip:{backgroundColor:isReis()?'#0f1e35':'#071a10',borderColor:isReis()?'rgba(29,90,154,.4)':'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>{const d=vendArr[c.dataIndex][1];return isReis()?` ${c.label}: ${BRL(c.raw)} (${d.qtd} aparelhos)`:` ${c.label}: ${BRL(c.raw)}`;}}}}}});
 
     const vendDetailEl=document.getElementById('vendDetail');
     if(vendDetailEl){
       if(!vendArr.length){
         vendDetailEl.innerHTML='<div style="color:var(--txt3);font-size:12px;padding:8px 0">Sem vendas no período</div>';
       } else {
-        const maxV=vendArr[0][1]||1;
-        vendDetailEl.innerHTML=vendArr.map(([name,val],i)=>{
+        const maxV=vendArr[0][1].val||1;
+        vendDetailEl.innerHTML=vendArr.map(([name,d],i)=>{
           const color=palette[i%palette.length];
-          return `<div class="br-row"><div class="br-lbl" style="color:${color}" title="${name}">${name}</div><div class="br-bg"><div class="br-fill" style="width:${(val/maxV*100).toFixed(2)}%;background:${color}"></div></div><div class="br-val">${BRL(val)}</div></div>`;
+          const qtdBadge=isReis()?` <span style="color:var(--txt3);font-size:10px">(${d.qtd} aparelho${d.qtd===1?'':'s'})</span>`:'';
+          return `<div class="br-row"><div class="br-lbl" style="color:${color}" title="${name}">${name}</div><div class="br-bg"><div class="br-fill" style="width:${(d.val/maxV*100).toFixed(2)}%;background:${color}"></div></div><div class="br-val">${BRL(d.val)}${qtdBadge}</div></div>`;
         }).join('');
       }
     }
