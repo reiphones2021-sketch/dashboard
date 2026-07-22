@@ -1550,27 +1550,35 @@ function renderAll(){
 function rVisao(cur,prv,cs,csp){
   const a=agg(cur),ap=agg(prv),sp=aSplit(cur),spp=aSplit(prv);
 
-  // ── Vendas diárias do mês + Faturamento por vendedor ────────────────
-  // Comum às duas empresas — sempre calculado com os dados da empresa
-  // ativa no momento (Reis usa somente linhas "dev", Soft usa tudo).
+  // ── Vendas diárias do período + Faturamento por vendedor ────────────
+  // Comum às duas empresas. Segue exatamente o período selecionado no
+  // seletor de datas (não o mês inteiro), pula dias sem nenhuma venda
+  // (finais de semana/feriados) e usa Lucro Bruto na Reis / Faturamento
+  // na Soft — mesma convenção da métrica principal do cabeçalho.
   (()=>{
-    function daysInMonthLocal(m){const[y,mo]=m.split('-').map(Number);return new Date(y,mo,0).getDate();}
-    const dim=daysInMonthLocal(curMes);
-    const dayRows=isReis()?SALES.filter(r=>r.m===curMes&&r.dev):SALES.filter(r=>r.m===curMes);
-    const dailyVals=[];
-    for(let d=1;d<=dim;d++){
-      dailyVals.push(dayRows.filter(r=>r.d===d).reduce((s,r)=>s+r.vtc,0));
-    }
-    const daysWithSales=dailyVals.filter(v=>v>0).length;
-    const avgDaily=daysWithSales?dailyVals.reduce((s,v)=>s+v,0)/daysWithSales:0;
+    function fmtISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+    if(!window._startStr||!window._endStr)return;
+    const sd=new Date(window._startStr+'T12:00:00'), ed=new Date(window._endStr+'T12:00:00');
+    const allDates=[];
+    for(let d=new Date(sd); d<=ed; d.setDate(d.getDate()+1)) allDates.push(fmtISO(d));
+
+    const rowsForDaily=isReis()?cur.filter(r=>r.dev):cur;
+    const metricField=isReis()?'lb':'vtc';
+    const metricLabel=isReis()?'Lucro bruto diário':'Faturamento diário';
+    const dailyPairs=allDates
+      .map(dt=>({dt, val:rowsForDaily.filter(r=>r.dt===dt).reduce((s,r)=>s+(r[metricField]||0),0)}))
+      .filter(p=>p.val>0); // dias sem venda (fim de semana/feriado) somem do gráfico
+
+    const daysWithSales=dailyPairs.length;
+    const avgDaily=daysWithSales?dailyPairs.reduce((s,p)=>s+p.val,0)/daysWithSales:0;
     const dailyLabelEl=document.getElementById('dailySalesMonthLabel');
-    if(dailyLabelEl)dailyLabelEl.textContent=mL(curMes);
-    const barColor=isReis()?'rgba(29,90,154,.65)':'rgba(13,158,80,.65)';
+    if(dailyLabelEl)dailyLabelEl.textContent=curPeriodLabel();
+    const barColor=isReis()?'rgba(0,217,126,.65)':'rgba(13,158,80,.65)';
     mkChart('c-dailySales',{type:'bar',data:{
-      labels:Array.from({length:dim},(_,i)=>(i+1)+'/'+curMes.slice(5,7)),
+      labels:dailyPairs.map(p=>{const d=new Date(p.dt+'T12:00:00');return d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0');}),
       datasets:[
-        {label:'Faturamento diário',data:dailyVals,backgroundColor:barColor,borderRadius:4,order:2},
-        {label:'Média diária',type:'line',data:Array(dim).fill(avgDaily),borderColor:'#f5a623',borderDash:[6,4],borderWidth:2,pointRadius:0,fill:false,order:1},
+        {label:metricLabel,data:dailyPairs.map(p=>p.val),backgroundColor:barColor,borderRadius:4,order:2},
+        {label:'Média diária',type:'line',data:Array(daysWithSales).fill(avgDaily),borderColor:'#f5a623',borderDash:[6,4],borderWidth:2,pointRadius:0,fill:false,order:1},
       ]},options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},
         tooltip:{backgroundColor:isReis()?'#0f1e35':'#071a10',borderColor:isReis()?'rgba(29,90,154,.4)':'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}},
