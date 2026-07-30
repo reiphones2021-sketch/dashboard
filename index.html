@@ -708,7 +708,16 @@ function cOpts(yx={}){return{responsive:true,maintainAspectRatio:false,plugins:{
 
 // CSV PARSERS
 function toN(s){if(s===undefined||s===null||s==='')return 0;return parseFloat(String(s).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''))||0;}
-function parseDt(s){if(!s)return null;if(s.includes('/')){const[d,m,y]=s.split('/');return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}return s.slice(0,10);}
+function parseDt(s){
+  if(!s)return null;
+  const trimmed=String(s).trim();
+  if(trimmed.toUpperCase()==='HOJE'){
+    const now=new Date();
+    return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  }
+  if(trimmed.includes('/')){const[d,m,y]=trimmed.split('/');return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}
+  return trimmed.slice(0,10);
+}
 function pTipo(t){t=t.toUpperCase().trim();if(t.includes('IPHONE'))return 'IP';if(t.includes('WATCH'))return 'AW';if(t.includes('IPAD')||t.includes('TABLET'))return 'ID';if(t.includes('MACBOOK')||t.includes('MAC'))return 'MB';if(t.includes('ACESS'))return 'AC';if(t.includes('ASSIST'))return 'AS';return 'OT';}
 function pGar(g){g=g.toUpperCase().trim();if(g.includes('LACRADO'))return 'lacrado';if(g.includes('1 ANO')||g.includes('1ANO'))return '1ano';if(g.includes('6 MES')||g.includes('6MES'))return '6meses';if(g.includes('LOJISTA'))return 'lojista';if(g.includes('EXTERNO'))return 'externo';if(g.includes('INTERNO'))return 'interno';return 'outro';}
 function pMod(s,tp){s=s.toUpperCase().trim();if(!s||s==='NAN'||s===''){if(tp==='AW')return 'APPLE WATCH';if(tp==='ID')return 'IPAD';if(tp==='MB')return 'MACBOOK';return null;}const m=s.match(/^(IPHONE\s+\d+(?:\s+(?:PRO MAX|PRO|PLUS|MINI))?)/);if(m)return m[1].trim();if(s.includes('WATCH'))return 'APPLE WATCH';if(s.includes('IPAD'))return 'IPAD';if(s.includes('MACBOOK'))return 'MACBOOK';return null;}
