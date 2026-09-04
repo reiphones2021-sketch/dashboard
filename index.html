@@ -461,6 +461,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   <div class="tab" onclick="showTab('previsao',this)">🔮 Previsão</div>
   <div class="tab" onclick="showTab('custos',this)">💰 Custos & Lucro</div>
   <div class="tab" onclick="showTab('clientes',this)">👥 Clientes</div>
+  <div class="tab" id="tabVendedores" style="display:none" onclick="showTab('vendedores',this)">🧑‍💼 Vendedores</div>
   <div class="tab" onclick="showTab('marketing',this)">📣 Marketing</div>
   <div class="tab" onclick="showTab('analise',this)">🤖 Análise</div>
 </div>
@@ -519,6 +520,24 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="sc"><div class="sc-title cli">🛒 Cliente Final</div><div class="sc-grid" id="cli-sc-cli"></div></div>
     <div class="sc"><div class="sc-title loj">🏪 Lojista</div><div class="sc-grid" id="cli-sc-loj"></div></div>
   </div>
+</div>
+
+<div id="p-vendedores" class="panel">
+  <div class="card" style="margin-bottom:13px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label for="vendSel" style="font-size:10px;font-weight:700;color:var(--te);text-transform:uppercase;letter-spacing:.5px">🧑‍💼 Vendedor</label>
+      <select id="vendSel" onchange="onVendChange()" style="padding:6px 10px;font-size:12.5px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--bor);color:var(--txt);outline:none;min-width:200px"></select>
+      <span id="vendPeriodo" style="font-size:11px;color:var(--txt3)"></span>
+    </div>
+  </div>
+  <div class="kg" id="kg-vend"></div>
+  <div class="abox" id="vendFeedback" style="margin-top:16px"></div>
+  <div class="cg c2" style="margin-top:13px">
+    <div class="card"><div class="ct" id="vendEvoCt">Faturamento — últimos 6 meses</div><div style="height:215px"><canvas id="c-vendEvo"></canvas></div></div>
+    <div class="card"><div class="ct" id="vendProdCt">Produtos vendidos</div><div id="vendProdBars" style="margin-top:2px;max-height:300px;overflow-y:auto"></div></div>
+  </div>
+  <div class="sh"><span class="st">Ranking da equipe</span><span class="sb" id="vendBadge"></span></div>
+  <div class="card"><div class="tw" id="vendTable"></div></div>
 </div>
 
 <div id="p-marketing" class="panel">
@@ -851,6 +870,12 @@ function parseCustAPICompany(values, company){
 
 
 // ══════════════════════════════════════════════ SOFT BLINDAGEM PARSER
+// Status da planilha da Soft que contam como venda realizada.
+// "HOJE" e o que o vendedor marca no ato; so vira "PAGO" depois da
+// conferencia do caixa. O dashboard passa a contar os dois, para que a
+// venda do dia apareca na hora em vez de esperar o fechamento.
+const SOFT_STATUS_OK = ['PAGO','HOJE'];
+
 function parseSoftCSV(csv){
   const rows=Papa.parse(csv,{header:true,skipEmptyLines:true}).data;
   if(!rows.length){console.warn('parseSoftCSV: no rows'); return [];}
@@ -876,7 +901,7 @@ function parseSoftCSV(csv){
   const out=[];
   for(const r of rows){
     const status=String(r[kStatus]||'').trim().toUpperCase();
-    if(status!=='PAGO') continue;
+    if(!SOFT_STATUS_OK.includes(status)) continue;
     const dt=parseDt(r[kData]);if(!dt)continue;
     const preco=toN(r[kPreco]||'0');if(!preco)continue;
     const prod=String(r[kProd]||'').trim().toUpperCase();
@@ -895,7 +920,7 @@ function parseSoftCSV(csv){
       dt, m:dt.slice(0,7), d:parseInt(dt.slice(8,10)),
       cli, vend, tipo, dev:1, loj:0, gar:'outro',
       vtc:preco, lb:preco, taxa:0, custo:0,
-      meio:'O', mod:modelo||marca||prod, prod
+      meio:'O', mod:modelo||marca||prod, prod, st:status
     });
   }
   console.log('parseSoftCSV: parsed', out.length, 'records from', rows.length, 'rows');
@@ -916,7 +941,8 @@ async function parseSoftAPI(values){
   const out=[];
   for(const r of values.slice(1)){
     const get=(i,d='')=>i>=0&&i<r.length?r[i]:d;
-    if(String(get(iStatus)).trim().toUpperCase()!=='PAGO')continue;
+    const status=String(get(iStatus)).trim().toUpperCase();
+    if(!SOFT_STATUS_OK.includes(status))continue;
     const dt=parseDt(get(iData));if(!dt)continue;
     const preco=toN(get(iPreco));if(!preco)continue;
     const prod=String(get(iProd)).trim().toUpperCase();
@@ -936,7 +962,7 @@ async function parseSoftAPI(values){
       tipo,dev:1,loj:0,gar:'outro',
       vtc:preco,lb:preco,taxa:0,custo:0,
       meio:'O',mod:modelo||marca||prod,
-      prod:prod
+      prod:prod,st:status
     });
   }
   return out;
@@ -1549,10 +1575,19 @@ function renderAll(){
       if(heroRight) heroRight.style.display = 'none';
     }
   })();
-  rVisao(cur,prv,cs,csp);rClientes(cur,prv);rMarketing(cur,prv);rCustos(cur,prv,cs,csp);rAnalise(cur,prv,cs);renderPrevisao();
+  rVisao(cur,prv,cs,csp);rClientes(cur,prv);rMarketing(cur,prv);rCustos(cur,prv,cs,csp);rAnalise(cur,prv,cs);rVendedores(cur,prv);renderPrevisao();
 
   // Restore — only keep active panel visible, let CSS handle the rest
   panels.forEach((p,i)=>p.style.display=wasActive[i]?'block':'');
+
+  // A aba Vendedores so existe na Soft. Se o usuario estava nela e trocou
+  // para a Reis, devolve a Visao Geral — obrigatoriamente depois do restore
+  // acima, senao o painel escondido volta a aparecer com display inline.
+  const _pv=document.getElementById('p-vendedores');
+  if(_pv && !isSoft() && _pv.classList.contains('active')){
+    const _t0=document.querySelector('.tabs .tab');
+    if(_t0)showTab('visao',_t0);
+  }
 }
 
 // ── VISÃO GERAL
@@ -1635,13 +1670,17 @@ function rVisao(cur,prv,cs,csp){
 
     function catOf(prod){
       const p=String(prod||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if(p.includes('GARANTIA')){
+        if(p.includes('REIS')) return 'gar_reis';
+        if(p.includes('SOFT')) return 'gar_soft';
+        return 'gar';
+      }
       if(p.includes('ASSIST')) return 'assist';
       if(p.includes('BLINDAGEM')||p.includes('BLINDADO')||p.includes('STICKER')||
          p.includes('RELOGIO')||p.includes('TABLET')||p.includes('NOTEBOOK')||
          p.includes('MULTIMIDIA')||p.includes('CAMERA')||
          (p.includes('SUPORTE')&&p.includes('BLIND'))) return 'blind';
       if(p.includes('PLANO')||p.includes('UPGRADE')) return 'plano';
-      if(p.includes('GARANTIA')) return 'gar';
       return 'acess';
     }
     const fatFn=rows=>rows.reduce((s,r)=>s+r.vtc,0);
@@ -1649,11 +1688,15 @@ function rVisao(cur,prv,cs,csp){
     const rAssist=cur.filter(r=>catOf(r.prod)==='assist'), rAssist_p=prv.filter(r=>catOf(r.prod)==='assist');
     const rPlano=cur.filter(r=>catOf(r.prod)==='plano'),   rPlano_p=prv.filter(r=>catOf(r.prod)==='plano');
     const rGar=cur.filter(r=>catOf(r.prod)==='gar'),       rGar_p=prv.filter(r=>catOf(r.prod)==='gar');
+    const rGarR=cur.filter(r=>catOf(r.prod)==='gar_reis'),  rGarR_p=prv.filter(r=>catOf(r.prod)==='gar_reis');
+    const rGarS=cur.filter(r=>catOf(r.prod)==='gar_soft'),  rGarS_p=prv.filter(r=>catOf(r.prod)==='gar_soft');
     const rAcess=cur.filter(r=>catOf(r.prod)==='acess'),   rAcess_p=prv.filter(r=>catOf(r.prod)==='acess');
     const fatB=fatFn(rBlind),fatB_p=fatFn(rBlind_p);
     const fatA=fatFn(rAssist),fatA_p=fatFn(rAssist_p);
     const fatP=fatFn(rPlano),fatP_p=fatFn(rPlano_p);
     const fatG=fatFn(rGar),fatG_p=fatFn(rGar_p);
+    const fatGR=fatFn(rGarR),fatGR_p=fatFn(rGarR_p);
+    const fatGS=fatFn(rGarS),fatGS_p=fatFn(rGarS_p);
     const fatAc=fatFn(rAcess),fatAc_p=fatFn(rAcess_p);
 
     // ── KPI Cards ─────────────────────────────────────────────────
@@ -1679,21 +1722,31 @@ function rVisao(cur,prv,cs,csp){
         scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},
                 y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}}}});
 
-    // ── Top 10 serviços mais vendidos (usa prod, não modelo) ───────
+    // ── Todos os serviços vendidos no período (usa prod, não modelo) ─
     const ctEl=document.getElementById('topModsCt');
-    if(ctEl)ctEl.textContent='Top 10 serviços mais vendidos';
-    const pMap={};
-    cur.forEach(r=>{const k=String(r.prod||'').trim().toUpperCase();if(k)pMap[k]=(pMap[k]||0)+1;});
-    const tops=Object.entries(pMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const pMap={},pFatMap={};
+    cur.forEach(r=>{const k=String(r.prod||'').trim().toUpperCase();if(k){pMap[k]=(pMap[k]||0)+1;pFatMap[k]=(pFatMap[k]||0)+(r.vtc||0);}});
+    const tops=Object.entries(pMap).sort((a,b)=>b[1]-a[1]);
+    if(ctEl)ctEl.textContent='Todos os serviços vendidos — '+NUM(tops.length)+' itens';
     const maxT=tops[0]?tops[0][1]:1;
-    document.getElementById('topMods').innerHTML=tops.map(([n,c])=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bor)">
-        <span style="flex:1;font-size:12px;color:var(--txt)">${n}</span>
-        <div style="width:130px;height:6px;background:rgba(13,158,80,.15);border-radius:3px;overflow:hidden">
+    const _topBox=document.getElementById('topMods');
+    _topBox.style.maxHeight='';
+    _topBox.style.overflowY='visible';
+    _topBox.innerHTML=
+      '<input id="prodFiltro" type="text" placeholder="Filtrar produto..." oninput="filtrarProdutos()" '+
+        'style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:6px 10px;font-size:12px;border-radius:6px;'+
+        'background:rgba(255,255,255,.04);border:1px solid var(--bor);color:var(--txt);outline:none">'+
+      '<div id="prodVazio" style="display:none;font-size:12px;color:var(--txt3);padding:8px 0">Nenhum produto corresponde ao filtro.</div>'+
+      '<div id="prodLista" style="max-height:360px;overflow-y:auto">'+
+      tops.map(([n,c])=>`
+      <div class="prod-row" data-nome="${n.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bor)">
+        <span style="flex:1;font-size:12px;color:var(--txt)">${n}<span style="display:block;font-size:10px;color:var(--txt3)">${BRL(pFatMap[n]||0)}</span></span>
+        <div style="width:110px;height:6px;background:rgba(13,158,80,.15);border-radius:3px;overflow:hidden;flex-shrink:0">
           <div style="height:100%;background:#0d9e50;border-radius:3px;width:${(c/maxT*100).toFixed(0)}%"></div>
         </div>
-        <span style="font-size:12px;font-weight:600;color:var(--txt);width:24px;text-align:right">${c}</span>
-      </div>`).join('');
+        <span style="font-size:12px;font-weight:600;color:var(--txt);width:30px;text-align:right;flex-shrink:0">${c}</span>
+      </div>`).join('')+
+      '</div>';
 
     // ── Ranking de itens mais vendidos (no lugar de lojista/CF) ────
     document.getElementById('splitSh').style.display='';
@@ -1701,13 +1754,16 @@ function rVisao(cur,prv,cs,csp){
     const stEl=document.getElementById('splitTitle');
     if(stEl)stEl.textContent='Ranking de serviços';
     const sbEl=document.getElementById('splitBadge');
-    if(sbEl)sbEl.textContent=`${NUM(a.qtd)} serviços · ${BRL(a.fat)}`;
+    const _pend=cur.filter(r=>r.st==='HOJE').length;
+    if(sbEl)sbEl.textContent=`${NUM(a.qtd)} serviços · ${BRL(a.fat)}`+(_pend?` · ${NUM(_pend)} aguardando conferência de caixa`:'');
 
     const catData=[
       {label:'🛡 Blindagem',rows:rBlind,fat:fatB,fp:fatB_p,rpl:rBlind_p.length,col:'#0d9e50'},
       {label:'🔧 Assistência Técnica',rows:rAssist,fat:fatA,fp:fatA_p,rpl:rAssist_p.length,col:'#34d399'},
       {label:'📋 Planos',rows:rPlano,fat:fatP,fp:fatP_p,rpl:rPlano_p.length,col:'#f5a623'},
       {label:'✅ Garantia Estendida',rows:rGar,fat:fatG,fp:fatG_p,rpl:rGar_p.length,col:'#5b9bd5'},
+      {label:'📱 Gar. Estendida Reis Phones',rows:rGarR,fat:fatGR,fp:fatGR_p,rpl:rGarR_p.length,col:'#2d7acc'},
+      {label:'🛡 Gar. Estendida Soft Blindagem',rows:rGarS,fat:fatGS,fp:fatGS_p,rpl:rGarS_p.length,col:'#22d3ee'},
       {label:'🎧 Acessórios',rows:rAcess,fat:fatAc,fp:fatAc_p,rpl:rAcess_p.length,col:'#a78bfa'},
     ];
     function makeCatCard(c){
@@ -1762,6 +1818,8 @@ function rVisao(cur,prv,cs,csp){
         ['Assistência técnica',NUM(rAssist.length),NUM(rAssist_p.length),dlt(rAssist.length,rAssist_p.length)],
         ['Planos',NUM(rPlano.length),NUM(rPlano_p.length),dlt(rPlano.length,rPlano_p.length)],
         ['Garantia estendida',NUM(rGar.length),NUM(rGar_p.length),dlt(rGar.length,rGar_p.length)],
+        ['Gar. estendida — Reis Phones',NUM(rGarR.length),NUM(rGarR_p.length),dlt(rGarR.length,rGarR_p.length)],
+        ['Gar. estendida — Soft Blindagem',NUM(rGarS.length),NUM(rGarS_p.length),dlt(rGarS.length,rGarS_p.length)],
         ['Acessórios',NUM(rAcess.length),NUM(rAcess_p.length),dlt(rAcess.length,rAcess_p.length)],
       ].map(([l,c,p,d])=>cmpRow(l,c,p,d)).join('')}</tbody></table>`;
     return;
@@ -2595,6 +2653,239 @@ function renderPrevisao(){
     y1:{position:'right',grid:{display:false},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}
   },plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},tooltip:{backgroundColor:'#0f1e35',borderColor:'rgba(29,90,154,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}}}});
 }
+
+function escAttr(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
+
+// ── FILTRO DO RANKING COMPLETO DE PRODUTOS (Soft) ──────────────────
+function filtrarProdutos(){
+  const inp=document.getElementById('prodFiltro');
+  if(!inp)return;
+  const termo=inp.value.trim().toUpperCase();
+  const linhas=document.querySelectorAll('#prodLista .prod-row');
+  let visiveis=0;
+  linhas.forEach(el=>{
+    const ok=!termo||(el.dataset.nome||'').includes(termo);
+    el.style.display=ok?'':'none';
+    if(ok)visiveis++;
+  });
+  const vazio=document.getElementById('prodVazio');
+  if(vazio)vazio.style.display=visiveis?'none':'';
+}
+
+// ── VENDEDORES (somente Soft Blindagem) ────────────────────────────
+// Comparativo de performance por vendedor: período atual vs anterior,
+// mix de produtos de cada um e leitura automática para servir de base
+// na conversa de feedback. Reis Phones não usa esta aba.
+function onVendChange(){
+  const sel=document.getElementById('vendSel');
+  window._vendSel=sel?sel.value:'__TODOS__';
+  if(window._vendCur)rVendedores(window._vendCur,window._vendPrv);
+}
+
+function onVendChangeDireto(nome){
+  window._vendSel=nome;
+  const sel=document.getElementById('vendSel');
+  if(sel)sel.value=nome;
+  if(window._vendCur)rVendedores(window._vendCur,window._vendPrv);
+}
+
+function aggVend(rows){
+  const m={};
+  rows.forEach(r=>{
+    const v=String(r.vend||'').trim()||'SEM VENDEDOR';
+    if(!m[v])m[v]={qtd:0,fat:0,cli:new Set(),prod:{},fatProd:{},dias:new Set()};
+    const o=m[v];
+    o.qtd++;o.fat+=r.vtc||0;
+    if(r.cli)o.cli.add(r.cli);
+    if(r.dt)o.dias.add(r.dt);
+    const p=String(r.prod||'').trim().toUpperCase();
+    if(p){o.prod[p]=(o.prod[p]||0)+1;o.fatProd[p]=(o.fatProd[p]||0)+(r.vtc||0);}
+  });
+  return m;
+}
+
+function rVendedores(cur,prv){
+  const painel=document.getElementById('p-vendedores');
+  const tabEl=document.getElementById('tabVendedores');
+  if(!painel)return;
+
+  // Aba exclusiva da Soft — na Reis some da barra e, se estiver aberta,
+  // devolve o usuário para a Visão Geral.
+  if(!isSoft()){
+    if(tabEl)tabEl.style.display='none';
+    return; // a volta para a Visao Geral e feita no fim de renderAll()
+  }
+  if(tabEl)tabEl.style.display='';
+
+  window._vendCur=cur;window._vendPrv=prv;
+
+  const A=aggVend(cur),P=aggVend(prv);
+  const nomes=[...new Set([...Object.keys(A),...Object.keys(P)])]
+    .sort((x,y)=>((A[y]||{fat:0}).fat||0)-((A[x]||{fat:0}).fat||0));
+
+  // ── Seletor ──────────────────────────────────────────────────────
+  const sel=document.getElementById('vendSel');
+  let escolhido=window._vendSel||'__TODOS__';
+  if(escolhido!=='__TODOS__'&&!nomes.includes(escolhido))escolhido='__TODOS__';
+  window._vendSel=escolhido;
+  if(sel){
+    sel.innerHTML='<option value="__TODOS__">👥 Toda a equipe</option>'+
+      nomes.map(n=>'<option value="'+escAttr(n)+'">'+n+'</option>').join('');
+    sel.value=escolhido;
+  }
+  const pEl=document.getElementById('vendPeriodo');
+  if(pEl)pEl.textContent=curPeriodLabel()+'  ↔  '+prvPeriodLabel();
+
+  const vazio={qtd:0,fat:0,cli:new Set(),prod:{},fatProd:{},dias:new Set()};
+  const somaTudo=mapa=>{
+    const o={qtd:0,fat:0,cli:new Set(),prod:{},fatProd:{},dias:new Set()};
+    Object.values(mapa).forEach(v=>{
+      o.qtd+=v.qtd;o.fat+=v.fat;
+      v.cli.forEach(c=>o.cli.add(c));
+      v.dias.forEach(d=>o.dias.add(d));
+      Object.entries(v.prod).forEach(([k,q])=>{o.prod[k]=(o.prod[k]||0)+q;});
+      Object.entries(v.fatProd).forEach(([k,f])=>{o.fatProd[k]=(o.fatProd[k]||0)+f;});
+    });
+    return o;
+  };
+
+  const eqA=somaTudo(A),eqP=somaTudo(P);
+  const a=escolhido==='__TODOS__'?eqA:(A[escolhido]||vazio);
+  const p=escolhido==='__TODOS__'?eqP:(P[escolhido]||vazio);
+  const tkA=a.fat/Math.max(a.qtd,1),tkP=p.fat/Math.max(p.qtd,1);
+  const share=eqA.fat>0?a.fat/eqA.fat*100:0;
+  const shareP=eqP.fat>0?p.fat/eqP.fat*100:0;
+  const pos=escolhido==='__TODOS__'?null:nomes.indexOf(escolhido)+1;
+
+  // ── KPIs ─────────────────────────────────────────────────────────
+  document.getElementById('kg-vend').innerHTML=[
+    kpi('Faturamento',BRL(a.fat),escolhido==='__TODOS__'?'Toda a equipe':escolhido,dlt(a.fat,p.fat),'gr'),
+    kpi('Serviços',NUM(a.qtd),'Atendimentos no período',dlt(a.qtd,p.qtd),'bl'),
+    kpi('Ticket médio',BRL(tkA),'Faturamento ÷ serviços',dlt(tkA,tkP),'am'),
+    kpi('Clientes únicos',NUM(a.cli.size),'Atendidos no período',dlt(a.cli.size,p.cli.size),'pu'),
+    kpi('Média por dia',BRL(a.fat/Math.max(a.dias.size,1)),NUM(a.dias.size)+' dias com venda',dlt(a.fat/Math.max(a.dias.size,1),p.fat/Math.max(p.dias.size,1)),'te'),
+    escolhido==='__TODOS__'
+      ? kpi('Vendedores ativos',NUM(nomes.filter(n=>(A[n]||{qtd:0}).qtd>0).length),'Com venda no período',null,'bl')
+      : kpi('% da equipe',PCT(share),pos?pos+'º de '+nomes.length+' no ranking':'',dlt(share,shareP),'bl'),
+  ].join('');
+
+  const badge=document.getElementById('vendBadge');
+  if(badge)badge.textContent=NUM(nomes.length)+' vendedores · '+BRL(eqA.fat);
+
+  // ── Leitura automática (base para a conversa de feedback) ────────
+  (()=>{
+    const box=document.getElementById('vendFeedback');
+    if(!box)return;
+    const quem=escolhido==='__TODOS__'?'A equipe':escolhido;
+    const dFat=p.fat>0?(a.fat-p.fat)/p.fat*100:null;
+    const dTk=tkP>0?(tkA-tkP)/tkP*100:null;
+    const sinal=v=>(v>=0?'+':'')+v.toFixed(1)+'%';
+
+    const linhas=[];
+    linhas.push(dFat===null
+      ? quem+' faturou '+BRL(a.fat)+' em '+NUM(a.qtd)+' serviços. Não há período anterior para comparar.'
+      : quem+' faturou '+BRL(a.fat)+', '+sinal(dFat)+' contra '+BRL(p.fat)+' do período anterior — '+NUM(a.qtd)+' serviços contra '+NUM(p.qtd)+'.');
+
+    if(dTk!==null){
+      if(Math.abs(dTk)<3)linhas.push('Ticket médio praticamente estável em '+BRL(tkA)+'.');
+      else if(dTk>0)linhas.push('Ticket médio subiu para '+BRL(tkA)+' ('+sinal(dTk)+') — está agregando mais valor por atendimento.');
+      else linhas.push('Ticket médio caiu para '+BRL(tkA)+' ('+sinal(dTk)+') — o volume pode estar vindo de itens mais baratos.');
+    }
+
+    // Produto que mais cresceu e o que mais caiu
+    const chaves=[...new Set([...Object.keys(a.prod),...Object.keys(p.prod)])];
+    const deltas=chaves.map(k=>({k,d:(a.prod[k]||0)-(p.prod[k]||0)})).sort((x,y)=>y.d-x.d);
+    const subiu=deltas[0],caiu=deltas[deltas.length-1];
+    let lp='';
+    if(subiu&&subiu.d>0)lp+='Maior avanço: <strong style="color:var(--gr)">'+subiu.k+'</strong> (+'+subiu.d+'). ';
+    if(caiu&&caiu.d<0)lp+='Maior queda: <strong style="color:var(--rd)">'+caiu.k+'</strong> ('+caiu.d+').';
+    if(lp)linhas.push(lp);
+
+    if(escolhido!=='__TODOS__'){
+      const ativos=nomes.filter(n=>(A[n]||{qtd:0}).qtd>0);
+      const mediaFat=ativos.length?eqA.fat/ativos.length:0;
+      const mediaTk=eqA.qtd>0?eqA.fat/eqA.qtd:0;
+      const acimaFat=a.fat>=mediaFat,acimaTk=tkA>=mediaTk;
+      linhas.push('Contra a média da equipe ('+BRL(mediaFat)+' de faturamento e '+BRL(mediaTk)+' de ticket): '+
+        'faturamento <strong style="color:'+(acimaFat?'var(--gr)':'var(--rd)')+'">'+(acimaFat?'acima':'abaixo')+'</strong>, '+
+        'ticket <strong style="color:'+(acimaTk?'var(--gr)':'var(--rd)')+'">'+(acimaTk?'acima':'abaixo')+'</strong>. '+
+        (pos?'Posição no período: <strong>'+pos+'º de '+nomes.length+'</strong>.':''));
+    }
+
+    box.innerHTML='<div style="font-size:10px;font-weight:700;color:var(--te);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Leitura do período</div>'+
+      linhas.map(t=>'<div style="font-size:12.5px;color:var(--txt2);line-height:1.65;margin-bottom:6px">'+t+'</div>').join('');
+  })();
+
+  // ── Evolução: últimos 6 meses ────────────────────────────────────
+  (()=>{
+    const ct=document.getElementById('vendEvoCt');
+    if(ct)ct.textContent='Faturamento — últimos 6 meses'+(escolhido==='__TODOS__'?' (equipe)':' · '+escolhido);
+    const base=escolhido==='__TODOS__'?SALES:SALES.filter(r=>String(r.vend||'').trim()===escolhido);
+    const ms=[...new Set(SALES.map(r=>r.m))].sort().slice(-6);
+    mkChart('c-vendEvo',{type:'bar',data:{labels:ms.map(m=>mL(m)),
+      datasets:[{label:'Faturamento',data:ms.map(m=>base.filter(r=>r.m===m).reduce((s,r)=>s+(r.vtc||0),0)),
+        backgroundColor:'rgba(13,158,80,.55)',borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},
+          tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>' '+BRL(c.raw)}}},
+        scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},
+                y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}}}});
+  })();
+
+  // ── Produtos do vendedor: atual vs anterior ──────────────────────
+  (()=>{
+    const ct=document.getElementById('vendProdCt');
+    const lista=Object.entries(a.prod).sort((x,y)=>y[1]-x[1]);
+    if(ct)ct.textContent='Produtos vendidos — '+NUM(lista.length)+' itens';
+    const box=document.getElementById('vendProdBars');
+    if(!box)return;
+    if(!lista.length){box.innerHTML='<div style="font-size:12px;color:var(--txt3);padding:10px 0">Nenhuma venda no período selecionado.</div>';return;}
+    const max=lista[0][1];
+    box.innerHTML=lista.map(function(par){
+      const n=par[0],q=par[1];
+      const ant=p.prod[n]||0,d=q-ant;
+      const cor=d>0?'var(--gr)':d<0?'var(--rd)':'var(--txt3)';
+      const txt=d>0?'+'+d:String(d);
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bor)">'+
+        '<span style="flex:1;font-size:12px;color:var(--txt)">'+n+
+          '<span style="display:block;font-size:10px;color:var(--txt3)">'+BRL(a.fatProd[n]||0)+' · anterior: '+ant+'</span></span>'+
+        '<div style="width:90px;height:6px;background:rgba(13,158,80,.15);border-radius:3px;overflow:hidden;flex-shrink:0">'+
+          '<div style="height:100%;background:#0d9e50;border-radius:3px;width:'+(q/max*100).toFixed(0)+'%"></div></div>'+
+        '<span style="font-size:12px;font-weight:600;color:var(--txt);width:26px;text-align:right;flex-shrink:0">'+q+'</span>'+
+        '<span style="font-size:10px;font-weight:600;color:'+cor+';width:34px;text-align:right;flex-shrink:0">'+txt+'</span>'+
+      '</div>';
+    }).join('');
+  })();
+
+  // ── Ranking da equipe ────────────────────────────────────────────
+  (()=>{
+    const el=document.getElementById('vendTable');
+    if(!el)return;
+    const th=(txt,cor,align)=>'<th style="padding:6px 12px;color:'+cor+';font-size:10px;text-align:'+align+';text-transform:uppercase;border-bottom:1px solid var(--bor)">'+txt+'</th>';
+    const linhas=nomes.map(function(n){
+      const va=A[n]||vazio,vp=P[n]||vazio;
+      const ta=va.fat/Math.max(va.qtd,1);
+      const d=dlt(va.fat,vp.fat);
+      const dCls=d?(d.cls==='up'?'var(--gr)':d.cls==='dn'?'var(--rd)':'var(--txt3)'):'var(--txt3)';
+      const destaque=n===escolhido?'background:rgba(13,158,80,.10);':'';
+      return '<tr style="border-bottom:1px solid var(--bor);'+destaque+'cursor:pointer" onclick="onVendChangeDireto(&quot;'+escAttr(n)+'&quot;)">'+
+        '<td style="padding:7px 12px;font-size:12px;color:var(--txt)">'+n+'</td>'+
+        '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--txt)">'+NUM(va.qtd)+'</td>'+
+        '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--txt3)">'+NUM(vp.qtd)+'</td>'+
+        '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--gr);font-weight:600">'+BRL(va.fat)+'</td>'+
+        '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--txt3)">'+BRL(vp.fat)+'</td>'+
+        '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--am)">'+BRL(ta)+'</td>'+
+        '<td class="r" style="padding:7px 12px;font-size:11px;font-weight:600;color:'+dCls+'">'+(d?d.s:'—')+'</td>'+
+      '</tr>';
+    }).join('');
+    el.innerHTML='<table style="width:100%;border-collapse:collapse"><thead><tr>'+
+      th('Vendedor','var(--te)','left')+th('Serviços','var(--txt2)','right')+th('Anterior','var(--txt3)','right')+
+      th('Faturamento','var(--txt2)','right')+th('Anterior','var(--txt3)','right')+th('Ticket','var(--txt2)','right')+
+      th('Δ Fat.','var(--txt2)','right')+
+      '</tr></thead><tbody>'+linhas+'</tbody></table>';
+  })();
+}
+
 
 function showTab(id,el){
   document.querySelectorAll('.panel').forEach(p=>{p.classList.remove('active');p.style.display='';});
