@@ -2660,11 +2660,12 @@ function escAttr(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;"
 function filtrarProdutos(){
   const inp=document.getElementById('prodFiltro');
   if(!inp)return;
-  const termo=inp.value.trim().toUpperCase();
+  const semAcento=s=>String(s).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const termo=semAcento(inp.value.trim());
   const linhas=document.querySelectorAll('#prodLista .prod-row');
   let visiveis=0;
   linhas.forEach(el=>{
-    const ok=!termo||(el.dataset.nome||'').includes(termo);
+    const ok=!termo||semAcento(el.dataset.nome||'').includes(termo);
     el.style.display=ok?'':'none';
     if(ok)visiveis++;
   });
