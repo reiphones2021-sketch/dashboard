@@ -461,7 +461,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   <div class="tab" onclick="showTab('previsao',this)">🔮 Previsão</div>
   <div class="tab" onclick="showTab('custos',this)">💰 Custos & Lucro</div>
   <div class="tab" onclick="showTab('clientes',this)">👥 Clientes</div>
-  <div class="tab" id="tabVendedores" style="display:none" onclick="showTab('vendedores',this)">🧑‍💼 Vendedores</div>
+  <div class="tab" id="tabVendedores" onclick="showTab('vendedores',this)">🧑‍💼 Vendedores</div>
   <div class="tab" onclick="showTab('marketing',this)">📣 Marketing</div>
   <div class="tab" onclick="showTab('analise',this)">🤖 Análise</div>
 </div>
@@ -1579,15 +1579,6 @@ function renderAll(){
 
   // Restore — only keep active panel visible, let CSS handle the rest
   panels.forEach((p,i)=>p.style.display=wasActive[i]?'block':'');
-
-  // A aba Vendedores so existe na Soft. Se o usuario estava nela e trocou
-  // para a Reis, devolve a Visao Geral — obrigatoriamente depois do restore
-  // acima, senao o painel escondido volta a aparecer com display inline.
-  const _pv=document.getElementById('p-vendedores');
-  if(_pv && !isSoft() && _pv.classList.contains('active')){
-    const _t0=document.querySelector('.tabs .tab');
-    if(_t0)showTab('visao',_t0);
-  }
 }
 
 // ── VISÃO GERAL
@@ -2673,10 +2664,37 @@ function filtrarProdutos(){
   if(vazio)vazio.style.display=visiveis?'none':'';
 }
 
-// ── VENDEDORES (somente Soft Blindagem) ────────────────────────────
+// ── VENDEDORES (Soft Blindagem e Reis Phones) ──────────────────────
 // Comparativo de performance por vendedor: período atual vs anterior,
 // mix de produtos de cada um e leitura automática para servir de base
-// na conversa de feedback. Reis Phones não usa esta aba.
+// na conversa de feedback. O racional é o mesmo nas duas empresas, mas
+// cada uma enxerga "produto" e "resultado" do seu jeito — vendCfg()
+// concentra essas diferenças:
+//   Soft  → faturamento por serviço; produto = coluna PRODUTO da planilha.
+//   Reis  → lucro bruto por aparelho (mesma métrica da pizza da Visão
+//           Geral); produto = modelo do aparelho (IPHONE 15 PRO, IPAD…).
+function vendCfg(){
+  if(isSoft())return{
+    rows:r=>true,
+    val:r=>r.vtc||0,
+    prod:r=>String(r.prod||'').trim().toUpperCase(),
+    metric:'Faturamento',metricLc:'faturamento',verbo:'faturou',
+    unid:'Serviços',unidLc:'serviços',unidDesc:'Atendimentos no período',
+    tkDesc:'Faturamento ÷ serviços',prodTitulo:'Produtos vendidos',
+    cor:'#0d9e50',corA:'rgba(13,158,80,',tipBg:'#071a10',
+  };
+  const tipoNome={AW:'APPLE WATCH',ID:'IPAD',MB:'MACBOOK'};
+  return{
+    rows:r=>!!r.dev,
+    val:r=>r.lb||0,
+    prod:r=>r.mod||tipoNome[r.tipo]||'IPHONE (OUTROS)',
+    metric:'Lucro bruto',metricLc:'lucro bruto',verbo:'gerou lucro bruto de',
+    unid:'Aparelhos',unidLc:'aparelhos',unidDesc:'Vendidos no período',
+    tkDesc:'Lucro bruto ÷ aparelhos',prodTitulo:'Modelos vendidos',
+    cor:'#2d7acc',corA:'rgba(29,90,154,',tipBg:'#0f1e35',
+  };
+}
+
 function onVendChange(){
   const sel=document.getElementById('vendSel');
   window._vendSel=sel?sel.value:'__TODOS__';
@@ -2690,17 +2708,24 @@ function onVendChangeDireto(nome){
   if(window._vendCur)rVendedores(window._vendCur,window._vendPrv);
 }
 
+function vendVazio(){return{qtd:0,fat:0,rec:0,loj:0,cli:new Set(),prod:{},fatProd:{},dias:new Set()};}
+
+// "fat" guarda a métrica principal da empresa (faturamento na Soft, lucro
+// bruto na Reis); "rec" é sempre a receita bruta, usada como apoio na Reis.
 function aggVend(rows){
+  const cfg=vendCfg();
   const m={};
   rows.forEach(r=>{
+    if(!cfg.rows(r))return;
     const v=String(r.vend||'').trim()||'SEM VENDEDOR';
-    if(!m[v])m[v]={qtd:0,fat:0,cli:new Set(),prod:{},fatProd:{},dias:new Set()};
+    if(!m[v])m[v]=vendVazio();
     const o=m[v];
-    o.qtd++;o.fat+=r.vtc||0;
+    o.qtd++;o.fat+=cfg.val(r);o.rec+=r.vtc||0;
+    if(r.loj)o.loj++;
     if(r.cli)o.cli.add(r.cli);
     if(r.dt)o.dias.add(r.dt);
-    const p=String(r.prod||'').trim().toUpperCase();
-    if(p){o.prod[p]=(o.prod[p]||0)+1;o.fatProd[p]=(o.fatProd[p]||0)+(r.vtc||0);}
+    const p=cfg.prod(r);
+    if(p){o.prod[p]=(o.prod[p]||0)+1;o.fatProd[p]=(o.fatProd[p]||0)+cfg.val(r);}
   });
   return m;
 }
@@ -2709,15 +2734,9 @@ function rVendedores(cur,prv){
   const painel=document.getElementById('p-vendedores');
   const tabEl=document.getElementById('tabVendedores');
   if(!painel)return;
-
-  // Aba exclusiva da Soft — na Reis some da barra e, se estiver aberta,
-  // devolve o usuário para a Visão Geral.
-  if(!isSoft()){
-    if(tabEl)tabEl.style.display='none';
-    return; // a volta para a Visao Geral e feita no fim de renderAll()
-  }
   if(tabEl)tabEl.style.display='';
 
+  const cfg=vendCfg();
   window._vendCur=cur;window._vendPrv=prv;
 
   const A=aggVend(cur),P=aggVend(prv);
@@ -2737,11 +2756,11 @@ function rVendedores(cur,prv){
   const pEl=document.getElementById('vendPeriodo');
   if(pEl)pEl.textContent=curPeriodLabel()+'  ↔  '+prvPeriodLabel();
 
-  const vazio={qtd:0,fat:0,cli:new Set(),prod:{},fatProd:{},dias:new Set()};
+  const vazio=vendVazio();
   const somaTudo=mapa=>{
-    const o={qtd:0,fat:0,cli:new Set(),prod:{},fatProd:{},dias:new Set()};
+    const o=vendVazio();
     Object.values(mapa).forEach(v=>{
-      o.qtd+=v.qtd;o.fat+=v.fat;
+      o.qtd+=v.qtd;o.fat+=v.fat;o.rec+=v.rec;o.loj+=v.loj;
       v.cli.forEach(c=>o.cli.add(c));
       v.dias.forEach(d=>o.dias.add(d));
       Object.entries(v.prod).forEach(([k,q])=>{o.prod[k]=(o.prod[k]||0)+q;});
@@ -2759,10 +2778,11 @@ function rVendedores(cur,prv){
   const pos=escolhido==='__TODOS__'?null:nomes.indexOf(escolhido)+1;
 
   // ── KPIs ─────────────────────────────────────────────────────────
+  const quemLbl=escolhido==='__TODOS__'?'Toda a equipe':escolhido;
   document.getElementById('kg-vend').innerHTML=[
-    kpi('Faturamento',BRL(a.fat),escolhido==='__TODOS__'?'Toda a equipe':escolhido,dlt(a.fat,p.fat),'gr'),
-    kpi('Serviços',NUM(a.qtd),'Atendimentos no período',dlt(a.qtd,p.qtd),'bl'),
-    kpi('Ticket médio',BRL(tkA),'Faturamento ÷ serviços',dlt(tkA,tkP),'am'),
+    kpi(cfg.metric,BRL(a.fat),isReis()?'Faturamento '+BRL(a.rec)+' · '+quemLbl:quemLbl,dlt(a.fat,p.fat),'gr'),
+    kpi(cfg.unid,NUM(a.qtd),cfg.unidDesc,dlt(a.qtd,p.qtd),'bl'),
+    kpi('Ticket médio',BRL(tkA),cfg.tkDesc,dlt(tkA,tkP),'am'),
     kpi('Clientes únicos',NUM(a.cli.size),'Atendidos no período',dlt(a.cli.size,p.cli.size),'pu'),
     kpi('Média por dia',BRL(a.fat/Math.max(a.dias.size,1)),NUM(a.dias.size)+' dias com venda',dlt(a.fat/Math.max(a.dias.size,1),p.fat/Math.max(p.dias.size,1)),'te'),
     escolhido==='__TODOS__'
@@ -2784,13 +2804,20 @@ function rVendedores(cur,prv){
 
     const linhas=[];
     linhas.push(dFat===null
-      ? quem+' faturou '+BRL(a.fat)+' em '+NUM(a.qtd)+' serviços. Não há período anterior para comparar.'
-      : quem+' faturou '+BRL(a.fat)+', '+sinal(dFat)+' contra '+BRL(p.fat)+' do período anterior — '+NUM(a.qtd)+' serviços contra '+NUM(p.qtd)+'.');
+      ? quem+' '+cfg.verbo+' '+BRL(a.fat)+' em '+NUM(a.qtd)+' '+cfg.unidLc+'. Não há período anterior para comparar.'
+      : quem+' '+cfg.verbo+' '+BRL(a.fat)+', '+sinal(dFat)+' contra '+BRL(p.fat)+' do período anterior — '+NUM(a.qtd)+' '+cfg.unidLc+' contra '+NUM(p.qtd)+'.');
 
     if(dTk!==null){
       if(Math.abs(dTk)<3)linhas.push('Ticket médio praticamente estável em '+BRL(tkA)+'.');
-      else if(dTk>0)linhas.push('Ticket médio subiu para '+BRL(tkA)+' ('+sinal(dTk)+') — está agregando mais valor por atendimento.');
-      else linhas.push('Ticket médio caiu para '+BRL(tkA)+' ('+sinal(dTk)+') — o volume pode estar vindo de itens mais baratos.');
+      else if(dTk>0)linhas.push('Ticket médio subiu para '+BRL(tkA)+' ('+sinal(dTk)+') — está agregando mais valor por '+(isReis()?'aparelho':'atendimento')+'.');
+      else linhas.push('Ticket médio caiu para '+BRL(tkA)+' ('+sinal(dTk)+') — o volume pode estar vindo de '+(isReis()?'modelos com margem menor':'itens mais baratos')+'.');
+    }
+
+    // Na Reis o canal pesa: lojista tem margem bem menor que cliente final.
+    if(isReis()&&a.qtd>0){
+      const pl=a.loj/a.qtd*100,plP=p.qtd>0?p.loj/p.qtd*100:null;
+      linhas.push(NUM(a.loj)+' de '+NUM(a.qtd)+' aparelhos ('+PCT(pl)+') foram para lojista'+
+        (plP!==null?' — antes eram '+PCT(plP)+'.':'.'));
     }
 
     // Produto que mais cresceu e o que mais caiu
@@ -2807,8 +2834,8 @@ function rVendedores(cur,prv){
       const mediaFat=ativos.length?eqA.fat/ativos.length:0;
       const mediaTk=eqA.qtd>0?eqA.fat/eqA.qtd:0;
       const acimaFat=a.fat>=mediaFat,acimaTk=tkA>=mediaTk;
-      linhas.push('Contra a média da equipe ('+BRL(mediaFat)+' de faturamento e '+BRL(mediaTk)+' de ticket): '+
-        'faturamento <strong style="color:'+(acimaFat?'var(--gr)':'var(--rd)')+'">'+(acimaFat?'acima':'abaixo')+'</strong>, '+
+      linhas.push('Contra a média da equipe ('+BRL(mediaFat)+' de '+cfg.metricLc+' e '+BRL(mediaTk)+' de ticket): '+
+        cfg.metricLc+' <strong style="color:'+(acimaFat?'var(--gr)':'var(--rd)')+'">'+(acimaFat?'acima':'abaixo')+'</strong>, '+
         'ticket <strong style="color:'+(acimaTk?'var(--gr)':'var(--rd)')+'">'+(acimaTk?'acima':'abaixo')+'</strong>. '+
         (pos?'Posição no período: <strong>'+pos+'º de '+nomes.length+'</strong>.':''));
     }
@@ -2820,15 +2847,15 @@ function rVendedores(cur,prv){
   // ── Evolução: últimos 6 meses ────────────────────────────────────
   (()=>{
     const ct=document.getElementById('vendEvoCt');
-    if(ct)ct.textContent='Faturamento — últimos 6 meses'+(escolhido==='__TODOS__'?' (equipe)':' · '+escolhido);
-    const base=escolhido==='__TODOS__'?SALES:SALES.filter(r=>String(r.vend||'').trim()===escolhido);
+    if(ct)ct.textContent=cfg.metric+' — últimos 6 meses'+(escolhido==='__TODOS__'?' (equipe)':' · '+escolhido);
+    const base=SALES.filter(r=>cfg.rows(r)&&(escolhido==='__TODOS__'||String(r.vend||'').trim()===escolhido));
     const ms=[...new Set(SALES.map(r=>r.m))].sort().slice(-6);
     mkChart('c-vendEvo',{type:'bar',data:{labels:ms.map(m=>mL(m)),
-      datasets:[{label:'Faturamento',data:ms.map(m=>base.filter(r=>r.m===m).reduce((s,r)=>s+(r.vtc||0),0)),
-        backgroundColor:'rgba(13,158,80,.55)',borderRadius:4}]},
+      datasets:[{label:cfg.metric,data:ms.map(m=>base.filter(r=>r.m===m).reduce((s,r)=>s+cfg.val(r),0)),
+        backgroundColor:cfg.corA+'.55)',borderRadius:4}]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:false},
-          tooltip:{backgroundColor:'#071a10',borderColor:'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>' '+BRL(c.raw)}}},
+          tooltip:{backgroundColor:cfg.tipBg,borderColor:cfg.corA+'.4)',borderWidth:1,titleColor:'#e8f0fb',bodyColor:'#7fa8d0',padding:10,cornerRadius:8,callbacks:{label:c=>' '+BRL(c.raw)}}},
         scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11}}},
                 y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:11},callback:v=>'R$'+(v/1000).toFixed(0)+'K'}}}}});
   })();
@@ -2837,7 +2864,7 @@ function rVendedores(cur,prv){
   (()=>{
     const ct=document.getElementById('vendProdCt');
     const lista=Object.entries(a.prod).sort((x,y)=>y[1]-x[1]);
-    if(ct)ct.textContent='Produtos vendidos — '+NUM(lista.length)+' itens';
+    if(ct)ct.textContent=cfg.prodTitulo+' — '+NUM(lista.length)+' itens';
     const box=document.getElementById('vendProdBars');
     if(!box)return;
     if(!lista.length){box.innerHTML='<div style="font-size:12px;color:var(--txt3);padding:10px 0">Nenhuma venda no período selecionado.</div>';return;}
@@ -2850,8 +2877,8 @@ function rVendedores(cur,prv){
       return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bor)">'+
         '<span style="flex:1;font-size:12px;color:var(--txt)">'+n+
           '<span style="display:block;font-size:10px;color:var(--txt3)">'+BRL(a.fatProd[n]||0)+' · anterior: '+ant+'</span></span>'+
-        '<div style="width:90px;height:6px;background:rgba(13,158,80,.15);border-radius:3px;overflow:hidden;flex-shrink:0">'+
-          '<div style="height:100%;background:#0d9e50;border-radius:3px;width:'+(q/max*100).toFixed(0)+'%"></div></div>'+
+        '<div style="width:90px;height:6px;background:'+cfg.corA+'.15);border-radius:3px;overflow:hidden;flex-shrink:0">'+
+          '<div style="height:100%;background:'+cfg.cor+';border-radius:3px;width:'+(q/max*100).toFixed(0)+'%"></div></div>'+
         '<span style="font-size:12px;font-weight:600;color:var(--txt);width:26px;text-align:right;flex-shrink:0">'+q+'</span>'+
         '<span style="font-size:10px;font-weight:600;color:'+cor+';width:34px;text-align:right;flex-shrink:0">'+txt+'</span>'+
       '</div>';
@@ -2868,11 +2895,12 @@ function rVendedores(cur,prv){
       const ta=va.fat/Math.max(va.qtd,1);
       const d=dlt(va.fat,vp.fat);
       const dCls=d?(d.cls==='up'?'var(--gr)':d.cls==='dn'?'var(--rd)':'var(--txt3)'):'var(--txt3)';
-      const destaque=n===escolhido?'background:rgba(13,158,80,.10);':'';
+      const destaque=n===escolhido?'background:'+cfg.corA+'.10);':'';
       return '<tr style="border-bottom:1px solid var(--bor);'+destaque+'cursor:pointer" onclick="onVendChangeDireto(&quot;'+escAttr(n)+'&quot;)">'+
         '<td style="padding:7px 12px;font-size:12px;color:var(--txt)">'+n+'</td>'+
         '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--txt)">'+NUM(va.qtd)+'</td>'+
         '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--txt3)">'+NUM(vp.qtd)+'</td>'+
+        (isReis()?'<td class="r" style="padding:7px 12px;font-size:12px;color:var(--txt2)">'+BRL(va.rec)+'</td>':'')+
         '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--gr);font-weight:600">'+BRL(va.fat)+'</td>'+
         '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--txt3)">'+BRL(vp.fat)+'</td>'+
         '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--am)">'+BRL(ta)+'</td>'+
@@ -2880,9 +2908,10 @@ function rVendedores(cur,prv){
       '</tr>';
     }).join('');
     el.innerHTML='<table style="width:100%;border-collapse:collapse"><thead><tr>'+
-      th('Vendedor','var(--te)','left')+th('Serviços','var(--txt2)','right')+th('Anterior','var(--txt3)','right')+
-      th('Faturamento','var(--txt2)','right')+th('Anterior','var(--txt3)','right')+th('Ticket','var(--txt2)','right')+
-      th('Δ Fat.','var(--txt2)','right')+
+      th('Vendedor','var(--te)','left')+th(cfg.unid,'var(--txt2)','right')+th('Anterior','var(--txt3)','right')+
+      (isReis()?th('Faturamento','var(--txt2)','right'):'')+
+      th(cfg.metric,'var(--txt2)','right')+th('Anterior','var(--txt3)','right')+th('Ticket','var(--txt2)','right')+
+      th('Δ '+(isReis()?'Lucro':'Fat.'),'var(--txt2)','right')+
       '</tr></thead><tbody>'+linhas+'</tbody></table>';
   })();
 }
