@@ -1661,10 +1661,14 @@ function rVisao(cur,prv,cs,csp){
 
     function catOf(prod){
       const p=String(prod||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      // Até jul/2026 a planilha registrava só "GARANTIA ESTENDIDA" (sem dizer
+      // de quem); a partir de ago/2026 passou a separar REIS PHONES e SOFT
+      // BLINDAGEM. A genérica do histórico era a garantia da própria Soft,
+      // então cai no mesmo grupo — assim o comparativo com o período anterior
+      // não zera, e o card da Reis mostra quantas vendemos para eles.
       if(p.includes('GARANTIA')){
         if(p.includes('REIS')) return 'gar_reis';
-        if(p.includes('SOFT')) return 'gar_soft';
-        return 'gar';
+        return 'gar_soft';
       }
       if(p.includes('ASSIST')) return 'assist';
       if(p.includes('BLINDAGEM')||p.includes('BLINDADO')||p.includes('STICKER')||
@@ -1678,14 +1682,12 @@ function rVisao(cur,prv,cs,csp){
     const rBlind=cur.filter(r=>catOf(r.prod)==='blind'),   rBlind_p=prv.filter(r=>catOf(r.prod)==='blind');
     const rAssist=cur.filter(r=>catOf(r.prod)==='assist'), rAssist_p=prv.filter(r=>catOf(r.prod)==='assist');
     const rPlano=cur.filter(r=>catOf(r.prod)==='plano'),   rPlano_p=prv.filter(r=>catOf(r.prod)==='plano');
-    const rGar=cur.filter(r=>catOf(r.prod)==='gar'),       rGar_p=prv.filter(r=>catOf(r.prod)==='gar');
     const rGarR=cur.filter(r=>catOf(r.prod)==='gar_reis'),  rGarR_p=prv.filter(r=>catOf(r.prod)==='gar_reis');
     const rGarS=cur.filter(r=>catOf(r.prod)==='gar_soft'),  rGarS_p=prv.filter(r=>catOf(r.prod)==='gar_soft');
     const rAcess=cur.filter(r=>catOf(r.prod)==='acess'),   rAcess_p=prv.filter(r=>catOf(r.prod)==='acess');
     const fatB=fatFn(rBlind),fatB_p=fatFn(rBlind_p);
     const fatA=fatFn(rAssist),fatA_p=fatFn(rAssist_p);
     const fatP=fatFn(rPlano),fatP_p=fatFn(rPlano_p);
-    const fatG=fatFn(rGar),fatG_p=fatFn(rGar_p);
     const fatGR=fatFn(rGarR),fatGR_p=fatFn(rGarR_p);
     const fatGS=fatFn(rGarS),fatGS_p=fatFn(rGarS_p);
     const fatAc=fatFn(rAcess),fatAc_p=fatFn(rAcess_p);
@@ -1752,7 +1754,6 @@ function rVisao(cur,prv,cs,csp){
       {label:'🛡 Blindagem',rows:rBlind,fat:fatB,fp:fatB_p,rpl:rBlind_p.length,col:'#0d9e50'},
       {label:'🔧 Assistência Técnica',rows:rAssist,fat:fatA,fp:fatA_p,rpl:rAssist_p.length,col:'#34d399'},
       {label:'📋 Planos',rows:rPlano,fat:fatP,fp:fatP_p,rpl:rPlano_p.length,col:'#f5a623'},
-      {label:'✅ Garantia Estendida',rows:rGar,fat:fatG,fp:fatG_p,rpl:rGar_p.length,col:'#5b9bd5'},
       {label:'📱 Gar. Estendida Reis Phones',rows:rGarR,fat:fatGR,fp:fatGR_p,rpl:rGarR_p.length,col:'#2d7acc'},
       {label:'🛡 Gar. Estendida Soft Blindagem',rows:rGarS,fat:fatGS,fp:fatGS_p,rpl:rGarS_p.length,col:'#22d3ee'},
       {label:'🎧 Acessórios',rows:rAcess,fat:fatAc,fp:fatAc_p,rpl:rAcess_p.length,col:'#a78bfa'},
@@ -1808,7 +1809,6 @@ function rVisao(cur,prv,cs,csp){
         ['Blindagens',NUM(rBlind.length),NUM(rBlind_p.length),dlt(rBlind.length,rBlind_p.length)],
         ['Assistência técnica',NUM(rAssist.length),NUM(rAssist_p.length),dlt(rAssist.length,rAssist_p.length)],
         ['Planos',NUM(rPlano.length),NUM(rPlano_p.length),dlt(rPlano.length,rPlano_p.length)],
-        ['Garantia estendida',NUM(rGar.length),NUM(rGar_p.length),dlt(rGar.length,rGar_p.length)],
         ['Gar. estendida — Reis Phones',NUM(rGarR.length),NUM(rGarR_p.length),dlt(rGarR.length,rGarR_p.length)],
         ['Gar. estendida — Soft Blindagem',NUM(rGarS.length),NUM(rGarS_p.length),dlt(rGarS.length,rGarS_p.length)],
         ['Acessórios',NUM(rAcess.length),NUM(rAcess_p.length),dlt(rAcess.length,rAcess_p.length)],
