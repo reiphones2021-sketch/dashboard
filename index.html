@@ -440,6 +440,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   </div>
   <span class="pinfo" id="pinfo" style="margin-left:8px"></span>
   <span class="pcmp" id="pcmp"></span>
+  <button id="btnVoltarDia2" class="btn-rf" onclick="voltarPeriodo()" style="display:none;padding:4px 10px;font-size:11px">↩ Voltar ao período</button>
 </div>
 <div id="heroMetric" class="hero-metric" style="display:none">
   <div class="hero-side" id="heroLeft">
@@ -487,7 +488,14 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="card"><div class="ct" id="topModsCt">Top 10 aparelhos vendidos no período</div><div id="topMods" style="margin-top:2px;max-height:220px;overflow-y:auto"></div></div>
   </div>
   <div class="sh"><span class="st">Vendas Diárias & Vendedores</span></div>
-  <div class="card" style="margin-bottom:13px"><div class="ct">Vendas diárias — <span id="dailySalesMonthLabel"></span></div><div style="height:230px"><canvas id="c-dailySales"></canvas></div></div>
+  <div class="card" style="margin-bottom:13px">
+    <div class="ct" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span>Vendas diárias — <span id="dailySalesMonthLabel"></span></span>
+      <span id="dailyHint" style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7">· clique numa barra para ver o dia inteiro no dashboard</span>
+      <button id="btnVoltarDia" class="btn-rf" onclick="voltarPeriodo()" style="display:none;margin-left:auto;padding:4px 10px;font-size:11px;text-transform:none;letter-spacing:0">↩ Voltar ao período</button>
+    </div>
+    <div style="height:230px"><canvas id="c-dailySales"></canvas></div>
+  </div>
   <div class="cg c2">
     <div class="card"><div class="ct" id="vendPieTitle">Faturamento por vendedor</div><div style="height:230px"><canvas id="c-vendPie"></canvas></div></div>
     <div class="card"><div class="ct">Detalhamento por vendedor</div><div id="vendDetail" style="margin-top:6px"></div></div>
@@ -1285,6 +1293,7 @@ function drpClose(restore){
 }
 
 function drpApplyPreset(p){
+  window._periodoAnterior=null;
   var t=drpToday(),lm=drpLastM();
   var ly=+lm.slice(0,4),lmo=+lm.slice(5,7);
   var pm2=lmo===1?12:lmo-1,py2=lmo===1?ly-1:ly;
@@ -1337,6 +1346,7 @@ function drpWireEvents(){
   document.getElementById('btnCc').addEventListener('click',function(e){e.stopPropagation();drpClose(true);});
   document.getElementById('btnAp').addEventListener('click',function(e){
     e.stopPropagation();
+    window._periodoAnterior=null; // período escolhido à mão: some o "Voltar" do gráfico
     if(drpAwaiting && drpSTs){drpETs=drpSTs;window._startStr=drpIso(drpSTs);window._endStr=drpIso(drpETs);drpAwaiting=false;}
     drpClose(false);drpUpdateTrigger();applyPeriod();
   });
@@ -1362,6 +1372,31 @@ function initSel(applyDefault){
     drpUpdateTrigger();
   }
   applyPeriod();
+}
+
+// ── Dia clicado no gráfico de vendas diárias ────────────────────────
+// Guarda o período que estava na tela para o botão "Voltar" e aplica o dia
+// como período fixo — todo o dashboard (KPIs, abas, comparativos) segue.
+function irParaDia(iso){
+  if(!iso||!window._startStr||!window._endStr)return;
+  if(!window._periodoAnterior)window._periodoAnterior={s:window._startStr,e:window._endStr,st:drpSTs,et:drpETs,preset:drpActivePreset};
+  aplicarPeriodoFixo(iso,iso,'Dia escolhido no gráfico');
+  window.scrollTo({top:0,behavior:'smooth'}); // os KPIs do dia ficam no topo
+}
+function voltarPeriodo(){
+  const p=window._periodoAnterior;if(!p)return;
+  window._periodoAnterior=null;
+  drpSTs=p.st;drpETs=p.et;drpActivePreset=p.preset||'fixo';
+  window._startStr=p.s;window._endStr=p.e;
+  const pt=document.getElementById('drpPresetTxt');if(pt)pt.textContent=DRP_LBL[drpActivePreset]||'Fixo';
+  drpSetNav(drpSTs);drpUpdateTrigger();applyPeriod();
+}
+function aplicarPeriodoFixo(sIso,eIso,rotulo){
+  drpSTs=new Date(sIso+'T00:00:00').getTime();drpETs=new Date(eIso+'T00:00:00').getTime();
+  drpActivePreset='fixo';drpAwaiting=false;
+  window._startStr=sIso;window._endStr=eIso;
+  const pt=document.getElementById('drpPresetTxt');if(pt)pt.textContent=rotulo||'Fixo';
+  drpSetNav(drpSTs);drpUpdateTrigger();applyPeriod();
 }
 
 function applyPeriod(){
@@ -1624,15 +1659,24 @@ function rVisao(cur,prv,cs,csp){
     const avgDaily=daysWithSales?dailyPairs.reduce((s,p)=>s+p.val,0)/daysWithSales:0;
     const dailyLabelEl=document.getElementById('dailySalesMonthLabel');
     if(dailyLabelEl)dailyLabelEl.textContent=curPeriodLabel();
+    const btnVoltar=document.getElementById('btnVoltarDia'),dailyHint=document.getElementById('dailyHint');
+    if(btnVoltar)btnVoltar.style.display=window._periodoAnterior?'':'none';
+    const btnVoltar2=document.getElementById('btnVoltarDia2');
+    if(btnVoltar2)btnVoltar2.style.display=window._periodoAnterior?'':'none';
+    if(dailyHint)dailyHint.style.display=window._periodoAnterior||dailyPairs.length<2?'none':'';
     const barColor=isReis()?'rgba(0,217,126,.65)':'rgba(13,158,80,.65)';
     mkChart('c-dailySales',{type:'bar',data:{
       labels:dailyPairs.map(p=>{const d=new Date(p.dt+'T12:00:00');return d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0');}),
       datasets:[
-        {label:metricLabel,data:dailyPairs.map(p=>p.val),backgroundColor:barColor,borderRadius:4,order:2},
+        {label:metricLabel,data:dailyPairs.map(p=>p.val),backgroundColor:barColor,borderRadius:4,maxBarThickness:90,order:2},
         {label:'Média diária',type:'line',data:Array(daysWithSales).fill(avgDaily),borderColor:'#f5a623',borderDash:[6,4],borderWidth:2,pointRadius:0,fill:false,order:1},
       ]},options:{responsive:true,maintainAspectRatio:false,
+      // Clique na barra → o dashboard inteiro passa a mostrar só aquele dia
+      // (setTimeout: o renderAll recria este gráfico, e isso não pode acontecer no meio do evento do Chart.js)
+      onClick:(e,els)=>{if(els.length&&dailyPairs.length>1){const dt=dailyPairs[els[0].index].dt;setTimeout(()=>irParaDia(dt),0);}},
+      onHover:(e,els)=>{if(e.native&&e.native.target)e.native.target.style.cursor=els.length&&dailyPairs.length>1?'pointer':'default';},
       plugins:{legend:{display:true,position:'bottom',labels:{color:TXT2,boxWidth:9,font:{size:11},padding:7}},
-        tooltip:{backgroundColor:isReis()?'#0f1e35':'#071a10',borderColor:isReis()?'rgba(29,90,154,.4)':'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`}}},
+        tooltip:{backgroundColor:isReis()?'#0f1e35':'#071a10',borderColor:isReis()?'rgba(29,90,154,.4)':'rgba(13,158,80,.4)',borderWidth:1,titleColor:'#eef2ff',bodyColor:'#8892a4',padding:10,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${BRL(c.raw)}`,footer:()=>dailyPairs.length>1?'Clique para ver este dia':''}}},
       scales:{x:{grid:{color:GRID},ticks:{color:TXT2,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:15}},
               y:{grid:{color:GRID},ticks:{color:TXT2,font:{size:10},callback:v=>'R$'+(v/1000).toFixed(1)+'K'}}}}});
 
