@@ -737,8 +737,18 @@ function parseDt(s){
     const now=new Date();
     return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   }
-  if(trimmed.includes('/')){const[d,m,y]=trimmed.split('/');return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}
-  return trimmed.slice(0,10);
+  if(trimmed.includes('/')){
+    let[d,m,y]=trimmed.split('/').map(x=>String(x||'').trim());
+    // Vendedor às vezes lança "11/09" sem o ano, ou "11/09/26": assume o ano
+    // atual / completa o século. Sem isso a data virava "undefined-09-11" e
+    // derrubava o seletor de período da página inteira.
+    if(!y)y=String(new Date().getFullYear());
+    else if(y.length===2)y='20'+y;
+    if(!/^\d{4}$/.test(y)||+y<2000||!/^\d{1,2}$/.test(m)||!/^\d{1,2}$/.test(d))return null;
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  const iso=trimmed.slice(0,10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso)?iso:null;
 }
 function pTipo(t){t=t.toUpperCase().trim();if(t.includes('IPHONE'))return 'IP';if(t.includes('WATCH'))return 'AW';if(t.includes('IPAD')||t.includes('TABLET'))return 'ID';if(t.includes('MACBOOK')||t.includes('MAC'))return 'MB';if(t.includes('ACESS'))return 'AC';if(t.includes('ASSIST'))return 'AS';return 'OT';}
 function pGar(g){g=g.toUpperCase().trim();if(g.includes('LACRADO'))return 'lacrado';if(g.includes('1 ANO')||g.includes('1ANO'))return '1ano';if(g.includes('6 MES')||g.includes('6MES'))return '6meses';if(g.includes('LOJISTA'))return 'lojista';if(g.includes('EXTERNO'))return 'externo';if(g.includes('INTERNO'))return 'interno';return 'outro';}
@@ -1185,7 +1195,10 @@ function drpIso(ts){if(!ts&&ts!==0)return'';var d=new Date(ts);return d.getFullY
 function drpPtToTs(s){var n=s.replace(/\D/g,'');if(n.length!==8)return null;var d=new Date(n.slice(4),+n.slice(2,4)-1,+n.slice(0,2));d.setHours(0,0,0,0);return isNaN(d)?null:d.getTime();}
 function drpFmtI(s){var n=s.replace(/\D/g,'');if(n.length<=2)return n;if(n.length<=4)return n.slice(0,2)+'/'+n.slice(2);return n.slice(0,2)+'/'+n.slice(2,4)+'/'+n.slice(4,8);}
 function drpToday(){var d=new Date();d.setHours(0,0,0,0);return d.getTime();}
-function drpLastM(){var ms=[...new Set(SALES.map(r=>r.m))].sort();return ms[ms.length-1]||new Date().toISOString().slice(0,7);}
+// "Este mês" é sempre o mês atual do calendário — ao abrir a página o padrão
+// é do dia 1 até hoje. Antes usava o último mês com dados na planilha, e uma
+// data digitada errada (ano faltando) deixava o dashboard sem período.
+function drpLastM(){return drpIso(drpToday()).slice(0,7);}
 function drpSetNav(ts){if(!ts)return;var d=new Date(ts);drpNavL.y=d.getFullYear();drpNavL.m=d.getMonth();}
 
 function drpBuildCal(id,y,m){
