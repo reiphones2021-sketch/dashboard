@@ -1,0 +1,15 @@
+#!/bin/sh
+# Trava local: nenhum commit entra sem a suíte de regressão passar.
+# Ativada com:  git config core.hooksPath .githooks
+cd "$(git rev-parse --show-toplevel)" || exit 1
+if [ ! -d node_modules ]; then
+  echo "[trava] instalando dependências de teste (npm install)…"
+  npm install --no-audit --no-fund >/dev/null 2>&1 || { echo "[trava] npm install falhou"; exit 1; }
+fi
+echo "[trava] rodando npm test…"
+if ! npm test --silent; then
+  echo ""
+  echo "[trava] ✖ Commit bloqueado: a edição quebrou algo que estava travado."
+  echo "[trava]   Conserte a edição (não o teste). Detalhes acima."
+  exit 1
+fi

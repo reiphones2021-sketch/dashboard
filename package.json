@@ -1,0 +1,12 @@
+{
+  "name": "dashboard-reisphones",
+  "private": true,
+  "description": "Dashboard executivo Reis Phones / Soft Blindagem — index.html estático publicado no GitHub Pages",
+  "scripts": {
+    "test": "node tests/regressao.js"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1",
+    "papaparse": "^5.4.1"
+  }
+}

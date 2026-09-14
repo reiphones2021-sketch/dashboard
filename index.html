@@ -2996,6 +2996,9 @@ function showTab(id,el){
   const panel=document.getElementById('p-'+id);
   if(panel){panel.classList.add('active');panel.style.display='block';}
   el.classList.add('active');
+  // Gráficos de abas escondidas não acompanham o redimensionamento da janela
+  // (ex.: girar o celular); ajusta na hora em vez de esperar o próximo frame.
+  Object.values(CHARTS).forEach(c=>{try{c.resize();}catch(e){}});
 }
 
 // BOOT
