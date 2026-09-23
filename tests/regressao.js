@@ -20,7 +20,7 @@ const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: tru
 const w = dom.window;
 const errosPagina = [];
 w.__charts = {};
-w.Chart = class { constructor(canvas, cfg) { this.canvas = canvas; this.config = cfg; this.data = cfg.data; this.options = cfg.options || {}; w.__charts[canvas.id] = this; } destroy() {} resize() {} };
+w.Chart = class { constructor(canvas, cfg) { this.canvas = canvas; this.config = cfg; this.data = cfg.data; this.options = cfg.options || {}; w.__charts[canvas.id] = this; } destroy() {} resize() {} update() {} };
 w.Chart.defaults = { font: {} };
 w.Papa = Papa;
 // Rede 'pendurada': o DOMContentLoaded da página fica esperando para sempre e
@@ -68,6 +68,9 @@ const roteiro = fs.readFileSync(path.join(__dirname, 'roteiro.js'), 'utf8');
   estatico('CLAUDE.md com as regras existe', fs.existsSync(path.join(RAIZ, 'CLAUDE.md')));
   estatico('CSS do celular: célula de grid encolhe', /\.cg>\*,\.kg>\*,\.split>\*\{min-width:0;\}/.test(html));
   estatico('CSS do celular: tabelas comparativas rolam no card', /#cmpTable,#compTable\{overflow-x:auto;\}/.test(html));
+  estatico('painel de metas diárias no HTML', /id="p-metas"/.test(html) && /id="btnMetas"/.test(html));
+  estatico('metas isoladas em window.Metas (não vazam para o dashboard)', /window\.Metas\s*=\s*Metas;/.test(html));
+  estatico('metas sincronizam pela nuvem (Supabase + realtime)', /dashboard_metas/.test(html) && /supabase-js/.test(html));
   estatico('favicon embutido', /<link rel="icon" href="data:image\/svg\+xml/.test(html));
   estatico('GitHub Pages: link público sem login (sem vercel.json)', !fs.existsSync(path.join(RAIZ, 'vercel.json')));
 

@@ -182,6 +182,184 @@
     ok('seletor volta para "Toda a equipe"', el('vendSel').value === '__TODOS__', el('vendSel').value);
     ok('aba continua ativa', el('p-vendedores').classList.contains('active'));
 
+    // ══ METAS DIÁRIAS ═══════════════════════════════════════════════
+    const mBRL = v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const mCards = s => q('#mtGrid-' + s + ' .mt-card').length;
+    const mPerto = (a, b) => Math.abs(a - b) < 0.01;
+    // o "já feito" tem que sair das mesmas linhas que o dashboard usa no topo:
+    // Reis = lucro bruto (LUCRO), Soft = faturamento (PREÇO), do dia 1 até hoje
+    const mLbReis = reisPeriodo.reduce((s, r) => s + r.lb, 0);
+    const mFatSoft = softPeriodo.reduce((s, r) => s + r.preco, 0);
+
+    bloco('Metas diárias: botão no seletor de empresa');
+    ok('botão "Metas Diárias" fica ao lado das empresas', !!el('btnMetas') && !!el('btnMetas').closest('.company-sw'));
+    Metas.resetar();   // parte sempre do padrão, sem depender do que estiver salvo no navegador
+    Metas.abrir();
+    await Metas.carregarAoVivo();
+    ok('painel de metas abre', el('p-metas').classList.contains('active'));
+    ok('nenhuma aba do dashboard fica aberta junto', q('.panel.active').length === 1);
+    ok('barra de período, hero e abas somem', document.querySelector('.pbar').style.display === 'none' && document.querySelector('.tabs').style.display === 'none' && el('heroMetric').style.display === 'none');
+    ok('botão de metas marcado, empresa desmarcada', el('btnMetas').classList.contains('active') && !el('btnReis').classList.contains('active') && !el('btnSoft').classList.contains('active'));
+    ok('cards padrão: 8 Reis, 4 Soft, 1 extra', mCards('reis') === 8 && mCards('soft') === 4 && mCards('extra') === 1, mCards('reis') + '/' + mCards('soft') + '/' + mCards('extra'));
+    ok('cada card tem seu gráfico', q('#mtGrid-reis canvas').length === 8 && q('#mtGrid-extra canvas').length === 1);
+
+    bloco('Metas diárias: "já feito" vem da planilha, sem digitar nada');
+    ok('Reis usa o lucro bruto do mês (soma de LUCRO)', mPerto(Metas.estado().feitoReis, mLbReis), Metas.estado().feitoReis + ' vs ' + mLbReis);
+    ok('Soft usa o faturamento do mês (soma de PREÇO)', mPerto(Metas.estado().feitoSoft, mFatSoft), Metas.estado().feitoSoft + ' vs ' + mFatSoft);
+    ok('valor da Reis aparece na tela', nb(txt('mtFeito-reis')) === nb(mBRL(mLbReis)), txt('mtFeito-reis'));
+    ok('valor da Soft aparece na tela', nb(txt('mtFeito-soft')) === nb(mBRL(mFatSoft)), txt('mtFeito-soft'));
+    ok('período mostrado é do dia 1 até hoje', txt('mtPer-reis').indexOf('1 a ' + hoje.getDate() + '/') > 0, txt('mtPer-reis'));
+    ok('não sobrou campo de "já feito" para digitar', !el('mtFeitoReis') && !el('mtFeitoSoft'));
+    ok('o botão de atualizar da planilha existe', !!el('mtBtnRf'));
+
+    bloco('Metas diárias: o cálculo');
+    ok('meta diária = (total − já feito) ÷ dias', nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / 16)), txt('mtV-reis-0'));
+    ok('faltando = total − já feito', nb(txt('mtFalt-reis-0')) === nb('Faltando: ' + mBRL(120000 - mLbReis)), txt('mtFalt-reis-0'));
+    ok('Soft calcula em cima do faturamento', nb(txt('mtV-soft-0')) === nb(mBRL((110000 - mFatSoft) / 16)), txt('mtV-soft-0'));
+    ok('meta extra usa o "já feito" do próprio card', nb(txt('mtV-extra-0')) === nb(mBRL((60000 - 8281.52) / 16)), txt('mtV-extra-0'));
+    el('mtDias').value = '10'; Metas.onDias();
+    ok('mudar os dias restantes recalcula na hora', nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / 10)), txt('mtV-reis-0'));
+    Metas.setCampo('reis', 0, 'total', '1.000,00');
+    ok('meta total aceita valor colado em formato BR', nb(txt('mtFalt-reis-0')) === nb('Faltando: ' + mBRL(Math.max(0, 1000 - mLbReis))), txt('mtFalt-reis-0'));
+    ok('meta já batida mostra zero, nunca valor negativo', nb(txt('mtV-reis-0')) === nb(mBRL(0)), txt('mtV-reis-0'));
+    Metas.setCampo('reis', 0, 'total', '120000');
+
+    bloco('Metas diárias: valor colado em qualquer formato');
+    ok('98.366,22 (BR com milhar)', Metas.parseBR('98.366,22') === 98366.22);
+    ok('98366,22 (BR sem milhar)', Metas.parseBR('98366,22') === 98366.22);
+    ok('98366.22 (ponto decimal)', Metas.parseBR('98366.22') === 98366.22);
+    ok('120.000 é cento e vinte mil, não 120', Metas.parseBR('120.000') === 120000, Metas.parseBR('120.000'));
+    ok('1.200.000 é um milhão e duzentos mil', Metas.parseBR('1.200.000') === 1200000, Metas.parseBR('1.200.000'));
+    ok('R$ 98.366,22 (com prefixo)', Metas.parseBR('R$ 98.366,22') === 98366.22);
+    ok('texto inválido vira 0, nunca NaN', Metas.parseBR('abc') === 0 && Metas.parseBR('') === 0);
+
+    bloco('Metas diárias: meta total se formata sozinha enquanto digita');
+    const mMask = Metas.mascaraBR;
+    ok('120000 vira 120.000 (é valor em reais, não centavos)', mMask('120000') === '120.000', mMask('120000'));
+    ok('1200 vira 1.200', mMask('1200') === '1.200', mMask('1200'));
+    ok('1200000 vira 1.200.000', mMask('1200000') === '1.200.000', mMask('1200000'));
+    ok('vírgula digitada é respeitada', mMask('120000,5') === '120.000,5', mMask('120000,5'));
+    ok('centavos param em 2 casas', mMask('120000,567') === '120.000,56', mMask('120000,567'));
+    ok('ponto do teclado numérico vira vírgula', mMask('12.3') === '12,3', mMask('12.3'));
+    ok('ponto de milhar não é confundido com centavos', mMask('1.234') === '1.234', mMask('1.234'));
+    ok('vírgula sozinha ganha o zero', mMask(',5') === '0,5', mMask(',5'));
+    ok('zeros à esquerda somem', mMask('000120000') === '120.000', mMask('000120000'));
+    ok('letra digitada é ignorada', mMask('12a3') === '123' && mMask('abc') === '', mMask('12a3'));
+
+    const mInp = () => q('#mtGrid-reis .mt-inp')[0];
+    const mDigitar = texto => { const e = mInp(); e.value = texto; e.selectionStart = texto.length; Metas.onValor(e, 'reis', 0, 'total'); return e; };
+    mDigitar('120000');
+    ok('o campo mostra 120.000 na hora', mInp().value === '120.000', mInp().value);
+    ok('e o valor entendido é cento e vinte mil', Metas.estado().reis[0].total === 120000, Metas.estado().reis[0].total);
+    ok('a meta diária já usa o valor formatado', nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / 10)), txt('mtV-reis-0'));
+    Metas.onValorSaiu(mInp(), 'reis', 0, 'total');
+    ok('ao sair do campo os centavos fecham', mInp().value === '120.000,00', mInp().value);
+    ok('fechar os centavos não muda o valor', Metas.estado().reis[0].total === 120000, Metas.estado().reis[0].total);
+    const mCursor = mInp(); mCursor.value = '1200'; mCursor.selectionStart = 2;
+    Metas.onValor(mCursor, 'reis', 0, 'total');
+    ok('o cursor não pula para o fim ao editar no meio', mCursor.value === '1.200' && mCursor.selectionStart === 3, mCursor.value + ' pos ' + mCursor.selectionStart);
+    mDigitar('120000'); Metas.onValorSaiu(mInp(), 'reis', 0, 'total');
+
+    bloco('Metas diárias: variação desde a referência salva');
+    Metas.snapshot();
+    ok('logo depois de salvar, a variação é "igual"', /igual/.test(txt('mtDelta-reis-0')), txt('mtDelta-reis-0'));
+    el('mtDias').value = '20'; Metas.onDias();
+    ok('mais dias pela frente → diária cai → selo verde', q('#mtDelta-reis-0 .mt-delta.down').length === 1, txt('mtDelta-reis-0'));
+    el('mtDias').value = '5'; Metas.onDias();
+    ok('menos dias → diária sobe → selo vermelho', q('#mtDelta-reis-0 .mt-delta.up').length === 1, txt('mtDelta-reis-0'));
+    Metas.toggleDelta('reis', 0);
+    ok('clicar no selo esconde a variação', txt('mtDelta-reis-0') === '···', txt('mtDelta-reis-0'));
+    Metas.toggleDelta('reis', 0);
+    ok('clicar de novo mostra de volta', /▲|▼|igual/.test(txt('mtDelta-reis-0')), txt('mtDelta-reis-0'));
+
+    bloco('Metas diárias: adicionar e remover metas');
+    const mSoftAntes = mCards('soft');
+    Metas.addMeta('soft');
+    ok('adicionar meta cria o card', mCards('soft') === mSoftAntes + 1);
+    Metas.remover('soft', mSoftAntes);
+    ok('remover devolve a contagem', mCards('soft') === mSoftAntes);
+    Metas.addExtra();
+    ok('meta extra é adicionada sem prompt do navegador', mCards('extra') === 2);
+    Metas.remover('extra', 1);
+    ok('meta extra removida', mCards('extra') === 1);
+    ok('não sobrou exportar/importar entre aparelhos', !Metas.exportar && !Metas.importar && !Metas.codigoExport && !Metas.aplicarCodigo);
+    ok('metas ficam salvas no navegador', !!(JSON.parse(localStorage.getItem('metas_v5')) || {}).reis);
+
+    bloco('Metas diárias: texto do WhatsApp');
+    const mWpp = Metas.textoWpp('all');
+    ok('traz as duas empresas e as extras', /REIS PHONES/.test(mWpp) && /SOFT BLINDAGEM/.test(mWpp) && /Meta Assistência/.test(mWpp));
+    ok('uma meta diária por card', (mWpp.match(/Meta diária/g) || []).length === 13, (mWpp.match(/Meta diária/g) || []).length);
+    ok('manda o já feito lido da planilha', mWpp.indexOf(mBRL(mLbReis)) > 0 && mWpp.indexOf(mBRL(mFatSoft)) > 0);
+    ok('sem NaN/undefined no texto', !/NaN|undefined|Infinity/.test(mWpp));
+    ok('só Reis não menciona a Soft', !/SOFT BLINDAGEM/.test(Metas.textoWpp('reis')));
+
+    bloco('Metas diárias: sincronização entre aparelhos');
+    // Supabase de mentira: guarda a linha, registra o que foi enviado e deixa
+    // o roteiro simular uma alteração vinda de outro aparelho.
+    const nuvemFake = linhaInicial => {
+      const reg = { enviados: [], handlers: [], linha: linhaInicial || null };
+      const canal = { on(ev, cfg, cb) { reg.handlers.push(cb); return canal; }, subscribe() { return canal; } };
+      reg.lib = {
+        createClient: () => ({
+          from: () => ({
+            select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: reg.linha ? { dados: reg.linha } : null, error: null }) }) }),
+            upsert: r => { reg.enviados.push(r); reg.linha = r.dados; return Promise.resolve({ error: null }); }
+          }),
+          channel: () => canal,
+          removeChannel: () => {}
+        })
+      };
+      reg.receber = (dados, aparelho) => reg.handlers.forEach(h => h({ new: { dados, atualizado_por: aparelho || 'outro-aparelho' } }));
+      return reg;
+    };
+
+    ok('sem a biblioteca da nuvem, o painel segue funcionando offline', Metas.statusNuvem() === 'local' && mCards('reis') === 8, Metas.statusNuvem());
+
+    // ── nuvem ainda vazia: este aparelho semeia o que tem ──────────────
+    let nf = nuvemFake(null);
+    window.supabase = nf.lib;
+    await Metas.reconectarNuvem();
+    ok('conecta e mostra o selo de sincronizado', Metas.statusNuvem() === 'ok' && txt('mtSync').indexOf('Sincronizado') > 0, txt('mtSync'));
+    ok('nuvem vazia é semeada com as metas deste aparelho', nf.enviados.length === 1 && nf.enviados[0].dados.reis.length === 8, nf.enviados.length);
+    ok('o realizado da planilha NÃO vai para a nuvem', !('feitoReis' in nf.enviados[0].dados) && !('feitoSoft' in nf.enviados[0].dados));
+    ok('a linha enviada é sempre a mesma (global)', nf.enviados[0].id === 'global');
+    ok('a linha carimba qual aparelho escreveu', nf.enviados[0].atualizado_por === Metas.aparelho());
+
+    // ── nuvem já com metas: ela manda, não o que estava no navegador ───
+    nf = nuvemFake({ dias: 7, extraTitle: 'Extras do sócio', reis: [{ nome: 'Meta do mês', total: 200000 }], soft: [{ nome: 'Soft 1', total: 90000 }], extra: [], delta: {} });
+    window.supabase = nf.lib;
+    await Metas.reconectarNuvem();
+    ok('ao abrir em outro aparelho, as metas da nuvem mandam', mCards('reis') === 1 && mCards('soft') === 1 && mCards('extra') === 0, mCards('reis') + '/' + mCards('soft') + '/' + mCards('extra'));
+    ok('dias restantes vêm da nuvem', el('mtDias').value === '7', el('mtDias').value);
+    ok('título das metas extras vem da nuvem', el('mtExtraTitulo').value === 'Extras do sócio', el('mtExtraTitulo').value);
+    ok('o já feito continua sendo o da planilha, não o da nuvem', mPerto(Metas.estado().feitoReis, mLbReis), Metas.estado().feitoReis);
+    ok('a meta diária já usa os dois juntos', nb(txt('mtV-reis-0')) === nb(mBRL((200000 - mLbReis) / 7)), txt('mtV-reis-0'));
+    ok('baixar da nuvem não devolve nada para a nuvem', nf.enviados.length === 0, nf.enviados.length);
+
+    // ── editar aqui sobe para a nuvem ──────────────────────────────────
+    Metas.setCampo('reis', 0, 'total', '250.000,00');
+    await tick(520);   // o envio é agrupado por alguns décimos de segundo
+    ok('alterar uma meta manda a linha para a nuvem', nf.enviados.length === 1 && nf.enviados[0].dados.reis[0].total === 250000, JSON.stringify((nf.enviados[0] || {}).dados || {}).slice(0, 60));
+    ok('selo volta para sincronizado depois de salvar', Metas.statusNuvem() === 'ok', Metas.statusNuvem());
+    el('mtDias').value = '12'; Metas.onDias();
+    await tick(520);
+    ok('mudar os dias também sobe', nf.enviados.length === 2 && nf.enviados[1].dados.dias === 12, nf.enviados.length);
+
+    // ── alteração feita em outro aparelho aparece aqui na hora ─────────
+    nf.receber({ dias: 3, extraTitle: 'Extras', reis: [{ nome: 'Veio do celular', total: 300000 }, { nome: 'Segunda', total: 400000 }], soft: [], extra: [], delta: {} });
+    ok('alteração de outro aparelho entra sem recarregar a página', mCards('reis') === 2 && q('#mtGrid-reis .mt-nm')[0].value === 'Veio do celular', mCards('reis') + ' / ' + (q('#mtGrid-reis .mt-nm')[0] || {}).value);
+    ok('os números recalculam com o que chegou', el('mtDias').value === '3' && nb(txt('mtV-reis-0')) === nb(mBRL((300000 - mLbReis) / 3)), txt('mtV-reis-0'));
+    ok('receber de fora não reenvia para a nuvem (sem eco infinito)', nf.enviados.length === 2, nf.enviados.length);
+    nf.receber({ dias: 99, extraTitle: 'Extras', reis: [], soft: [], extra: [], delta: {} }, Metas.aparelho());
+    ok('o eco da minha própria escrita é ignorado', el('mtDias').value === '3' && mCards('reis') === 2, el('mtDias').value);
+
+    bloco('Metas diárias: voltar para o dashboard');
+    switchCompany('soft'); await tick(120);
+    ok('clicar numa empresa fecha as metas', !el('p-metas').classList.contains('active') && !el('btnMetas').classList.contains('active'));
+    ok('barra de período e abas voltam', document.querySelector('.pbar').style.display === '' && document.querySelector('.tabs').style.display === '');
+    ok('empresa escolhida fica marcada', el('btnSoft').classList.contains('active'));
+    ok('volta a aba que estava aberta antes', q('.panel.active').length === 1 && q('.panel.active')[0].id !== 'p-metas', (q('.panel.active')[0] || {}).id);
+
     bloco('Nenhum texto quebrado em nenhuma aba');
     for (const co of ['reis', 'soft']) {
       if (ACTIVE_COMPANY !== co) { switchCompany(co); await tick(120); }

@@ -63,6 +63,47 @@ Regras para qualquer edição futura:
 - **Celular**: sem rolagem horizontal (`.cg>*,.kg>*,.split>*{min-width:0}`,
   `#cmpTable,#compTable{overflow-x:auto}`); gráficos redimensionam ao trocar
   de aba. Favicon embutido.
+- **🎯 Metas Diárias** — terceiro botão do seletor de empresa (ao lado de Reis
+  e Soft), painel `#p-metas`. Porte da ferramenta que o sócio fez em
+  `metas-diarias.html`; roda isolada em `window.Metas` (o dashboard já usa os
+  nomes `state`, `fmt`, `pct` e `CHARTS`) e guarda tudo no `localStorage`, na
+  chave `metas_v5` **apenas como cache** — quem manda é a nuvem.
+  - **As metas vivem no Supabase e sincronizam em tempo real.** Projeto
+    `bbsklyfbswtirlexclrx` (ECOMMERCE REIS PHONES), tabela
+    `public.dashboard_metas`, linha única `global`, coluna `dados` (jsonb).
+    Editar num aparelho refaz a linha; os outros recebem por
+    `postgres_changes` e se redesenham na hora. RLS aberta (o site é
+    público e sem login, como a calculadora). A escrita é agrupada em 400ms
+    e carimbada com `atualizado_por`, para o aparelho ignorar o próprio eco.
+    O selo no topo do painel mostra o estado e reconecta se for clicado.
+  - **O que NÃO vai para a nuvem:** `feitoReis`/`feitoSoft`, que cada
+    aparelho lê da planilha. Alteração remota que chega com um campo em
+    edição só é aplicada no `focusout`, para não apagar o que se digita.
+  - **Já feito é lido ao vivo da planilha**, do dia 1 do mês até hoje, pelas
+    mesmas contas do hero: Reis Phones = lucro bruto (soma de `lb`), Soft
+    Blindagem = faturamento (soma de `vtc`). Não existe campo para digitar
+    esse valor. Carrega as duas empresas com `ensureCompanyData` ao abrir o
+    painel; "⟳ Atualizar da planilha" força o refetch das duas.
+  - O usuário só define **meta total** e **dias restantes**.
+  - Meta diária = (meta total − já feito) ÷ dias restantes, nunca negativa.
+  - **"Meta total" se formata sozinha enquanto se digita** (e o "já feito" das
+    metas extras, que continua na mão): o que se digita é valor em reais, não
+    centavos — `120000` vira `120.000` a cada tecla e fecha em `120.000,00` ao
+    sair do campo. O cursor não pula para o fim ao editar no meio. Ponto
+    digitado é tratado como vírgula (teclado numérico), porque o ponto de
+    milhar já entra sozinho.
+  - `parseBR` aceita `98.366,22`, `98366,22`, `98366.22`, `R$ 98.366,22` e
+    `120.000` (grupos de 3 dígitos = milhar, então dá 120000 e não 120);
+    texto inválido vira 0, nunca `NaN`.
+  - "Salvar como referência" congela as diárias; daí em diante cada card
+    mostra a variação (vermelho = subiu, verde = caiu) e o selo é clicável.
+  - Cards com doughnut de progresso, adicionar/remover meta, seção de metas
+    extras com título editável e "já feito" próprio por card.
+  - Copiar para WhatsApp (Reis, Soft e Tudo). Não existe exportar/importar:
+    o realizado vem da planilha em qualquer aparelho e as metas ficam no
+    `localStorage` de cada navegador.
+  - Abrir o painel esconde barra de período, hero e abas; clicar numa empresa
+    fecha as metas e devolve a aba que estava aberta.
 - **Nenhum `NaN`/`undefined`/`Infinity`** em nenhuma aba, nas duas empresas,
   inclusive com período de um dia.
 

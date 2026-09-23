@@ -67,6 +67,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
 <style>
 :root{
   /* Reis Phones Brand Colors — #1d5a9a */
@@ -338,6 +339,83 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   .kg{grid-template-columns:repeat(auto-fit,minmax(105px,1fr));}
   .sc-grid{grid-template-columns:1fr;}
 }
+/* ══════════════════════════════════════════════ METAS DIÁRIAS ══════ */
+/* Prefixo mt- em tudo: o painel de metas convive com o resto da página
+   sem herdar nem sobrescrever nenhum estilo do dashboard.             */
+.mt-wrap{max-width:1080px;margin:0 auto;}
+.mt-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+.mt-top h2{font-size:17px;font-weight:700;letter-spacing:-.3px;color:var(--txt);}
+.mt-top p{font-size:11.5px;color:var(--txt2);margin-top:3px;text-transform:capitalize;}
+.mt-top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mt-sync{font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;border:1px solid transparent;white-space:nowrap;cursor:pointer;}
+.mt-sync.ok{background:var(--gr2);color:var(--gr);border-color:rgba(0,217,126,.35);}
+.mt-sync.salvando,.mt-sync.lendo{background:var(--te2);color:var(--te);border-color:rgba(56,189,248,.35);}
+.mt-sync.local{background:var(--am2);color:var(--am);border-color:rgba(245,166,35,.35);}
+.mt-dias{display:flex;align-items:center;gap:8px;background:rgba(29,90,154,.12);border:1px solid rgba(29,90,154,.35);border-radius:var(--rs);padding:6px 12px;font-size:12px;color:var(--txt2);}
+.mt-dias input[type=number]{width:44px;background:none;border:none;outline:none;padding:0;font-size:15px;font-weight:700;color:var(--txt);text-align:center;font-family:inherit;}
+.mt-sec{margin-bottom:26px;}
+.mt-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.mt-sec-nm{display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:700;color:var(--txt);}
+.mt-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.mt-dot-reis{background:#2d7acc;box-shadow:0 0 8px rgba(45,122,204,.9);}
+.mt-dot-soft{background:var(--gr);box-shadow:0 0 8px rgba(0,217,126,.8);}
+.mt-dot-extra{background:var(--am);box-shadow:0 0 8px rgba(245,166,35,.8);}
+.mt-sec-tit{background:none;border:none;outline:none;font-size:14.5px;font-weight:700;color:var(--txt);font-family:inherit;min-width:120px;padding:0;border-bottom:1px dashed transparent;}
+.mt-sec-tit:focus{border-bottom-color:rgba(29,90,154,.6);}
+.mt-live{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+.mt-live-t{font-size:11px;color:var(--txt2);display:flex;align-items:center;gap:6px;}
+.mt-live-t::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--te);animation:pulse 2s infinite;flex-shrink:0;}
+.mt-live-p{color:var(--txt3);}
+.mt-live-v{font-size:16px;font-weight:700;letter-spacing:-.3px;color:var(--txt);white-space:nowrap;}
+.mt-live.carregando .mt-live-v{color:var(--txt3);}
+.mt-live.erro .mt-live-t::before{background:var(--am);animation:none;}
+.mt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:11px;margin-bottom:9px;}
+.mt-grid>*{min-width:0;}
+.mt-card{background:var(--bg2);border:1px solid rgba(29,90,154,.2);border-radius:var(--r);padding:15px;position:relative;overflow:hidden;transition:transform .15s,border-color .2s;}
+.mt-card:hover{transform:translateY(-1px);border-color:rgba(29,90,154,.6);}
+.mt-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.mt-card.reis::before{background:#2d7acc;}
+.mt-card.soft::before{background:var(--gr);}
+.mt-card.extra::before{background:var(--am);}
+.mt-x{position:absolute;top:9px;right:9px;background:none;border:none;color:var(--txt3);cursor:pointer;font-size:13px;line-height:1;padding:3px;transition:color .15s;}
+.mt-x:hover{color:var(--rd);}
+.mt-nm{width:100%;background:none;border:none;outline:none;font-family:inherit;font-size:13px;font-weight:600;color:var(--txt);margin-bottom:10px;padding:0 20px 7px 0;border-bottom:1px solid rgba(29,90,154,.2);}
+.mt-nm:focus{border-bottom-color:var(--bll);}
+.mt-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.mt-row label{font-size:11px;color:var(--txt2);white-space:nowrap;}
+.mt-inp{background:rgba(29,90,154,.12);border:1px solid rgba(29,90,154,.35);border-radius:var(--rs);padding:4px 8px;font-size:12px;color:var(--txt);font-family:inherit;width:120px;text-align:right;outline:none;}
+.mt-inp:focus{border-color:var(--bll);}
+.mt-hr{border:none;border-top:1px solid rgba(29,90,154,.2);margin:11px 0;}
+.mt-res{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.mt-res-l{font-size:11px;color:var(--txt2);}
+.mt-res-r{display:flex;align-items:center;gap:6px;min-width:0;}
+.mt-v{font-size:19px;font-weight:700;letter-spacing:-.4px;white-space:nowrap;}
+.mt-v.reis{color:#2d7acc;}
+.mt-v.soft{color:var(--gr);}
+.mt-v.extra{color:var(--am);}
+.mt-delta{font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;white-space:nowrap;cursor:pointer;user-select:none;}
+.mt-delta.up{background:var(--rd2);color:var(--rd);}
+.mt-delta.down{background:var(--gr2);color:var(--gr);}
+.mt-delta.same{background:rgba(29,90,154,.18);color:var(--txt3);}
+.mt-falt{font-size:11px;color:var(--txt3);text-align:right;margin:3px 0 11px;}
+.mt-chart{position:relative;width:100%;height:108px;}
+.mt-lbl{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--txt3);margin-top:7px;}
+.mt-copy{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:10px;padding:6px;background:none;border:1px solid rgba(29,90,154,.3);border-radius:var(--rs);color:var(--txt2);font-size:11px;font-family:inherit;cursor:pointer;transition:all .15s;}
+.mt-copy:hover{background:rgba(29,90,154,.2);color:var(--txt);}
+.mt-add{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;background:none;border:1px dashed rgba(29,90,154,.45);border-radius:var(--r);color:var(--txt3);font-size:12.5px;font-family:inherit;cursor:pointer;transition:all .15s;}
+.mt-add:hover{border-color:var(--bll);color:var(--te);background:rgba(29,90,154,.1);}
+.mt-share-l{font-size:12px;color:var(--txt2);margin-bottom:10px;}
+.mt-btns{display:flex;gap:9px;flex-wrap:wrap;}
+.mt-btn{display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:var(--rs);border:1px solid rgba(29,90,154,.3);background:var(--bg2);color:var(--txt);font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s;}
+.mt-btn:hover{background:rgba(29,90,154,.22);}
+.mt-btn.loading{opacity:.5;pointer-events:none;}
+.mt-btn.reis{border-color:rgba(45,122,204,.5);}
+.mt-btn.reis:hover{background:rgba(45,122,204,.2);border-color:var(--bll);}
+.mt-btn.soft{border-color:rgba(0,217,126,.4);}
+.mt-btn.soft:hover{background:var(--gr2);border-color:var(--gr);}
+.mt-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg3);border:1px solid rgba(29,90,154,.5);color:var(--txt);font-size:13px;padding:11px 18px;border-radius:var(--rs);transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:998;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.45);}
+.mt-toast.show{transform:translateX(-50%) translateY(0);}
+@media(max-width:600px){.mt-grid{grid-template-columns:1fr;}.mt-inp{width:130px;}.mt-live{justify-content:flex-start;}}
 </style>
 </head>
 <body>
@@ -352,6 +430,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <div class="company-sw" id="companySw">
       <button class="company-btn active" id="btnReis" onclick="switchCompany('reis')">📱 Reis Phones</button>
       <button class="company-btn" id="btnSoft" onclick="switchCompany('soft')">🛡 Soft Blindagem</button>
+      <button class="company-btn" id="btnMetas" onclick="Metas.abrir()">🎯 Metas Diárias</button>
     </div>
     <div class="badge-live" id="badgeLive">AO VIVO</div>
     <button class="btn-rf" id="btnRf" onclick="refreshCurrentCompany()">⟳ Atualizar dados</button>
@@ -649,7 +728,80 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   </div>
 </div>
 
+<div id="p-metas" class="panel">
+  <div class="mt-wrap">
+
+    <div class="mt-top">
+      <div>
+        <h2>🎯 Metas Diárias</h2>
+        <p id="mtHoje"></p>
+      </div>
+      <div class="mt-top-actions">
+        <span class="mt-sync local" id="mtSync" onclick="Metas.reconectarNuvem()">⚠ Só neste aparelho</span>
+        <button class="mt-btn" id="mtBtnRf" onclick="Metas.recarregar()">⟳ Atualizar da planilha</button>
+        <button class="mt-btn" onclick="Metas.snapshot()">💾 Salvar como referência</button>
+        <div class="mt-dias"><span>Dias restantes</span><input type="number" id="mtDias" min="1" max="31" value="16" oninput="Metas.onDias()"></div>
+      </div>
+    </div>
+
+    <div class="mt-sec">
+      <div class="mt-sec-hd">
+        <div class="mt-sec-nm"><span class="mt-dot mt-dot-reis"></span>Reis Phones</div>
+        <div class="mt-live carregando" id="mtLive-reis">
+          <span class="mt-live-t">Lucro bruto <span class="mt-live-p" id="mtPer-reis"></span></span>
+          <span class="mt-live-v" id="mtFeito-reis">—</span>
+        </div>
+      </div>
+      <div class="mt-grid" id="mtGrid-reis"></div>
+      <button class="mt-add" onclick="Metas.addMeta('reis')">＋ Adicionar meta</button>
+    </div>
+
+    <div class="mt-sec">
+      <div class="mt-sec-hd">
+        <div class="mt-sec-nm"><span class="mt-dot mt-dot-soft"></span>Soft Blindagem</div>
+        <div class="mt-live carregando" id="mtLive-soft">
+          <span class="mt-live-t">Faturamento <span class="mt-live-p" id="mtPer-soft"></span></span>
+          <span class="mt-live-v" id="mtFeito-soft">—</span>
+        </div>
+      </div>
+      <div class="mt-grid" id="mtGrid-soft"></div>
+      <button class="mt-add" onclick="Metas.addMeta('soft')">＋ Adicionar meta</button>
+    </div>
+
+    <div class="mt-sec">
+      <div class="mt-sec-hd">
+        <div class="mt-sec-nm"><span class="mt-dot mt-dot-extra"></span><input class="mt-sec-tit" id="mtExtraTitulo" type="text" title="Clique para renomear a seção" oninput="Metas.setTituloExtra(this.value)"></div>
+      </div>
+      <div class="mt-grid" id="mtGrid-extra"></div>
+      <button class="mt-add" onclick="Metas.addExtra()">＋ Adicionar meta extra</button>
+    </div>
+
+    <div class="sh"><span class="st">Compartilhar</span></div>
+
+    <div class="mt-sec">
+      <div class="mt-share-l">📱 Copiar para o WhatsApp</div>
+      <div class="mt-btns">
+        <button class="mt-btn reis" onclick="Metas.copiarWpp('reis')">📱 Reis Phones</button>
+        <button class="mt-btn soft" onclick="Metas.copiarWpp('soft')">🛡 Soft Blindagem</button>
+        <button class="mt-btn" onclick="Metas.copiarWpp('all')">📋 Tudo</button>
+      </div>
+    </div>
+
+    <div class="abox">
+      <div class="abox-hdr"><span style="font-size:17px">🎯</span><span class="abox-title">Como a meta diária é calculada</span></div>
+      <div style="font-size:12.5px;color:var(--txt2);line-height:1.7">
+        <strong style="color:var(--txt)">Meta diária:</strong> (meta total − já feito) ÷ dias restantes. Mude os dias restantes ou o valor já feito e todos os cards recalculam na hora.<br>
+        <strong style="color:var(--txt)">Salvar como referência:</strong> guarda as diárias de agora. A partir daí cada card mostra a variação em relação a esse momento — <span style="color:var(--rd)">vermelho</span> quando a diária subiu (o dia foi fraco) e <span style="color:var(--gr)">verde</span> quando caiu (o dia foi bom). Clique no selo para escondê-lo.<br>
+        <strong style="color:var(--txt)">Onde isso fica salvo:</strong> as metas ficam na nuvem, não no aparelho. Mexeu no computador, muda no celular na mesma hora — e vice-versa. O selo no topo mostra se está sincronizado.<br>
+        <strong style="color:var(--txt)">Já feito:</strong> vem da planilha, sozinho, sempre do dia 1 até hoje — <strong style="color:var(--txt)">lucro bruto</strong> na Reis Phones e <strong style="color:var(--txt)">faturamento</strong> na Soft Blindagem, as mesmas contas do topo do dashboard. Você só define a meta total e os dias restantes. O "já feito" das metas extras continua na mão, porque não sai da planilha de vendas.
+      </div>
+    </div>
+
+  </div>
 </div>
+</div>
+
+<div class="mt-toast" id="mtToast"></div>
 
 <script>
 const API_KEY  = "AIzaSyDeSGH3WDgLMo954r2PkXPlhZsHEA-deb0";
@@ -1000,6 +1152,7 @@ var _reisHeaderSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAMA
 var _softHeaderSrc = "data:image/png;base64,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";
 
 function switchCompany(co){
+  Metas.fechar(); // sair do painel de metas devolve o dashboard da empresa
   if(ACTIVE_COMPANY===co) return;
   ACTIVE_COMPANY=co;
 
@@ -3000,6 +3153,588 @@ function showTab(id,el){
   // (ex.: girar o celular); ajusta na hora em vez de esperar o próximo frame.
   Object.values(CHARTS).forEach(c=>{try{c.resize();}catch(e){}});
 }
+
+// ══════════════════════════════════════════════ METAS DIÁRIAS
+// Porte da ferramenta de metas diárias (metas-diarias.html) para dentro do
+// dashboard, como terceiro botão do seletor de empresa. Vive inteira nesta
+// IIFE e só expõe window.Metas: nada aqui enxerga ou atropela o state, o
+// CHARTS ou o fmt do dashboard, que usam esses mesmos nomes.
+// O estado fica no localStorage na chave metas_v5, no mesmo formato do
+// arquivo original — quem já usava a ferramenta solta reencontra os dados.
+var Metas = (function(){
+  const CHAVE='metas_v5';
+  const SECS=['reis','soft','extra'];
+  const PADRAO={
+    dias:16, feitoReis:0, feitoSoft:0, extraTitle:'Metas extras',
+    reis:[{nome:'Meta 1',total:120000},{nome:'Meta 2',total:130000},{nome:'Meta 3',total:140000},{nome:'Meta 4',total:150000},
+          {nome:'Meta 5',total:160000},{nome:'Meta 6',total:170000},{nome:'Meta 7',total:180000},{nome:'Meta 8',total:190000}],
+    soft:[{nome:'Meta 1',total:110000},{nome:'Meta 2',total:120000},{nome:'Meta 3',total:130000},{nome:'Meta 4',total:140000}],
+    extra:[{nome:'Meta Assistência',total:60000,feito:8281.52}],
+    delta:{}
+  };
+  const COR={reis:{f:'rgba(45,122,204,.82)',b:'#2d7acc'},soft:{f:'rgba(0,217,126,.82)',b:'#00d97e'},extra:{f:'rgba(245,166,35,.82)',b:'#f5a623'}};
+  const RESTO='rgba(127,168,208,.13)';
+
+  let st=null, charts={}, deltaOculto={}, carregado=false, aberto=false;
+  let carregando=false, falhouLive=false, promessaLive=null;
+  let voltarPara={id:'visao',tab:null}, heroAntes=null, recAntes=null;
+
+  const el=i=>document.getElementById(i);
+  const num=v=>Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const brl=v=>'R$ '+num(v);
+  const dias=()=>Math.max(1,Math.floor(st.dias)||1);
+  const diaria=(total,feito,d)=>Math.max(0,(total||0)-(feito||0))/d;
+  const feitoDe=(sec,m)=>sec==='reis'?st.feitoReis:sec==='soft'?st.feitoSoft:(m.feito||0);
+  const chave=(sec,i)=>sec+'-'+i;
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+
+  // Aceita o valor do jeito que vier: 98.366,22 | 98366,22 | 98366.22 | R$ 98.366,22
+  function parseBR(s){
+    if(typeof s==='number') return isFinite(s)?s:0;
+    s=String(s).replace(/[R$\s]/g,'').trim();
+    const temPonto=s.indexOf('.')>=0, temVirgula=s.indexOf(',')>=0;
+    if(temPonto&&temVirgula) s=s.replace(/\./g,'').replace(',','.');
+    else if(temVirgula) s=s.replace(',','.');
+    // só pontos: grupos certinhos de 3 dígitos são milhar (120.000 = cento e
+    // vinte mil); qualquer outro ponto é separador decimal (98366.22)
+    else if(temPonto && /^\d{1,3}(\.\d{3})+$/.test(s)) s=s.replace(/\./g,'');
+    const v=parseFloat(s);
+    return isFinite(v)?v:0;
+  }
+
+  // ── máscara de dinheiro ───────────────────────────────────────────
+  // O que se digita é sempre valor em reais: 120000 é cento e vinte mil, não
+  // 1.200,00. Os pontos de milhar entram sozinhos a cada tecla e a vírgula
+  // dos centavos é completada ao sair do campo.
+  function mascaraBR(texto){
+    let s=String(texto);
+    // ponto de milhar é automático, então um ponto digitado só pode ser a
+    // vírgula do teclado numérico: "12.3" vira "12,3", "1.234" continua milhar
+    if(s.indexOf(',')<0) s=s.replace(/\.(\d{1,2})$/,',$1');
+    const partes=s.replace(/[^\d,]/g,'').split(',');
+    let inteiro=partes.shift().replace(/^0+(?=\d)/,'');
+    const temVirgula=partes.length>0;
+    const dec=partes.join('').slice(0,2);
+    if(!inteiro&&temVirgula) inteiro='0';
+    const milhar=inteiro.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+    return milhar+(temVirgula?','+dec:'');
+  }
+  // Reescreve o campo já formatado sem jogar o cursor para o fim: conta
+  // quantos algarismos havia antes dele e recoloca depois dos mesmos.
+  function formatarCampo(input){
+    const antes=input.value, pos=input.selectionStart;
+    const depois=mascaraBR(antes);
+    if(depois===antes) return;
+    const digitos=pos===null?null:(antes.slice(0,pos).match(/[\d,]/g)||[]).length;
+    input.value=depois;
+    if(digitos===null) return;
+    let cont=0, alvo=digitos===0?0:depois.length;
+    if(digitos>0) for(let i=0;i<depois.length;i++){
+      if(/[\d,]/.test(depois[i])) cont++;
+      if(cont>=digitos){ alvo=i+1; break; }
+    }
+    try{ input.setSelectionRange(alvo,alvo); }catch(e){}
+  }
+  function onValor(input,sec,i,campo){
+    formatarCampo(input);
+    setCampo(sec,i,campo,input.value);
+  }
+  function onValorSaiu(input,sec,i,campo){
+    input.value=num(parseBR(input.value));   // fecha os centavos: 120.000 → 120.000,00
+    setCampo(sec,i,campo,input.value);
+  }
+
+  // ── estado ────────────────────────────────────────────────────────
+  function carregar(){
+    let s=null;
+    try{ s=JSON.parse(localStorage.getItem(CHAVE)); }catch(e){}
+    st=(s&&s.reis&&s.soft)?s:JSON.parse(JSON.stringify(PADRAO));
+    SECS.forEach(k=>{ if(!Array.isArray(st[k])) st[k]=[]; });
+    if(!st.delta) st.delta={};
+    if(!st.extraTitle) st.extraTitle=PADRAO.extraTitle;
+    st.dias=Math.max(1,Math.floor(st.dias)||PADRAO.dias);
+    st.feitoReis=parseBR(st.feitoReis); st.feitoSoft=parseBR(st.feitoSoft);
+    carregado=true;
+  }
+  function salvar(){ try{ localStorage.setItem(CHAVE,JSON.stringify(st)); }catch(e){} agendarNuvem(); }
+  function resetar(){
+    st=JSON.parse(JSON.stringify(PADRAO)); deltaOculto={}; carregado=true;
+    try{ localStorage.removeItem(CHAVE); }catch(e){}
+    redesenhar(); agendarNuvem();
+  }
+
+  // ── gráfico do card ───────────────────────────────────────────────
+  function desenhar(sec,i){
+    const m=st[sec][i]; if(!m) return;
+    const cv=el('mtC-'+sec+'-'+i); if(!cv||typeof Chart==='undefined') return;
+    const k='mtC-'+sec+'-'+i;
+    if(charts[k]){ charts[k].destroy(); delete charts[k]; }
+    const feito=Math.max(0,feitoDe(sec,m)), resto=Math.max(0,(m.total||0)-feito), c=COR[sec];
+    const ch=new Chart(cv,{
+      type:'doughnut',
+      data:{labels:['Já feito','Faltando'],datasets:[{data:[feito,resto],backgroundColor:[c.f,RESTO],borderColor:[c.b,'rgba(29,90,154,.3)'],borderWidth:[1.5,.5],hoverOffset:4}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'68%',animation:{duration:400},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+          const tot=st[sec][i]?st[sec][i].total:0;
+          const p=tot>0?Math.round(ctx.parsed/tot*100):0;
+          return ctx.label+': '+brl(ctx.parsed)+' ('+p+'%)';
+        }}}}},
+      plugins:[{id:'mt-centro',afterDraw(chart){
+        const a=chart.chartArea; if(!a) return;
+        const x=chart.ctx; x.save();
+        const cx=a.left+a.width/2, cy=a.top+a.height/2;
+        x.textAlign='center'; x.textBaseline='middle';
+        x.fillStyle='rgba(232,240,251,.92)'; x.font='700 13px system-ui,-apple-system,sans-serif';
+        x.fillText(Math.round(chart.$mtPct||0)+'%',cx,cy-6);
+        x.fillStyle='rgba(127,168,208,.9)'; x.font='10px system-ui,-apple-system,sans-serif';
+        x.fillText('feito',cx,cy+8); x.restore();
+      }}]
+    });
+    ch.$mtPct=(m.total>0)?Math.min(100,feito/m.total*100):0;
+    charts[k]=ch;
+  }
+
+  // ── selo de variação em relação à referência salva ─────────────────
+  function deltaHTML(sec,i,atual){
+    const ref=st.delta?st.delta[chave(sec,i)]:null;
+    if(ref==null) return '';
+    const clique=' onclick="Metas.toggleDelta(\''+sec+'\','+i+')" title="Clique para esconder"';
+    if(deltaOculto[chave(sec,i)]) return '<span class="mt-delta same"'+clique+'>···</span>';
+    const dif=atual-ref;
+    if(Math.abs(dif)<0.5) return '<span class="mt-delta same"'+clique+'>= igual</span>';
+    if(dif>0) return '<span class="mt-delta up"'+clique+'>▲ +'+brl(dif)+'</span>';
+    return '<span class="mt-delta down"'+clique+'>▼ −'+brl(Math.abs(dif))+'</span>';
+  }
+  function toggleDelta(sec,i){
+    const k=chave(sec,i); deltaOculto[k]=!deltaOculto[k];
+    const m=st[sec][i]; if(!m) return;
+    const alvo=el('mtDelta-'+sec+'-'+i);
+    if(alvo) alvo.innerHTML=deltaHTML(sec,i,diaria(m.total,feitoDe(sec,m),dias()));
+  }
+  function snapshot(){
+    const d=dias(); st.delta={};
+    SECS.forEach(sec=>st[sec].forEach((m,i)=>{ st.delta[chave(sec,i)]=diaria(m.total,feitoDe(sec,m),d); }));
+    deltaOculto={}; salvar(); recalcular();
+    toast('✓ Referência salva — a variação agora conta a partir de agora');
+  }
+
+  // ── desenho dos cards ─────────────────────────────────────────────
+  function cardHTML(sec,m,i){
+    const feito=feitoDe(sec,m), resto=Math.max(0,(m.total||0)-feito), d=diaria(m.total,feito,dias());
+    return '<button class="mt-x" title="Remover meta" onclick="Metas.remover(\''+sec+'\','+i+')">✕</button>'
+      +'<input class="mt-nm" type="text" value="'+esc(m.nome)+'" title="Clique para renomear" oninput="Metas.setNome(\''+sec+'\','+i+',this.value)">'
+      +'<div class="mt-row"><label>Meta total</label><input class="mt-inp" type="text" inputmode="decimal" data-sec="'+sec+'" data-i="'+i+'" data-campo="total" value="'+num(m.total)+'" oninput="Metas.onValor(this,\''+sec+'\','+i+',\'total\')" onblur="Metas.onValorSaiu(this,\''+sec+'\','+i+',\'total\')"></div>'
+      +(sec==='extra'?'<div class="mt-row"><label>Já feito</label><input class="mt-inp" type="text" inputmode="decimal" data-sec="'+sec+'" data-i="'+i+'" data-campo="feito" value="'+num(m.feito||0)+'" oninput="Metas.onValor(this,\''+sec+'\','+i+',\'feito\')" onblur="Metas.onValorSaiu(this,\''+sec+'\','+i+',\'feito\')"></div>':'')
+      +'<hr class="mt-hr">'
+      +'<div class="mt-res"><span class="mt-res-l">Meta diária</span><div class="mt-res-r"><span id="mtDelta-'+sec+'-'+i+'">'+deltaHTML(sec,i,d)+'</span><span class="mt-v '+sec+'" id="mtV-'+sec+'-'+i+'">'+brl(d)+'</span></div></div>'
+      +'<div class="mt-falt" id="mtFalt-'+sec+'-'+i+'">Faltando: '+brl(resto)+'</div>'
+      +'<div class="mt-chart"><canvas id="mtC-'+sec+'-'+i+'" role="img" aria-label="Progresso de '+esc(m.nome)+'"></canvas></div>'
+      +'<div class="mt-lbl"><span id="mtLa-'+sec+'-'+i+'" style="color:'+COR[sec].b+'">✦ '+brl(feito)+' feito</span><span id="mtLb-'+sec+'-'+i+'">'+brl(resto)+' faltando</span></div>'
+      +(sec==='extra'?'<button class="mt-copy" onclick="Metas.copiarExtra('+i+')">📋 Copiar</button>':'');
+  }
+
+  function renderSecao(sec){
+    const grid=el('mtGrid-'+sec); if(!grid) return;
+    Object.keys(charts).forEach(k=>{
+      if(k.indexOf('mtC-'+sec+'-')===0){ charts[k].destroy(); delete charts[k]; }
+    });
+    grid.innerHTML='';
+    st[sec].forEach((m,i)=>{
+      const card=document.createElement('div');
+      card.className='mt-card '+sec;
+      card.innerHTML=cardHTML(sec,m,i);
+      grid.appendChild(card);
+    });
+    st[sec].forEach((m,i)=>desenhar(sec,i));
+    // colar valor vindo da planilha em qualquer campo do grid, num handler só
+    if(!grid.$mtPaste){
+      grid.$mtPaste=true;
+      grid.addEventListener('paste',function(e){
+        const alvo=e.target;
+        if(!alvo||!alvo.classList||!alvo.classList.contains('mt-inp')) return;
+        e.preventDefault();
+        const bruto=((e.clipboardData||window.clipboardData).getData('text'))||'';
+        const v=parseBR(bruto);
+        alvo.value=num(v);
+        setCampo(alvo.getAttribute('data-sec'),+alvo.getAttribute('data-i'),alvo.getAttribute('data-campo'),v);
+      },true);
+    }
+  }
+
+  // Atualiza os números e os gráficos sem refazer os cards — o campo que
+  // está sendo digitado não pode perder o foco no meio da digitação.
+  function recalcular(){
+    const d=dias();
+    SECS.forEach(sec=>st[sec].forEach((m,i)=>{
+      const feito=feitoDe(sec,m), resto=Math.max(0,(m.total||0)-feito), dia=diaria(m.total,feito,d);
+      const v=el('mtV-'+sec+'-'+i); if(v) v.textContent=brl(dia);
+      const f=el('mtFalt-'+sec+'-'+i); if(f) f.textContent='Faltando: '+brl(resto);
+      const la=el('mtLa-'+sec+'-'+i); if(la) la.textContent='✦ '+brl(feito)+' feito';
+      const lb=el('mtLb-'+sec+'-'+i); if(lb) lb.textContent=brl(resto)+' faltando';
+      const dl=el('mtDelta-'+sec+'-'+i); if(dl) dl.innerHTML=deltaHTML(sec,i,dia);
+      const ch=charts['mtC-'+sec+'-'+i];
+      if(ch){
+        ch.data.datasets[0].data=[Math.max(0,feito),resto];
+        ch.$mtPct=(m.total>0)?Math.min(100,feito/m.total*100):0;
+        ch.update('active');
+      }
+    }));
+  }
+
+  // Redesenha os cards a partir do estado atual (usado quando o estado muda
+  // inteiro: carga da nuvem, alteração feita em outro aparelho, reset).
+  function redesenhar(){
+    if(!el('p-metas')) return;
+    el('mtDias').value=st.dias;
+    el('mtExtraTitulo').value=st.extraTitle;
+    Object.keys(charts).forEach(k=>{ charts[k].destroy(); delete charts[k]; });
+    SECS.forEach(renderSecao);
+    pintarLive();
+    recalcular();
+  }
+  function montar(){
+    if(!carregado) carregar();
+    el('mtHoje').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+    redesenhar();
+    pintarStatus();
+    if(!painelLigado){
+      painelLigado=true;
+      // alteração que chegou enquanto o campo estava em edição entra no blur
+      el('p-metas').addEventListener('focusout',()=>setTimeout(()=>{
+        if(pendenteRemoto&&!digitando()){
+          const d=pendenteRemoto; pendenteRemoto=null;
+          aplicarRemoto(d); toast('☁ Metas alteradas em outro aparelho');
+        }
+      },60));
+    }
+    carregarAoVivo();
+    conectarNuvem();
+  }
+
+  // ── edição ────────────────────────────────────────────────────────
+  function onDias(){ st.dias=Math.max(1,parseInt(el('mtDias').value,10)||1); salvar(); recalcular(); }
+  // ── já feito: lido da planilha, do dia 1 do mês até hoje ──────────
+  // Reis Phones = lucro bruto (soma de lb), Soft Blindagem = faturamento
+  // (soma de vtc). É a mesma conta que o hero do dashboard mostra.
+  function periodoMes(){
+    const h=new Date(), a=h.getFullYear(), m=String(h.getMonth()+1).padStart(2,'0');
+    return {ini:a+'-'+m+'-01', fim:a+'-'+m+'-'+String(h.getDate()).padStart(2,'0'), dia:h.getDate(),
+            mes:h.toLocaleDateString('pt-BR',{month:'short'}).replace('.','')};
+  }
+  function somaPeriodo(vendas,campo,p){
+    return (vendas||[]).filter(r=>r.dt>=p.ini&&r.dt<=p.fim).reduce((s,r)=>s+(r[campo]||0),0);
+  }
+  function pintarLive(){
+    const p=periodoMes();
+    [['reis',st.feitoReis],['soft',st.feitoSoft]].forEach(([sec,valor])=>{
+      const caixa=el('mtLive-'+sec); if(!caixa) return;
+      caixa.classList.toggle('carregando',carregando);
+      caixa.classList.toggle('erro',!!falhouLive);
+      const per=el('mtPer-'+sec);
+      if(per) per.textContent=falhouLive?'· planilha fora do ar'
+        :carregando?'· lendo a planilha...':'· 1 a '+p.dia+'/'+p.mes;
+      const v=el('mtFeito-'+sec);
+      if(v) v.textContent=brl(valor);
+    });
+  }
+  function carregarAoVivo(forcar){
+    if(carregando) return promessaLive||Promise.resolve();
+    carregando=true; falhouLive=false; pintarLive();
+    const btn=el('mtBtnRf'); if(btn) btn.classList.add('loading');
+    const p=periodoMes();
+    promessaLive=Promise.all([ensureCompanyData('reis',!!forcar),ensureCompanyData('soft',!!forcar)])
+      .then(([reis,soft])=>{
+        const temReis=reis&&reis.sales&&reis.sales.length, temSoft=soft&&soft.sales&&soft.sales.length;
+        falhouLive=!temReis&&!temSoft;
+        if(!falhouLive){
+          st.feitoReis=somaPeriodo(reis.sales,'lb',p);
+          st.feitoSoft=somaPeriodo(soft.sales,'vtc',p);
+          salvar();
+        }
+      })
+      .catch(()=>{ falhouLive=true; })
+      .then(()=>{
+        carregando=false;
+        if(btn) btn.classList.remove('loading');
+        pintarLive(); recalcular();
+      });
+    return promessaLive;
+  }
+  function recarregar(){
+    return carregarAoVivo(true).then(()=>{
+      toast(falhouLive?'Não consegui ler a planilha agora':'✓ Valores atualizados da planilha');
+    });
+  }
+  function setNome(sec,i,valor){ if(st[sec][i]){ st[sec][i].nome=valor; salvar(); } }
+  function setCampo(sec,i,campo,valor){
+    if(!st[sec]||!st[sec][i]) return;
+    st[sec][i][campo]=parseBR(valor);
+    salvar(); recalcular();
+  }
+  function setTituloExtra(valor){ st.extraTitle=valor; salvar(); }
+  function addMeta(sec){
+    st[sec].push({nome:'Meta '+(st[sec].length+1),total:0,feito:0});
+    salvar(); renderSecao(sec); recalcular();
+  }
+  function addExtra(){
+    st.extra.push({nome:'Meta extra',total:0,feito:0});
+    salvar(); renderSecao('extra'); recalcular();
+    const campos=document.querySelectorAll('#mtGrid-extra .mt-nm');
+    const ultimo=campos[campos.length-1];
+    if(ultimo&&ultimo.focus){ ultimo.focus(); if(ultimo.select) ultimo.select(); }
+  }
+  function remover(sec,i){
+    if(!st[sec]||!st[sec][i]) return;
+    st[sec].splice(i,1);
+    // os índices andam: a referência salva deixa de valer para essa seção
+    if(st.delta) Object.keys(st.delta).forEach(k=>{ if(k.indexOf(sec+'-')===0) delete st.delta[k]; });
+    salvar(); renderSecao(sec); recalcular();
+  }
+
+  // ── WhatsApp ──────────────────────────────────────────────────────
+  function linhasDe(sec){
+    const d=dias(), l=[];
+    st[sec].forEach(m=>{
+      const feito=feitoDe(sec,m);
+      l.push('▸ '+m.nome+' ('+brl(m.total)+')');
+      l.push('  Meta diária: *'+brl(diaria(m.total,feito,d))+'*');
+      l.push('  Faltando: '+brl(Math.max(0,(m.total||0)-feito)));
+      l.push('');
+    });
+    return l;
+  }
+  function textoWpp(sec){
+    const d=dias(), hoje=new Date().toLocaleDateString('pt-BR');
+    let l=[];
+    if(sec==='reis'||sec==='all'){
+      l.push('📱 *REIS PHONES — '+hoje+'*');
+      l.push('💰 Já feito: '+brl(st.feitoReis));
+      l.push('📅 Dias restantes: '+d);
+      l.push('');
+      l=l.concat(linhasDe('reis'));
+      if(sec==='all') l.push('');
+    }
+    if(sec==='soft'||sec==='all'){
+      l.push('🛡️ *SOFT BLINDAGEM — '+hoje+'*');
+      l.push('💰 Já feito: '+brl(st.feitoSoft));
+      l.push('📅 Dias restantes: '+d);
+      l.push('');
+      l=l.concat(linhasDe('soft'));
+      if(sec==='all'&&st.extra.length) l.push('');
+    }
+    if(sec==='all'&&st.extra.length){
+      l.push('⭐ *'+(st.extraTitle||'METAS EXTRAS').toUpperCase()+'*');
+      l.push('');
+      l=l.concat(linhasDe('extra'));
+    }
+    while(l.length&&l[l.length-1]==='') l.pop();
+    return l.join('\n');
+  }
+  function copiarWpp(sec){ copiar(textoWpp(sec),'✓ Copiado — é só colar no WhatsApp'); }
+  function copiarExtra(i){
+    const m=st.extra[i]; if(!m) return;
+    const feito=m.feito||0, hoje=new Date().toLocaleDateString('pt-BR');
+    copiar('⭐ *'+m.nome+'* — '+hoje
+      +'\n💰 Já feito: '+brl(feito)
+      +'\n🎯 Meta total: '+brl(m.total)
+      +'\n📉 Faltando: '+brl(Math.max(0,(m.total||0)-feito))
+      +'\n📅 Meta diária: *'+brl(diaria(m.total,feito,dias()))+'* ('+dias()+' dias)',
+      '✓ Meta copiada');
+  }
+
+  // ── nuvem ─────────────────────────────────────────────────────────
+  // As metas moram numa única linha do Supabase e todo aparelho que abre o
+  // dashboard olha para ela. Quem edita manda a linha inteira; os outros
+  // recebem pelo realtime e se atualizam na hora, sem recarregar a página.
+  // O que NÃO viaja: feitoReis/feitoSoft, que cada aparelho lê da planilha.
+  const NUVEM={
+    url:'https://bbsklyfbswtirlexclrx.supabase.co',
+    chave:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJic2tseWZic3d0aXJsZXhjbHJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MzE3NDEsImV4cCI6MjEwMDUwNzc0MX0.t_igtBA8kW5Y61WMpT0uU0uWEFm0KBr5jiMGfumVBTs',
+    tabela:'dashboard_metas', linha:'global'
+  };
+  const APARELHO='d'+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+  let sb=null, canal=null, nuvemStatus='local', ultimoEnvio='', timerNuvem=null, pendenteRemoto=null, painelLigado=false;
+
+  const campos=()=>({dias:st.dias,extraTitle:st.extraTitle,reis:st.reis,soft:st.soft,extra:st.extra,delta:st.delta});
+  const assinatura=()=>JSON.stringify(campos());
+
+  function pintarStatus(){
+    const e=el('mtSync'); if(!e) return;
+    e.className='mt-sync '+nuvemStatus;
+    e.textContent = nuvemStatus==='ok'?'☁ Sincronizado'
+      : nuvemStatus==='salvando'?'☁ Salvando...'
+      : nuvemStatus==='lendo'?'☁ Conectando...'
+      : '⚠ Só neste aparelho';
+    e.title = nuvemStatus==='local'
+      ? 'Sem conexão com a nuvem: as alterações ficam salvas só neste navegador'
+      : 'As metas são as mesmas em todos os aparelhos, na hora';
+  }
+
+  // Zera a conexão e conecta de novo — é o que o selo faz quando clicado,
+  // para o caso de a internet ter caído e voltado.
+  function reconectarNuvem(){
+    if(canal&&sb&&sb.removeChannel){ try{ sb.removeChannel(canal); }catch(e){} }
+    sb=null; canal=null; ultimoEnvio='';
+    return conectarNuvem();
+  }
+  function conectarNuvem(){
+    if(sb) return Promise.resolve(sb);
+    const lib=window.supabase;
+    if(!lib||!lib.createClient){ nuvemStatus='local'; pintarStatus(); return Promise.resolve(null); }
+    try{ sb=lib.createClient(NUVEM.url,NUVEM.chave); }
+    catch(e){ sb=null; nuvemStatus='local'; pintarStatus(); return Promise.resolve(null); }
+    nuvemStatus='lendo'; pintarStatus();
+    return baixarNuvem().then(()=>{ assinarNuvem(); return sb; });
+  }
+
+  function baixarNuvem(){
+    if(!sb) return Promise.resolve();
+    return Promise.resolve(sb.from(NUVEM.tabela).select('dados').eq('id',NUVEM.linha).maybeSingle())
+      .then(resp=>{
+        if(resp&&resp.error) throw resp.error;
+        const d=resp&&resp.data&&resp.data.dados;
+        nuvemStatus='ok';
+        if(d&&d.reis&&d.soft) aplicarRemoto(d);
+        else { ultimoEnvio=''; enviarNuvem(); }  // nuvem vazia: semeia com o que há aqui
+        pintarStatus();
+      })
+      .catch(()=>{ nuvemStatus='local'; pintarStatus(); });
+  }
+
+  function assinarNuvem(){
+    if(!sb||canal||!sb.channel) return;
+    canal=sb.channel('metas-dashboard')
+      .on('postgres_changes',{event:'*',schema:'public',table:NUVEM.tabela,filter:'id=eq.'+NUVEM.linha},payload=>{
+        const nova=payload&&payload.new;
+        if(!nova||nova.atualizado_por===APARELHO) return;   // eco do que eu mesmo mandei
+        const d=nova.dados;
+        if(!d||!d.reis||JSON.stringify(d)===assinatura()) return;
+        // não arrancar o texto de baixo do dedo de quem está digitando
+        if(digitando()){ pendenteRemoto=d; return; }
+        aplicarRemoto(d);
+        toast('☁ Metas alteradas em outro aparelho');
+      })
+      .subscribe();
+  }
+
+  function digitando(){
+    const a=document.activeElement;
+    return !!(a&&a.tagName==='INPUT'&&a.closest&&a.closest('#p-metas'));
+  }
+
+  function aplicarRemoto(d){
+    const fr=st?st.feitoReis:0, fs=st?st.feitoSoft:0;   // o realizado é local
+    st=Object.assign(JSON.parse(JSON.stringify(PADRAO)),d,{feitoReis:fr,feitoSoft:fs});
+    SECS.forEach(k=>{ if(!Array.isArray(st[k])) st[k]=[]; });
+    if(!st.delta) st.delta={};
+    if(!st.extraTitle) st.extraTitle=PADRAO.extraTitle;
+    st.dias=Math.max(1,Math.floor(st.dias)||PADRAO.dias);
+    carregado=true; ultimoEnvio=assinatura();
+    try{ localStorage.setItem(CHAVE,JSON.stringify(st)); }catch(e){}
+    redesenhar();
+  }
+
+  function agendarNuvem(){
+    if(!sb||assinatura()===ultimoEnvio) return;
+    nuvemStatus='salvando'; pintarStatus();
+    clearTimeout(timerNuvem);
+    timerNuvem=setTimeout(enviarNuvem,400);
+  }
+
+  function enviarNuvem(){
+    if(!sb) return Promise.resolve();
+    const corpo=campos(), assin=JSON.stringify(corpo);
+    return Promise.resolve(sb.from(NUVEM.tabela).upsert({
+        id:NUVEM.linha, dados:corpo,
+        atualizado_em:new Date().toISOString(), atualizado_por:APARELHO
+      }))
+      .then(resp=>{
+        if(resp&&resp.error) throw resp.error;
+        ultimoEnvio=assin; nuvemStatus='ok'; pintarStatus();
+      })
+      .catch(()=>{ nuvemStatus='local'; pintarStatus(); });
+  }
+
+  // ── utilidades ────────────────────────────────────────────────────
+  function copiar(txt,msg){
+    const fallback=()=>{
+      const ta=document.createElement('textarea');
+      ta.value=txt; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); }catch(e){}
+      document.body.removeChild(ta); toast(msg);
+    };
+    if(navigator.clipboard&&navigator.clipboard.writeText)
+      navigator.clipboard.writeText(txt).then(()=>toast(msg),fallback);
+    else fallback();
+  }
+  let toastTimer=null;
+  function toast(msg){
+    const t=el('mtToast'); if(!t) return;
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+  }
+
+  // ── abrir / fechar (terceiro botão do seletor de empresa) ─────────
+  function topo(escondido){
+    const pbar=document.querySelector('.pbar'), tabs=document.querySelector('.tabs');
+    const hero=el('heroMetric'), rec=el('recordsBar');
+    if(escondido){
+      if(hero&&heroAntes===null) heroAntes=hero.style.display;
+      if(rec&&recAntes===null) recAntes=rec.style.display;
+      if(pbar) pbar.style.display='none';
+      if(tabs) tabs.style.display='none';
+      if(hero) hero.style.display='none';
+      if(rec) rec.style.display='none';
+    } else {
+      if(pbar) pbar.style.display='';
+      if(tabs) tabs.style.display='';
+      if(hero) hero.style.display=heroAntes||'none';
+      if(rec) rec.style.display=recAntes||'none';
+      heroAntes=null; recAntes=null;
+    }
+  }
+  function abrir(){
+    const painel=el('p-metas'); if(!painel) return;
+    if(!aberto){
+      const ativo=document.querySelector('.content .panel.active');
+      const aba=document.querySelector('.tabs .tab.active');
+      if(ativo&&ativo.id!=='p-metas') voltarPara={id:ativo.id.replace(/^p-/,''),tab:aba};
+      aberto=true;
+    }
+    topo(true);
+    document.querySelectorAll('.panel').forEach(p=>{ p.classList.remove('active'); p.style.display=''; });
+    painel.classList.add('active'); painel.style.display='block';
+    document.querySelectorAll('.company-btn').forEach(b=>b.classList.remove('active'));
+    const btn=el('btnMetas'); if(btn) btn.classList.add('active');
+    montar();
+    if(window.scrollTo) window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function fechar(){
+    if(!aberto) return;
+    aberto=false;
+    const painel=el('p-metas');
+    if(painel){ painel.classList.remove('active'); painel.style.display='none'; }
+    topo(false);
+    const btn=el('btnMetas'); if(btn) btn.classList.remove('active');
+    document.querySelectorAll('.company-btn').forEach(b=>b.classList.remove('active'));
+    const btnCo=el(ACTIVE_COMPANY==='reis'?'btnReis':'btnSoft');
+    if(btnCo) btnCo.classList.add('active');
+    const aba=voltarPara.tab||document.querySelector('.tabs .tab');
+    if(aba) showTab(voltarPara.id,aba);
+  }
+
+  return {
+    abrir, fechar, montar, redesenhar, resetar, parseBR,
+    conectarNuvem, reconectarNuvem, aplicarRemoto, statusNuvem:()=>nuvemStatus, aparelho:()=>APARELHO,
+    onDias, setNome, setCampo, setTituloExtra, onValor, onValorSaiu, mascaraBR,
+    carregarAoVivo, recarregar, pintarLive,
+    addMeta, addExtra, remover, toggleDelta, snapshot,
+    textoWpp, copiarWpp, copiarExtra,
+    estado:()=>st, aberta:()=>aberto
+  };
+})();
+window.Metas=Metas;
 
 // BOOT
 Chart.defaults.font.family='system-ui,-apple-system,sans-serif';
