@@ -345,7 +345,8 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .mt-wrap{max-width:1080px;margin:0 auto;}
 .mt-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
 .mt-top h2{font-size:17px;font-weight:700;letter-spacing:-.3px;color:var(--txt);}
-.mt-top p{font-size:11.5px;color:var(--txt2);margin-top:3px;text-transform:capitalize;}
+.mt-top p{font-size:11.5px;color:var(--txt2);margin-top:3px;}
+.mt-top p::first-letter{text-transform:uppercase;}
 .mt-top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .mt-sync{font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;border:1px solid transparent;white-space:nowrap;cursor:pointer;}
 .mt-sync.ok{background:var(--gr2);color:var(--gr);border-color:rgba(0,217,126,.35);}
@@ -386,10 +387,10 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .mt-inp{background:rgba(29,90,154,.12);border:1px solid rgba(29,90,154,.35);border-radius:var(--rs);padding:4px 8px;font-size:12px;color:var(--txt);font-family:inherit;width:120px;text-align:right;outline:none;}
 .mt-inp:focus{border-color:var(--bll);}
 .mt-hr{border:none;border-top:1px solid rgba(29,90,154,.2);margin:11px 0;}
-.mt-res{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-.mt-res-l{font-size:11px;color:var(--txt2);}
-.mt-res-r{display:flex;align-items:center;gap:6px;min-width:0;}
-.mt-v{font-size:19px;font-weight:700;letter-spacing:-.4px;white-space:nowrap;}
+.mt-res{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+.mt-res-l{font-size:11px;color:var(--txt2);white-space:nowrap;}
+.mt-sub{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:5px 0 11px;min-height:18px;}
+.mt-v{font-size:19px;font-weight:700;letter-spacing:-.4px;white-space:nowrap;text-align:right;}
 .mt-v.reis{color:#2d7acc;}
 .mt-v.soft{color:var(--gr);}
 .mt-v.extra{color:var(--am);}
@@ -397,7 +398,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .mt-delta.up{background:var(--rd2);color:var(--rd);}
 .mt-delta.down{background:var(--gr2);color:var(--gr);}
 .mt-delta.same{background:rgba(29,90,154,.18);color:var(--txt3);}
-.mt-falt{font-size:11px;color:var(--txt3);text-align:right;margin:3px 0 11px;}
+.mt-falt{font-size:11px;color:var(--txt3);}
 .mt-chart{position:relative;width:100%;height:108px;}
 .mt-lbl{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--txt3);margin-top:7px;}
 .mt-copy{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:10px;padding:6px;background:none;border:1px solid rgba(29,90,154,.3);border-radius:var(--rs);color:var(--txt2);font-size:11px;font-family:inherit;cursor:pointer;transition:all .15s;}
@@ -3326,8 +3327,8 @@ var Metas = (function(){
       +'<div class="mt-row"><label>Meta total</label><input class="mt-inp" type="text" inputmode="decimal" data-sec="'+sec+'" data-i="'+i+'" data-campo="total" value="'+num(m.total)+'" oninput="Metas.onValor(this,\''+sec+'\','+i+',\'total\')" onblur="Metas.onValorSaiu(this,\''+sec+'\','+i+',\'total\')"></div>'
       +(sec==='extra'?'<div class="mt-row"><label>Já feito</label><input class="mt-inp" type="text" inputmode="decimal" data-sec="'+sec+'" data-i="'+i+'" data-campo="feito" value="'+num(m.feito||0)+'" oninput="Metas.onValor(this,\''+sec+'\','+i+',\'feito\')" onblur="Metas.onValorSaiu(this,\''+sec+'\','+i+',\'feito\')"></div>':'')
       +'<hr class="mt-hr">'
-      +'<div class="mt-res"><span class="mt-res-l">Meta diária</span><div class="mt-res-r"><span id="mtDelta-'+sec+'-'+i+'">'+deltaHTML(sec,i,d)+'</span><span class="mt-v '+sec+'" id="mtV-'+sec+'-'+i+'">'+brl(d)+'</span></div></div>'
-      +'<div class="mt-falt" id="mtFalt-'+sec+'-'+i+'">Faltando: '+brl(resto)+'</div>'
+      +'<div class="mt-res"><span class="mt-res-l">Meta diária</span><span class="mt-v '+sec+'" id="mtV-'+sec+'-'+i+'">'+brl(d)+'</span></div>'
+      +'<div class="mt-sub"><span class="mt-falt" id="mtFalt-'+sec+'-'+i+'">Faltando: '+brl(resto)+'</span><span id="mtDelta-'+sec+'-'+i+'">'+deltaHTML(sec,i,d)+'</span></div>'
       +'<div class="mt-chart"><canvas id="mtC-'+sec+'-'+i+'" role="img" aria-label="Progresso de '+esc(m.nome)+'"></canvas></div>'
       +'<div class="mt-lbl"><span id="mtLa-'+sec+'-'+i+'" style="color:'+COR[sec].b+'">✦ '+brl(feito)+' feito</span><span id="mtLb-'+sec+'-'+i+'">'+brl(resto)+' faltando</span></div>'
       +(sec==='extra'?'<button class="mt-copy" onclick="Metas.copiarExtra('+i+')">📋 Copiar</button>':'');

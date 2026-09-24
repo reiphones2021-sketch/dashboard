@@ -262,6 +262,8 @@
 
     bloco('Metas diárias: variação desde a referência salva');
     Metas.snapshot();
+    ok('a meta diária fica sozinha na linha, para o valor não ser cortado', q('#mtGrid-reis .mt-res .mt-v').length === mCards('reis') && q('#mtGrid-reis .mt-res .mt-delta').length === 0);
+    ok('o selo de variação fica na linha do "faltando"', !!document.querySelector('#mtGrid-reis .mt-sub #mtDelta-reis-0') && !!document.querySelector('#mtGrid-reis .mt-sub .mt-falt'));
     ok('logo depois de salvar, a variação é "igual"', /igual/.test(txt('mtDelta-reis-0')), txt('mtDelta-reis-0'));
     el('mtDias').value = '20'; Metas.onDias();
     ok('mais dias pela frente → diária cai → selo verde', q('#mtDelta-reis-0 .mt-delta.down').length === 1, txt('mtDelta-reis-0'));
