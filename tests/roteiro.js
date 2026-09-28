@@ -58,6 +58,16 @@
     ok('atalho ativo é "Este mês, até agora"', txt('drpPresetTxt') === 'Este mês, até agora', txt('drpPresetTxt'));
     ok('seletor mostra o período (não "Selecione o período")', txt('drpTxt') !== 'Selecione o período', txt('drpTxt'));
     ok('contagem de vendas bate com a planilha', txt('pinfo') === reisPeriodo.length + ' vendas', txt('pinfo') + ' vs ' + reisPeriodo.length);
+
+    bloco('Recordes (Reis) usam a mesma conta do hero');
+    {
+      const mesLb = {}, diaLb = {};
+      reis.forEach(r => { mesLb[r.m] = (mesLb[r.m] || 0) + (r.lb || 0); diaLb[r.dt] = (diaLb[r.dt] || 0) + (r.lb || 0); });
+      const maxMes = Math.max(...Object.values(mesLb)), maxDia = Math.max(...Object.values(diaLb));
+      ok('melhor mês = maior lucro bruto mensal (todas as vendas)', nb(txt('recMesLb')).includes(nb(BRL(maxMes))), txt('recMesLb') + ' vs ' + BRL(maxMes));
+      ok('melhor dia = maior lucro bruto diário (todas as vendas)', nb(txt('recDiaLb')).includes(nb(BRL(maxDia))), txt('recDiaLb') + ' vs ' + BRL(maxDia));
+      ok('recorde do mês nunca fica abaixo do hero', nb(txt('recMesLb')).includes(nb(BRL(maxMes))) && maxMes >= reis.filter(r => r.dt >= mesIni && r.dt <= hojeIso).reduce((s, r) => s + (r.lb || 0), 0));
+    }
     ok('hero preenchido', q('.hero-value').some(e => e.textContent.trim() && e.textContent.trim() !== '—'), q('.hero-value').map(e => e.textContent.trim()).join(' | '));
 
     bloco('Reis Phones — aba Vendedores');
@@ -181,6 +191,21 @@
     switchCompany('reis'); await tick(120);
     ok('seletor volta para "Toda a equipe"', el('vendSel').value === '__TODOS__', el('vendSel').value);
     ok('aba continua ativa', el('p-vendedores').classList.contains('active'));
+
+    bloco('Cada empresa só mostra a própria planilha');
+    {
+      const heroReis = BRL(reisPeriodo.reduce((s, r) => s + r.lb, 0));
+      const heroSoft = BRL(softPeriodo.reduce((s, r) => s + r.preco, 0));
+      ok('Reis: SALES é o da planilha da Reis', SALES === _cache.reis.sales && SALES.length === reis.length, SALES.length);
+      ok('Reis: nenhuma linha da Soft', !SALES.some(r => r.prod !== undefined || ['BL', 'BLF', 'BLC', 'STK', 'REL', 'UP', 'TAB'].includes(r.tipo)));
+      ok('Reis: hero = lucro bruto só da planilha da Reis', nb(txt('heroValue')) === nb(heroReis), txt('heroValue') + ' vs ' + heroReis);
+      switchCompany('soft'); await tick(120);
+      ok('Soft: SALES é o da planilha da Soft', SALES === _cache.soft.sales && SALES.length === soft.length, SALES.length);
+      ok('Soft: nenhuma linha da Reis', SALES.every(r => r.prod !== undefined) && !SALES.some(r => ['IP', 'AW', 'ID', 'MB', 'AC', 'AS'].includes(r.tipo)));
+      ok('Soft: hero = faturamento só da planilha da Soft', nb(txt('heroValue')) === nb(heroSoft), txt('heroValue') + ' vs ' + heroSoft);
+      switchCompany('reis'); await tick(120);
+      ok('volta para a Reis sem arrastar dados da Soft', SALES === _cache.reis.sales && nb(txt('heroValue')) === nb(heroReis), txt('heroValue'));
+    }
 
     // ══ METAS DIÁRIAS ═══════════════════════════════════════════════
     const mBRL = v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

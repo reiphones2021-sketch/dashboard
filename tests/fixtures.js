@@ -50,7 +50,9 @@ function reisValues() {
     }
   });
   // Casos que já quebraram a página de verdade:
-  const hoje = dias[dias.length - 1];
+  // Data real de hoje, não o último dia útil: aos domingos `dias` para no
+  // sábado e a venda "sem ano" caía fora do dia que o teste espera.
+  const hoje = new Date(); hoje.setHours(12, 0, 0, 0);
   rows.push(['FEITO', `${pad(hoje.getDate())}/${pad(hoje.getMonth() + 1)}`, 'CLIENTE SEM ANO', 'SANDY', 'IPHONE', '1 ANO', 3000, 0, 0, 0, 0, 3000, 500, 90, 2500, 'IPHONE 12 64GB']); // data sem ano
   rows.push(['FEITO', '12/12/0204', 'CLIENTE ANO ERRADO', 'SANDY', 'IPHONE', '1 ANO', 3000, 0, 0, 0, 0, 3000, 500, 90, 2500, 'IPHONE 12 64GB']); // lixo: deve ser descartada
   return rows;

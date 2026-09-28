@@ -1691,16 +1691,18 @@ function renderAll(){
   // Calculate records — Reis uses full history, Soft only counts from 04/2025 onward
   if(recBar){
     const SOFT_RECORDS_FROM='2025-04'; // Soft Blindagem: só considerar recordes a partir daqui
-    const allDev = isSoft()
-      ? SALES.filter(r=>r.dev && r.m>=SOFT_RECORDS_FROM)
-      : SALES.filter(r=>r.dev);
+    // Valor do recorde = mesma conta do hero (todas as vendas, inclusive
+    // acessórios/assistência); a quantidade continua contando só aparelhos.
+    const allRec = isSoft()
+      ? SALES.filter(r=>r.m>=SOFT_RECORDS_FROM)
+      : SALES;
 
     // Best DAY by lucro bruto (Reis) / faturamento (Soft — same field, r.lb)
     const dayLb={};
     const dayQtd={};
-    allDev.forEach(r=>{
-      dayLb[r.dt]=(dayLb[r.dt]||0)+r.lb;
-      dayQtd[r.dt]=(dayQtd[r.dt]||0)+1;
+    allRec.forEach(r=>{
+      dayLb[r.dt]=(dayLb[r.dt]||0)+(r.lb||0);
+      if(r.dev) dayQtd[r.dt]=(dayQtd[r.dt]||0)+1;
     });
     const bestDayLb=Object.entries(dayLb).sort((a,b)=>b[1]-a[1])[0];
     const bestDayQtd=Object.entries(dayQtd).sort((a,b)=>b[1]-a[1])[0];
@@ -1708,9 +1710,9 @@ function renderAll(){
     // Best MONTH by lucro bruto (Reis) / faturamento (Soft)
     const mesLb={};
     const mesQtd={};
-    allDev.forEach(r=>{
-      mesLb[r.m]=(mesLb[r.m]||0)+r.lb;
-      mesQtd[r.m]=(mesQtd[r.m]||0)+1;
+    allRec.forEach(r=>{
+      mesLb[r.m]=(mesLb[r.m]||0)+(r.lb||0);
+      if(r.dev) mesQtd[r.m]=(mesQtd[r.m]||0)+1;
     });
     const bestMesLb=Object.entries(mesLb).sort((a,b)=>b[1]-a[1])[0];
     const bestMesQtd=Object.entries(mesQtd).sort((a,b)=>b[1]-a[1])[0];
@@ -1720,10 +1722,10 @@ function renderAll(){
     const _metricLbl = isSoft() ? 'Faturamento' : 'Lucro bruto';
 
     if(bestDayLb) document.getElementById('recDiaLb').innerHTML=
-      `📅 Melhor dia: <strong style="color:var(--gr)">${BRL(bestDayLb[1])}</strong> · <strong style="color:var(--te)">${dayQtd[bestDayLb[0]]} ${_unidRec}</strong> <span style="color:var(--txt3)">(${fmtDt(bestDayLb[0])})</span>`;
+      `📅 Melhor dia: <strong style="color:var(--gr)">${BRL(bestDayLb[1])}</strong> · <strong style="color:var(--te)">${dayQtd[bestDayLb[0]]||0} ${_unidRec}</strong> <span style="color:var(--txt3)">(${fmtDt(bestDayLb[0])})</span>`;
     document.getElementById('recDiaQtd').innerHTML='';
     if(bestMesLb) document.getElementById('recMesLb').innerHTML=
-      `📆 Melhor mês: <strong style="color:var(--gr)">${BRL(bestMesLb[1])}</strong> · <strong style="color:var(--te)">${mesQtd[bestMesLb[0]]} ${_unidRec}</strong> <span style="color:var(--txt3)">(${mL(bestMesLb[0])})</span>`;
+      `📆 Melhor mês: <strong style="color:var(--gr)">${BRL(bestMesLb[1])}</strong> · <strong style="color:var(--te)">${mesQtd[bestMesLb[0]]||0} ${_unidRec}</strong> <span style="color:var(--txt3)">(${mL(bestMesLb[0])})</span>`;
     document.getElementById('recMesQtd').innerHTML='';
     if(!bestDayLb){document.getElementById('recDiaLb').innerHTML='';}
     if(!bestMesLb){document.getElementById('recMesLb').innerHTML='';}
