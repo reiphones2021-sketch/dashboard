@@ -387,6 +387,55 @@
     ok('empresa escolhida fica marcada', el('btnSoft').classList.contains('active'));
     ok('volta a aba que estava aberta antes', q('.panel.active').length === 1 && q('.panel.active')[0].id !== 'p-metas', (q('.panel.active')[0] || {}).id);
 
+    bloco('Soft lê pela API do Sheets; o CSV publicado é só reserva');
+    // O CSV de "Publicar na web" é servido em cache pelo Google: depois de a
+    // planilha ser consertada ele ainda devolveu por minutos a versão vazia.
+    // Por isso a API é a fonte e o CSV só entra se ela falhar.
+    const fetchReal = window.fetch;
+    const respOk = o => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(o), text: () => Promise.resolve(String(o)) });
+    const metaSoft = { sheets: [{ properties: { sheetId: 179719176, title: 'P&L SOFT VAREJO' } }] };
+    const csvReserva = valuesToCSV(SOFT);
+
+    let urlsA = [];
+    window.fetch = u => {
+      const s = String(u); urlsA.push(s);
+      if (s.indexOf('fields=sheets.properties') >= 0) return respOk(metaSoft);
+      if (s.indexOf('/values/') >= 0) return respOk({ values: SOFT });
+      return Promise.resolve({ ok: false, status: 500, text: () => Promise.resolve('') });
+    };
+    _cache.soft = { sales: null, custos: null }; _pending.soft = null;
+    const cargaApi = await fetchCompanyData('soft');
+    ok('busca na planilha da Soft, não na da Reis', urlsA.some(u => u.indexOf(SOFT_SHEET_ID) >= 0) && !urlsA.some(u => u.indexOf('/values/') >= 0 && u.indexOf(REIS_SHEET_ID) >= 0));
+    ok('acha a aba pelo gid (sobrevive a renomear a aba)', urlsA.some(u => u.indexOf('fields=sheets.properties') >= 0));
+    ok('leu as vendas pela API', cargaApi.sales.length > 0, cargaApi.sales.length);
+    ok('com a API de pé, não toca no CSV publicado', !urlsA.some(u => u.indexOf('output=csv') >= 0));
+
+    let urlsB = [];
+    window.fetch = u => {
+      const s = String(u); urlsB.push(s);
+      if (s.indexOf('output=csv') >= 0) return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(csvReserva) });
+      return Promise.resolve({ ok: false, status: 503, text: () => Promise.resolve('') });
+    };
+    _cache.soft = { sales: null, custos: null }; _pending.soft = null;
+    const cargaCsv = await fetchCompanyData('soft');
+    ok('se a API cair, o CSV publicado assume', cargaCsv.sales.length > 0, cargaCsv.sales.length);
+    ok('e o CSV foi mesmo buscado', urlsB.some(u => u.indexOf('output=csv') >= 0));
+
+    window.fetch = fetchReal;
+
+    bloco('Planilha vazia avisa, em vez de mostrar R$ 0,00 como se fosse real');
+    _cache.soft = { sales: [], custos: [] }; _pending.soft = null;
+    ACTIVE_COMPANY = 'soft'; SALES = []; CUSTOS = [];
+    applyPeriod(); await tick(80);
+    ok('a faixa de aviso aparece', el('avisoDados').style.display === 'flex', el('avisoDados').style.display);
+    ok('o aviso diz de qual empresa', txt('avisoDadosTxt').indexOf('Soft Blindagem') >= 0, txt('avisoDadosTxt').slice(0, 60));
+    ok('o aviso avisa que os números não valem', /não refletem a realidade/.test(txt('avisoDadosTxt')));
+    ok('tem como tentar de novo sem recarregar', !!document.querySelector('#avisoDados button'));
+    // devolve os dados e confere que a faixa some
+    _cache.soft = { sales: soft, custos: [] }; SALES = soft;
+    applyPeriod(); await tick(80);
+    ok('com dados na planilha a faixa some', el('avisoDados').style.display === 'none', el('avisoDados').style.display);
+
     bloco('Nenhum texto quebrado em nenhuma aba');
     for (const co of ['reis', 'soft']) {
       if (ACTIVE_COMPANY !== co) { switchCompany(co); await tick(120); }

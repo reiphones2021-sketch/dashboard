@@ -104,6 +104,17 @@ Regras para qualquer edição futura:
     `localStorage` de cada navegador.
   - Abrir o painel esconde barra de período, hero e abas; clicar numa empresa
     fecha as metas e devolve a aba que estava aberta.
+- **Soft Blindagem lê pela API do Sheets**, achando a aba pelo gid
+  (`fetchRangeFromSheet`), igual à Reis. O CSV de "Publicar na web" ficou
+  só como reserva, para quando a API falhar: o Google serve esse CSV em
+  cache e, em 26/10/2026, depois de a planilha ser consertada, ele ainda
+  devolveu por minutos a versão velha e vazia.
+- **Planilha sem nenhuma linha vira aviso, não R$ 0,00.** Faixa âmbar abaixo
+  do cabeçalho (`#avisoDados`, pintada por `pintarAvisoDados` no início do
+  `renderAll`) dizendo de qual empresa é a planilha, com botão de tentar de
+  novo. Nenhuma das duas empresas passa um mês sem lançar nada, então zero
+  linhas é sempre falha de leitura — e antes disso o dashboard mostrava o
+  zero como se fosse o resultado real.
 - **Nenhum `NaN`/`undefined`/`Infinity`** em nenhuma aba, nas duas empresas,
   inclusive com período de um dia.
 

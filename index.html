@@ -111,6 +111,10 @@ body{
 .spin{width:40px;height:40px;border:3px solid rgba(29,90,154,.2);border-top-color:#2d7acc;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loader-txt{font-size:13px;color:var(--txt2);}
+.aviso-dados{display:none;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 28px;background:rgba(245,166,35,.12);border-bottom:1px solid rgba(245,166,35,.45);color:var(--am);font-size:12.5px;font-weight:500;}
+.aviso-dados .ad-ic{font-size:15px;flex-shrink:0;}
+.aviso-dados button{background:rgba(245,166,35,.18);border:1px solid rgba(245,166,35,.5);color:var(--am);padding:4px 12px;border-radius:var(--rs);font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;}
+.aviso-dados button:hover{background:rgba(245,166,35,.3);}
 .pbar{padding:12px 28px;background:#0d1f38;border-bottom:1px solid rgba(29,90,154,.2);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 .plbl{font-size:12px;color:var(--txt2);font-weight:500;}
 select,input[type=number]{background:rgba(29,90,154,.12);border:1px solid rgba(29,90,154,.35);color:var(--txt);padding:6px 10px;border-radius:var(--rs);font-size:12px;}
@@ -437,6 +441,12 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
     <button class="btn-rf" id="btnRf" onclick="refreshCurrentCompany()">⟳ Atualizar dados</button>
     <div class="last-upd" id="lastUpd"></div>
   </div>
+</div>
+
+<div class="aviso-dados" id="avisoDados">
+  <span class="ad-ic">⚠</span>
+  <span id="avisoDadosTxt"></span>
+  <button onclick="refreshCurrentCompany()">Tentar de novo</button>
 </div>
 
 <div class="pbar">
@@ -826,6 +836,24 @@ async function fetchRange(range) {
   const url = API_BASE + range + "?key=" + API_KEY + "&t=" + Date.now();
   const r = await fetch(url);
   if (!r.ok) throw new Error("API error " + r.status + ": " + await r.text());
+  const d = await r.json();
+  return d.values || [];
+}
+
+// Lê um intervalo de uma planilha qualquer, achando a aba pelo gid (o título
+// pode ser renomeado, o gid não). fetchRangeByGid usa a planilha da empresa
+// ativa; esta aceita o id, que é o que a Soft precisa.
+async function fetchRangeFromSheet(sheetId, gid, cellRange) {
+  const metaUrl = "https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + "?key=" + API_KEY + "&fields=sheets.properties";
+  const mr = await fetch(metaUrl);
+  if (!mr.ok) throw new Error("Meta error " + mr.status);
+  const md = await mr.json();
+  const sheet = (md.sheets||[]).find(s => s.properties.sheetId === gid);
+  if (!sheet) throw new Error("Sheet gid " + gid + " not found");
+  const encodedRange = encodeURIComponent("'" + sheet.properties.title + "'!" + cellRange);
+  const url = "https://sheets.googleapis.com/v4/spreadsheets/" + sheetId + "/values/" + encodedRange + "?key=" + API_KEY + "&t=" + Date.now();
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("API error " + r.status);
   const d = await r.json();
   return d.values || [];
 }
@@ -1272,14 +1300,27 @@ async function fetchCompanyData(co){
     const custVals = await fetchRangeByGid(1574021542, "A:F");
     return { sales: parseFatAPI(fatVals), custos: parseCustAPI(custVals) };
   } else {
-    let csvSoft='', custRaw=[];
+    // A Soft lê pela API, como a Reis. O CSV publicado ("Publicar na web")
+    // serve a mesma aba, mas o Google o entrega em cache: depois de arrumar a
+    // planilha ele ainda devolveu por minutos a versão velha e vazia. Fica
+    // só como reserva, para o caso de a API falhar.
+    let sales=[], csvSoft='', custRaw=[];
     try{
-      const rSoft = await fetch(SOFT_CSV_URL+'&t='+Date.now());
-      if(!rSoft.ok) throw new Error('CSV HTTP '+rSoft.status);
-      csvSoft = await rSoft.text();
-      console.log('Soft CSV loaded, length:', csvSoft.length);
-    }catch(eCsv){
-      console.warn('Soft CSV falhou:',eCsv);
+      const vals = await fetchRangeFromSheet(SOFT_SHEET_ID, parseInt(SOFT_GID_FAT), "A:H");
+      sales = await parseSoftAPI(vals);
+      console.log('Soft API loaded, rows:', vals.length, '→', sales.length);
+    }catch(eApi){
+      console.warn('Soft API falhou:',eApi);
+    }
+    if(!sales.length){
+      try{
+        const rSoft = await fetch(SOFT_CSV_URL+'&t='+Date.now());
+        if(!rSoft.ok) throw new Error('CSV HTTP '+rSoft.status);
+        csvSoft = await rSoft.text();
+        console.log('Soft CSV (reserva) loaded, length:', csvSoft.length);
+      }catch(eCsv){
+        console.warn('Soft CSV falhou:',eCsv);
+      }
     }
     try{
       custRaw = await fetchRangeByGid(parseInt(CUST_GID), "A:F");
@@ -1287,7 +1328,7 @@ async function fetchCompanyData(co){
     }catch(eCust){
       console.warn('Custos Soft falhou:',eCust);
     }
-    const sales  = csvSoft ? parseSoftCSV(csvSoft) : [];
+    if(!sales.length && csvSoft) sales = parseSoftCSV(csvSoft);
     const custos = custRaw.length ? parseCustAPICompany(custRaw, 'SOFT') : [];
     console.log('Soft SALES:', sales.length, 'CUSTOS:', custos.length);
     return { sales, custos };
@@ -1657,7 +1698,26 @@ function scI(label,value,delta,col){const colors={'bl':'var(--te)','gr':'var(--g
 function cmpRow(l,c,p,d){return `<tr style="border-bottom:1px solid var(--bor)"><td style="padding:6px 10px;color:var(--txt2)">${l}</td><td class="r" style="padding:6px 10px;font-weight:600;color:var(--bl)">${c}</td><td class="r" style="padding:6px 10px;color:var(--txt2)">${p}</td><td class="r" style="padding:6px 10px">${d?`<span class="kd ${d.cls}" style="font-size:11px">${d.s}</span>`:'—'}</td></tr>`;}
 
 // RENDER ALL
+// Nenhuma das duas empresas fica um mês inteiro sem lançar nada: planilha
+// sem NENHUMA linha significa que a leitura falhou (API fora, publicação em
+// cache, fórmula quebrada). Sem este aviso o dashboard mostra R$ 0,00 como
+// se o resultado real fosse zero — foi o que aconteceu quando a QUERY da
+// aba da Soft estourou o número de linhas.
+function pintarAvisoDados(){
+  const faixa=document.getElementById('avisoDados');
+  if(!faixa) return;
+  const c=_cache[ACTIVE_COMPANY];
+  const semDados = !!(c && Array.isArray(c.sales) && c.sales.length===0);
+  faixa.style.display = semDados ? 'flex' : 'none';
+  if(semDados){
+    const txt=document.getElementById('avisoDadosTxt');
+    if(txt) txt.textContent='Não consegui ler a planilha da '+getCompanyName()
+      +'. Os números abaixo estão zerados e não refletem a realidade.';
+  }
+}
+
 function renderAll(){
+  pintarAvisoDados();
   // ══ HARD DATA LOCK ═══════════════════════════════════════════════
   // Never trust that SALES/CUSTOS were correctly assigned by whatever
   // code path triggered this render. ALWAYS re-derive them here, fresh,
