@@ -390,6 +390,9 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .mt-row label{font-size:11px;color:var(--txt2);white-space:nowrap;}
 .mt-inp{background:rgba(29,90,154,.12);border:1px solid rgba(29,90,154,.35);border-radius:var(--rs);padding:4px 8px;font-size:12px;color:var(--txt);font-family:inherit;width:120px;text-align:right;outline:none;}
 .mt-inp:focus{border-color:var(--bll);}
+.mt-fonte{background:rgba(29,90,154,.12);border:1px solid rgba(29,90,154,.35);border-radius:var(--rs);color:var(--txt2);font-family:inherit;font-size:11px;padding:3px 6px;outline:none;max-width:60%;}
+.mt-fonte:focus{border-color:var(--bll);}
+.mt-auto{font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap;}
 .mt-hr{border:none;border-top:1px solid rgba(29,90,154,.2);margin:11px 0;}
 .mt-res{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
 .mt-res-l{font-size:11px;color:var(--txt2);white-space:nowrap;}
@@ -1703,6 +1706,30 @@ function cmpRow(l,c,p,d){return `<tr style="border-bottom:1px solid var(--bor)">
 // cache, fórmula quebrada). Sem este aviso o dashboard mostra R$ 0,00 como
 // se o resultado real fosse zero — foi o que aconteceu quando a QUERY da
 // aba da Soft estourou o número de linhas.
+// Em que grupo cada serviço da Soft entra — é esta regra que desenha os
+// cards da Visão Geral (Blindagem, Assistência, Planos, Garantias,
+// Acessórios). Fica aqui fora porque a aba de Metas Diárias puxa o realizado
+// de Assistência e de Acessórios por ela: tela e meta contam igual, sempre.
+function softCatProd(prod){
+  const p=String(prod||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  // Até jul/2026 a planilha registrava só "GARANTIA ESTENDIDA" (sem dizer de
+  // quem); a partir de ago/2026 passou a separar REIS PHONES e SOFT BLINDAGEM.
+  // A genérica do histórico era a garantia da própria Soft, então cai no mesmo
+  // grupo — assim o comparativo com o período anterior não zera, e o card da
+  // Reis mostra quantas vendemos para eles.
+  if(p.includes('GARANTIA')){
+    if(p.includes('REIS')) return 'gar_reis';
+    return 'gar_soft';
+  }
+  if(p.includes('ASSIST')) return 'assist';
+  if(p.includes('BLINDAGEM')||p.includes('BLINDADO')||p.includes('STICKER')||
+     p.includes('RELOGIO')||p.includes('TABLET')||p.includes('NOTEBOOK')||
+     p.includes('MULTIMIDIA')||p.includes('CAMERA')||
+     (p.includes('SUPORTE')&&p.includes('BLIND'))) return 'blind';
+  if(p.includes('PLANO')||p.includes('UPGRADE')) return 'plano';
+  return 'acess';
+}
+
 function pintarAvisoDados(){
   const faixa=document.getElementById('avisoDados');
   if(!faixa) return;
@@ -1939,25 +1966,7 @@ function rVisao(cur,prv,cs,csp){
     // ══ SOFT BLINDAGEM — Visão Geral ══════════════════════════════
     // REIS PHONES DATA IS COMPLETELY SEPARATE — nothing from Reis appears here
 
-    function catOf(prod){
-      const p=String(prod||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      // Até jul/2026 a planilha registrava só "GARANTIA ESTENDIDA" (sem dizer
-      // de quem); a partir de ago/2026 passou a separar REIS PHONES e SOFT
-      // BLINDAGEM. A genérica do histórico era a garantia da própria Soft,
-      // então cai no mesmo grupo — assim o comparativo com o período anterior
-      // não zera, e o card da Reis mostra quantas vendemos para eles.
-      if(p.includes('GARANTIA')){
-        if(p.includes('REIS')) return 'gar_reis';
-        return 'gar_soft';
-      }
-      if(p.includes('ASSIST')) return 'assist';
-      if(p.includes('BLINDAGEM')||p.includes('BLINDADO')||p.includes('STICKER')||
-         p.includes('RELOGIO')||p.includes('TABLET')||p.includes('NOTEBOOK')||
-         p.includes('MULTIMIDIA')||p.includes('CAMERA')||
-         (p.includes('SUPORTE')&&p.includes('BLIND'))) return 'blind';
-      if(p.includes('PLANO')||p.includes('UPGRADE')) return 'plano';
-      return 'acess';
-    }
+    const catOf = softCatProd;
     const fatFn=rows=>rows.reduce((s,r)=>s+r.vtc,0);
     const rBlind=cur.filter(r=>catOf(r.prod)==='blind'),   rBlind_p=prv.filter(r=>catOf(r.prod)==='blind');
     const rAssist=cur.filter(r=>catOf(r.prod)==='assist'), rAssist_p=prv.filter(r=>catOf(r.prod)==='assist');
@@ -3232,9 +3241,33 @@ var Metas = (function(){
     reis:[{nome:'Meta 1',total:120000},{nome:'Meta 2',total:130000},{nome:'Meta 3',total:140000},{nome:'Meta 4',total:150000},
           {nome:'Meta 5',total:160000},{nome:'Meta 6',total:170000},{nome:'Meta 7',total:180000},{nome:'Meta 8',total:190000}],
     soft:[{nome:'Meta 1',total:110000},{nome:'Meta 2',total:120000},{nome:'Meta 3',total:130000},{nome:'Meta 4',total:140000}],
-    extra:[{nome:'Meta Assistência',total:60000,feito:8281.52}],
+    extra:[{nome:'Meta Assistência',total:60000,fonte:'assist'},
+           {nome:'Meta Acessórios',total:30000,fonte:'acess'}],
     delta:{}
   };
+  // De onde sai o "já feito" de uma meta extra: na mão (como era) ou lido da
+  // planilha da Soft, pelo mesmo grupo que a Visão Geral dela mostra.
+  const FONTES={
+    manual:{rotulo:'na mão'},
+    assist:{rotulo:'🔧 Assistência (Soft)', cat:'assist'},
+    acess :{rotulo:'🎧 Acessórios (Soft)',  cat:'acess'}
+  };
+  const fonteDe=m=>(m&&FONTES[m.fonte])?m.fonte:'manual';
+  // Meta extra que ainda não tem fonte escolhida e se chama "assistência" ou
+  // "acessórios" já nasce lendo a planilha — era o valor que se digitava à mão
+  // toda vez. Só vale para quem nunca escolheu: um clique no seletor manda.
+  function palpitarFontes(){
+    let mudou=false;
+    (st.extra||[]).forEach(m=>{
+      if(m.fonte) return;
+      mudou=true;
+      const n=String(m.nome||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if(n.indexOf('ASSIST')>=0) m.fonte='assist';
+      else if(n.indexOf('ACESS')>=0) m.fonte='acess';
+      else m.fonte='manual';
+    });
+    return mudou;
+  }
   const COR={reis:{f:'rgba(45,122,204,.82)',b:'#2d7acc'},soft:{f:'rgba(0,217,126,.82)',b:'#00d97e'},extra:{f:'rgba(245,166,35,.82)',b:'#f5a623'}};
   const RESTO='rgba(127,168,208,.13)';
 
@@ -3317,6 +3350,7 @@ var Metas = (function(){
     if(!st.extraTitle) st.extraTitle=PADRAO.extraTitle;
     st.dias=Math.max(1,Math.floor(st.dias)||PADRAO.dias);
     st.feitoReis=parseBR(st.feitoReis); st.feitoSoft=parseBR(st.feitoSoft);
+    palpitarFontes();
     carregado=true;
   }
   function salvar(){ try{ localStorage.setItem(CHAVE,JSON.stringify(st)); }catch(e){} agendarNuvem(); }
@@ -3387,7 +3421,15 @@ var Metas = (function(){
     return '<button class="mt-x" title="Remover meta" onclick="Metas.remover(\''+sec+'\','+i+')">✕</button>'
       +'<input class="mt-nm" type="text" value="'+esc(m.nome)+'" title="Clique para renomear" oninput="Metas.setNome(\''+sec+'\','+i+',this.value)">'
       +'<div class="mt-row"><label>Meta total</label><input class="mt-inp" type="text" inputmode="decimal" data-sec="'+sec+'" data-i="'+i+'" data-campo="total" value="'+num(m.total)+'" oninput="Metas.onValor(this,\''+sec+'\','+i+',\'total\')" onblur="Metas.onValorSaiu(this,\''+sec+'\','+i+',\'total\')"></div>'
-      +(sec==='extra'?'<div class="mt-row"><label>Já feito</label><input class="mt-inp" type="text" inputmode="decimal" data-sec="'+sec+'" data-i="'+i+'" data-campo="feito" value="'+num(m.feito||0)+'" oninput="Metas.onValor(this,\''+sec+'\','+i+',\'feito\')" onblur="Metas.onValorSaiu(this,\''+sec+'\','+i+',\'feito\')"></div>':'')
+      +(sec==='extra'?'<div class="mt-row"><label>Já feito</label>'
+        +'<select class="mt-fonte" title="De onde sai o valor já realizado" onchange="Metas.setFonte('+i+',this.value)">'
+        +Object.keys(FONTES).map(k=>'<option value="'+k+'"'+(fonteDe(m)===k?' selected':'')+'>'+FONTES[k].rotulo+'</option>').join('')
+        +'</select></div>'
+        +'<div class="mt-row"><label></label>'
+        +(fonteDe(m)==='manual'
+          ? '<input class="mt-inp" type="text" inputmode="decimal" data-sec="'+sec+'" data-i="'+i+'" data-campo="feito" value="'+num(m.feito||0)+'" oninput="Metas.onValor(this,\''+sec+'\','+i+',\'feito\')" onblur="Metas.onValorSaiu(this,\''+sec+'\','+i+',\'feito\')">'
+          : '<span class="mt-auto" id="mtExtraV-'+i+'">'+brl(m.feito||0)+'</span>')
+        +'</div>':'')
       +'<hr class="mt-hr">'
       +'<div class="mt-res"><span class="mt-res-l">Meta diária</span><span class="mt-v '+sec+'" id="mtV-'+sec+'-'+i+'">'+brl(d)+'</span></div>'
       +'<div class="mt-sub"><span class="mt-falt" id="mtFalt-'+sec+'-'+i+'">Faltando: '+brl(resto)+'</span><span id="mtDelta-'+sec+'-'+i+'">'+deltaHTML(sec,i,d)+'</span></div>'
@@ -3435,6 +3477,7 @@ var Metas = (function(){
       const la=el('mtLa-'+sec+'-'+i); if(la) la.textContent='✦ '+brl(feito)+' feito';
       const lb=el('mtLb-'+sec+'-'+i); if(lb) lb.textContent=brl(resto)+' faltando';
       const dl=el('mtDelta-'+sec+'-'+i); if(dl) dl.innerHTML=deltaHTML(sec,i,dia);
+      if(sec==='extra'){ const ex=el('mtExtraV-'+i); if(ex) ex.textContent=brl(feito); }
       const ch=charts['mtC-'+sec+'-'+i];
       if(ch){
         ch.data.datasets[0].data=[Math.max(0,feito),resto];
@@ -3484,6 +3527,10 @@ var Metas = (function(){
     return {ini:a+'-'+m+'-01', fim:a+'-'+m+'-'+String(h.getDate()).padStart(2,'0'), dia:h.getDate(),
             mes:h.toLocaleDateString('pt-BR',{month:'short'}).replace('.','')};
   }
+  function somaCategoria(vendas,cat,p){
+    return (vendas||[]).filter(r=>r.dt>=p.ini&&r.dt<=p.fim&&softCatProd(r.prod)===cat)
+                       .reduce((s,r)=>s+(r.vtc||0),0);
+  }
   function somaPeriodo(vendas,campo,p){
     return (vendas||[]).filter(r=>r.dt>=p.ini&&r.dt<=p.fim).reduce((s,r)=>s+(r[campo]||0),0);
   }
@@ -3512,6 +3559,10 @@ var Metas = (function(){
         if(!falhouLive){
           st.feitoReis=somaPeriodo(reis.sales,'lb',p);
           st.feitoSoft=somaPeriodo(soft.sales,'vtc',p);
+          st.extra.forEach(m=>{
+            const f=fonteDe(m);
+            if(f!=='manual') m.feito=somaCategoria(soft.sales,FONTES[f].cat,p);
+          });
           salvar();
         }
       })
@@ -3533,6 +3584,13 @@ var Metas = (function(){
     if(!st[sec]||!st[sec][i]) return;
     st[sec][i][campo]=parseBR(valor);
     salvar(); recalcular();
+  }
+  function setFonte(i,valor){
+    const m=st.extra[i]; if(!m) return;
+    m.fonte = FONTES[valor] ? valor : 'manual';
+    if(m.fonte==='manual') m.feito=m.feito||0;
+    salvar(); renderSecao('extra'); recalcular();
+    if(m.fonte!=='manual') carregarAoVivo();
   }
   function setTituloExtra(valor){ st.extraTitle=valor; salvar(); }
   function addMeta(sec){
@@ -3616,9 +3674,16 @@ var Metas = (function(){
     tabela:'dashboard_metas', linha:'global'
   };
   const APARELHO='d'+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+  let nuvemLida=false;
   let sb=null, canal=null, nuvemStatus='local', ultimoEnvio='', timerNuvem=null, pendenteRemoto=null, painelLigado=false;
 
-  const campos=()=>({dias:st.dias,extraTitle:st.extraTitle,reis:st.reis,soft:st.soft,extra:st.extra,delta:st.delta});
+  // O realizado lido da planilha fica de fora: cada aparelho lê o seu. Vai só
+  // a configuração — inclusive de onde cada meta extra puxa o "já feito".
+  const campos=()=>({dias:st.dias,extraTitle:st.extraTitle,reis:st.reis,soft:st.soft,
+    extra:st.extra.map(m=>fonteDe(m)==='manual'
+      ? {nome:m.nome,total:m.total,feito:m.feito||0,fonte:'manual'}
+      : {nome:m.nome,total:m.total,fonte:m.fonte}),
+    delta:st.delta});
   const assinatura=()=>JSON.stringify(campos());
 
   function pintarStatus(){
@@ -3637,7 +3702,8 @@ var Metas = (function(){
   // para o caso de a internet ter caído e voltado.
   function reconectarNuvem(){
     if(canal&&sb&&sb.removeChannel){ try{ sb.removeChannel(canal); }catch(e){} }
-    sb=null; canal=null; ultimoEnvio='';
+    clearTimeout(timerNuvem); timerNuvem=null;
+    sb=null; canal=null; ultimoEnvio=''; nuvemLida=false;
     return conectarNuvem();
   }
   function conectarNuvem(){
@@ -3657,6 +3723,7 @@ var Metas = (function(){
         if(resp&&resp.error) throw resp.error;
         const d=resp&&resp.data&&resp.data.dados;
         nuvemStatus='ok';
+        nuvemLida=true;   // a partir daqui este aparelho pode escrever
         if(d&&d.reis&&d.soft) aplicarRemoto(d);
         else { ultimoEnvio=''; enviarNuvem(); }  // nuvem vazia: semeia com o que há aqui
         pintarStatus();
@@ -3693,19 +3760,23 @@ var Metas = (function(){
     if(!st.extraTitle) st.extraTitle=PADRAO.extraTitle;
     st.dias=Math.max(1,Math.floor(st.dias)||PADRAO.dias);
     carregado=true; ultimoEnvio=assinatura();
+    const palpitou=palpitarFontes();
     try{ localStorage.setItem(CHAVE,JSON.stringify(st)); }catch(e){}
+    if(palpitou) agendarNuvem();
     redesenhar();
   }
 
   function agendarNuvem(){
-    if(!sb||assinatura()===ultimoEnvio) return;
+    // Enquanto a primeira leitura não voltar, este aparelho ainda está com o
+    // padrão/cache: escrever agora apagaria as metas de quem já configurou.
+    if(!sb||!nuvemLida||assinatura()===ultimoEnvio) return;
     nuvemStatus='salvando'; pintarStatus();
     clearTimeout(timerNuvem);
     timerNuvem=setTimeout(enviarNuvem,400);
   }
 
   function enviarNuvem(){
-    if(!sb) return Promise.resolve();
+    if(!sb||!nuvemLida) return Promise.resolve();
     const corpo=campos(), assin=JSON.stringify(corpo);
     return Promise.resolve(sb.from(NUVEM.tabela).upsert({
         id:NUVEM.linha, dados:corpo,
@@ -3790,7 +3861,7 @@ var Metas = (function(){
   return {
     abrir, fechar, montar, redesenhar, resetar, parseBR,
     conectarNuvem, reconectarNuvem, aplicarRemoto, statusNuvem:()=>nuvemStatus, aparelho:()=>APARELHO,
-    onDias, setNome, setCampo, setTituloExtra, onValor, onValorSaiu, mascaraBR,
+    onDias, setNome, setCampo, setTituloExtra, setFonte, somaCategoria, onValor, onValorSaiu, mascaraBR,
     carregarAoVivo, recarregar, pintarLive,
     addMeta, addExtra, remover, toggleDelta, snapshot,
     textoWpp, copiarWpp, copiarExtra,

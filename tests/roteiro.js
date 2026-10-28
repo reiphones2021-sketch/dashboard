@@ -225,8 +225,8 @@
     ok('nenhuma aba do dashboard fica aberta junto', q('.panel.active').length === 1);
     ok('barra de período, hero e abas somem', document.querySelector('.pbar').style.display === 'none' && document.querySelector('.tabs').style.display === 'none' && el('heroMetric').style.display === 'none');
     ok('botão de metas marcado, empresa desmarcada', el('btnMetas').classList.contains('active') && !el('btnReis').classList.contains('active') && !el('btnSoft').classList.contains('active'));
-    ok('cards padrão: 8 Reis, 4 Soft, 1 extra', mCards('reis') === 8 && mCards('soft') === 4 && mCards('extra') === 1, mCards('reis') + '/' + mCards('soft') + '/' + mCards('extra'));
-    ok('cada card tem seu gráfico', q('#mtGrid-reis canvas').length === 8 && q('#mtGrid-extra canvas').length === 1);
+    ok('cards padrão: 8 Reis, 4 Soft, 2 extras', mCards('reis') === 8 && mCards('soft') === 4 && mCards('extra') === 2, mCards('reis') + '/' + mCards('soft') + '/' + mCards('extra'));
+    ok('cada card tem seu gráfico', q('#mtGrid-reis canvas').length === 8 && q('#mtGrid-extra canvas').length === 2);
 
     bloco('Metas diárias: "já feito" vem da planilha, sem digitar nada');
     ok('Reis usa o lucro bruto do mês (soma de LUCRO)', mPerto(Metas.estado().feitoReis, mLbReis), Metas.estado().feitoReis + ' vs ' + mLbReis);
@@ -241,7 +241,8 @@
     ok('meta diária = (total − já feito) ÷ dias', nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / 16)), txt('mtV-reis-0'));
     ok('faltando = total − já feito', nb(txt('mtFalt-reis-0')) === nb('Faltando: ' + mBRL(120000 - mLbReis)), txt('mtFalt-reis-0'));
     ok('Soft calcula em cima do faturamento', nb(txt('mtV-soft-0')) === nb(mBRL((110000 - mFatSoft) / 16)), txt('mtV-soft-0'));
-    ok('meta extra usa o "já feito" do próprio card', nb(txt('mtV-extra-0')) === nb(mBRL((60000 - 8281.52) / 16)), txt('mtV-extra-0'));
+    const assistMes = softPeriodo.filter(r => semAcento(r.prod).indexOf('ASSIST') >= 0).reduce((t, r) => t + r.preco, 0);
+    ok('meta extra de assistência lê a planilha, não um valor digitado', nb(txt('mtV-extra-0')) === nb(mBRL((60000 - assistMes) / 16)), txt('mtV-extra-0'));
     el('mtDias').value = '10'; Metas.onDias();
     ok('mudar os dias restantes recalcula na hora', nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / 10)), txt('mtV-reis-0'));
     Metas.setCampo('reis', 0, 'total', '1.000,00');
@@ -306,16 +307,16 @@
     Metas.remover('soft', mSoftAntes);
     ok('remover devolve a contagem', mCards('soft') === mSoftAntes);
     Metas.addExtra();
-    ok('meta extra é adicionada sem prompt do navegador', mCards('extra') === 2);
-    Metas.remover('extra', 1);
-    ok('meta extra removida', mCards('extra') === 1);
+    ok('meta extra é adicionada sem prompt do navegador', mCards('extra') === 3, mCards('extra'));
+    Metas.remover('extra', 2);
+    ok('meta extra removida', mCards('extra') === 2, mCards('extra'));
     ok('não sobrou exportar/importar entre aparelhos', !Metas.exportar && !Metas.importar && !Metas.codigoExport && !Metas.aplicarCodigo);
     ok('metas ficam salvas no navegador', !!(JSON.parse(localStorage.getItem('metas_v5')) || {}).reis);
 
     bloco('Metas diárias: texto do WhatsApp');
     const mWpp = Metas.textoWpp('all');
     ok('traz as duas empresas e as extras', /REIS PHONES/.test(mWpp) && /SOFT BLINDAGEM/.test(mWpp) && /Meta Assistência/.test(mWpp));
-    ok('uma meta diária por card', (mWpp.match(/Meta diária/g) || []).length === 13, (mWpp.match(/Meta diária/g) || []).length);
+    ok('uma meta diária por card', (mWpp.match(/Meta diária/g) || []).length === 14, (mWpp.match(/Meta diária/g) || []).length);
     ok('manda o já feito lido da planilha', mWpp.indexOf(mBRL(mLbReis)) > 0 && mWpp.indexOf(mBRL(mFatSoft)) > 0);
     ok('sem NaN/undefined no texto', !/NaN|undefined|Infinity/.test(mWpp));
     ok('só Reis não menciona a Soft', !/SOFT BLINDAGEM/.test(Metas.textoWpp('reis')));
@@ -379,6 +380,100 @@
     ok('receber de fora não reenvia para a nuvem (sem eco infinito)', nf.enviados.length === 2, nf.enviados.length);
     nf.receber({ dias: 99, extraTitle: 'Extras', reis: [], soft: [], extra: [], delta: {} }, Metas.aparelho());
     ok('o eco da minha própria escrita é ignorado', el('mtDias').value === '3' && mCards('reis') === 2, el('mtDias').value);
+
+    bloco('Metas extras puxam Assistência e Acessórios da planilha da Soft');
+    // A expectativa é escrita aqui, independente do código da página: se a
+    // tela da Soft ou a meta mudarem de critério sozinhas, isto quebra.
+    const mCat = p => {
+      const s = semAcento(p);
+      if (s.indexOf('GARANTIA') >= 0) return s.indexOf('REIS') >= 0 ? 'gar_reis' : 'gar_soft';
+      if (s.indexOf('ASSIST') >= 0) return 'assist';
+      if (s.indexOf('BLINDAGEM') >= 0 || s.indexOf('BLINDADO') >= 0 || s.indexOf('STICKER') >= 0 ||
+          s.indexOf('RELOGIO') >= 0 || s.indexOf('TABLET') >= 0 || s.indexOf('NOTEBOOK') >= 0 ||
+          s.indexOf('MULTIMIDIA') >= 0 || s.indexOf('CAMERA') >= 0 ||
+          (s.indexOf('SUPORTE') >= 0 && s.indexOf('BLIND') >= 0)) return 'blind';
+      if (s.indexOf('PLANO') >= 0 || s.indexOf('UPGRADE') >= 0) return 'plano';
+      return 'acess';
+    };
+    const mFatCat = c => softPeriodo.filter(r => mCat(r.prod) === c).reduce((s, r) => s + r.preco, 0);
+    const espAssist = mFatCat('assist'), espAcess = mFatCat('acess');
+    ok('a planilha de teste tem os dois grupos', espAssist > 0 && espAcess > 0 && Math.abs(espAssist - espAcess) > 1, espAssist + ' / ' + espAcess);
+
+    Metas.resetar(); await Metas.carregarAoVivo();
+    ok('meta chamada "Assistência" já nasce lendo a planilha', q('#mtGrid-extra .mt-fonte')[0].value === 'assist', q('#mtGrid-extra .mt-fonte')[0].value);
+    ok('meta chamada "Acessórios" também', q('#mtGrid-extra .mt-fonte')[1].value === 'acess', q('#mtGrid-extra .mt-fonte')[1].value);
+    Metas.addExtra();
+    ok('meta nova de nome qualquer continua na mão', q('#mtGrid-extra .mt-fonte')[2].value === 'manual', q('#mtGrid-extra .mt-fonte')[2].value);
+    ok('e com campo para digitar o valor', q('#mtGrid-extra .mt-inp[data-campo="feito"]').length === 1, q('#mtGrid-extra .mt-inp[data-campo="feito"]').length);
+    Metas.remover('extra', 2);
+
+    Metas.setFonte(0, 'manual'); Metas.setFonte(0, 'assist'); await Metas.carregarAoVivo();
+    ok('ligada à Assistência, lê o faturamento da planilha', mPerto(Metas.estado().extra[0].feito, espAssist), Metas.estado().extra[0].feito + ' vs ' + espAssist);
+    ok('o campo de digitar some (não é mais na mão)', q('#mtGrid-extra .mt-inp[data-campo="feito"]').length === 0);
+    ok('o valor lido aparece no card', nb(txt('mtExtraV-0')) === nb(mBRL(espAssist)), txt('mtExtraV-0'));
+    ok('a meta diária da extra usa esse valor', nb(txt('mtV-extra-0')) === nb(mBRL((60000 - espAssist) / Math.max(1, Metas.estado().dias))), txt('mtV-extra-0'));
+
+    Metas.setFonte(0, 'acess'); await Metas.carregarAoVivo();
+    ok('trocar para Acessórios troca a conta', mPerto(Metas.estado().extra[0].feito, espAcess), Metas.estado().extra[0].feito + ' vs ' + espAcess);
+
+    // o número da meta tem que ser o MESMO que o card da Visão Geral da Soft mostra
+    const compAtual = ACTIVE_COMPANY;
+    if (ACTIVE_COMPANY !== 'soft') { switchCompany('soft'); await tick(150); }
+    const fatDoCard = titulo => {
+      const card = q('#p-visao .sc').find(e => { const t = e.querySelector('.sc-title'); return t && t.textContent.indexOf(titulo) >= 0; });
+      if (!card) return '(card não achado)';
+      const item = Array.from(card.querySelectorAll('.sc-item')).find(i => /FATURAMENTO/.test(i.textContent));
+      return item ? item.querySelector('.sc-item-v').textContent.trim() : '(sem faturamento)';
+    };
+    ok('card "Acessórios" da Soft = o que a meta puxou', nb(fatDoCard('Acessórios')) === nb(mBRL(espAcess)), fatDoCard('Acessórios') + ' vs ' + mBRL(espAcess));
+    ok('card "Assistência" da Soft = o que a meta puxaria', nb(fatDoCard('Assistência')) === nb(mBRL(espAssist)), fatDoCard('Assistência') + ' vs ' + mBRL(espAssist));
+    if (ACTIVE_COMPANY !== compAtual) { switchCompany(compAtual); await tick(150); }
+    Metas.abrir(); await Metas.carregarAoVivo();
+
+    bloco('Metas extras: o que é lido da planilha não viaja para a nuvem');
+    const nfExtra = nuvemFake(null);
+    window.supabase = nfExtra.lib;
+    await Metas.reconectarNuvem();
+    const extraEnviada = (nfExtra.enviados[0] || {}).dados.extra[0];
+    ok('a nuvem recebe de onde a meta puxa o valor', extraEnviada.fonte === 'acess', JSON.stringify(extraEnviada));
+    ok('mas não o valor lido, que cada aparelho lê sozinho', !('feito' in extraEnviada), JSON.stringify(extraEnviada));
+    Metas.setFonte(0, 'manual'); await tick(520);
+    const extraManual = nfExtra.enviados[nfExtra.enviados.length - 1].dados.extra[0];
+    ok('voltando para "na mão", o valor digitado volta a viajar', extraManual.fonte === 'manual' && ('feito' in extraManual), JSON.stringify(extraManual));
+
+    // quem já tinha metas antigas (sem fonte) tem o palpite gravado na nuvem,
+    // em vez de readivinhado a cada vez que o painel abre
+    const nfVelho = nuvemFake({dias:5, extraTitle:'Extras', reis:[{nome:'R',total:1000}], soft:[{nome:'S',total:1000}],
+      extra:[{nome:'MR Assistência',total:60000,feito:9999},{nome:'MR ACESSÓRIOS',total:30000,feito:8888}], delta:{}});
+    window.supabase = nfVelho.lib;
+    await Metas.reconectarNuvem(); await tick(560);
+    ok('meta antiga sem fonte é reconhecida pelo nome', Metas.estado().extra[0].fonte === 'assist' && Metas.estado().extra[1].fonte === 'acess', JSON.stringify(Metas.estado().extra.map(m=>m.fonte)));
+    ok('e a configuração sobe para a nuvem, uma vez só', nfVelho.enviados.length === 1 && nfVelho.enviados[0].dados.extra[0].fonte === 'assist', nfVelho.enviados.length);
+
+    bloco('Nuvem lenta não deixa este aparelho atropelar as metas salvas');
+    // Cenário real: a planilha responde rápido, a nuvem demora. Antes da
+    // correção o agrupamento de escrita (400ms) disparava primeiro e subia o
+    // padrão deste aparelho por cima das metas de quem já tinha configurado.
+    const salvas = {dias:9, extraTitle:'Extras', reis:[{nome:'Da nuvem',total:777000}],
+      soft:[{nome:'Soft nuvem',total:111000}], extra:[], delta:{}};
+    const nfLento = nuvemFake(salvas);
+    const canalL = {on(){return canalL;},subscribe(){return canalL;}};
+    nfLento.lib = {createClient: () => ({
+      from: () => ({
+        select: () => ({ eq: () => ({ maybeSingle: () => new Promise(r => setTimeout(() => r({data:{dados:nfLento.linha},error:null}), 900)) }) }),
+        upsert: r => { nfLento.enviados.push(r); nfLento.linha = r.dados; return Promise.resolve({error:null}); }
+      }),
+      channel: () => canalL, removeChannel: () => {}
+    })};
+    Metas.resetar();            // este aparelho está com o padrão
+    window.supabase = nfLento.lib;
+    const lendo = Metas.reconectarNuvem();
+    await Metas.carregarAoVivo(); // a planilha volta antes da nuvem
+    await tick(600);              // passa do agrupamento de 400ms
+    ok('nada é escrito enquanto a nuvem não respondeu', nfLento.enviados.length === 0, nfLento.enviados.length);
+    await lendo; await tick(120);
+    ok('quando ela responde, as metas salvas é que mandam', mCards('reis') === 1 && Metas.estado().reis[0].total === 777000, JSON.stringify(Metas.estado().reis));
+    ok('e o padrão deste aparelho não foi para a nuvem', !nfLento.enviados.some(e => (e.dados.reis||[]).length === 8), JSON.stringify(nfLento.enviados.map(e=>(e.dados.reis||[]).length)));
 
     bloco('Metas diárias: voltar para o dashboard');
     switchCompany('soft'); await tick(120);

@@ -99,6 +99,15 @@ Regras para qualquer edição futura:
     mostra a variação (vermelho = subiu, verde = caiu) e o selo é clicável.
   - Cards com doughnut de progresso, adicionar/remover meta, seção de metas
     extras com título editável e "já feito" próprio por card.
+  - **Metas extras puxam Assistência e Acessórios da Soft.** Cada meta extra
+    tem um seletor de fonte: `manual` (digitado, como antes), `assist` ou
+    `acess`. As duas últimas somam o faturamento do mês pelo mesmo critério
+    dos cards da Visão Geral da Soft — `softCatProd`, extraída para o escopo
+    global justamente para tela e meta nunca divergirem.
+  - Meta extra sem fonte escolhida cujo nome contém "assist"/"acess" nasce
+    ligada (`palpitarFontes`), e esse palpite sobe para a nuvem uma vez, em
+    vez de ser readivinhado a cada abertura. O que é lido da planilha não
+    viaja: a nuvem leva a `fonte`, não o `feito`.
   - Copiar para WhatsApp (Reis, Soft e Tudo). Não existe exportar/importar:
     o realizado vem da planilha em qualquer aparelho e as metas ficam no
     `localStorage` de cada navegador.
