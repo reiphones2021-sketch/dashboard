@@ -123,6 +123,12 @@ select:focus,input:focus{outline:none;border-color:var(--bll);}
 input[type=number]{width:58px;text-align:center;}
 .pinfo{font-size:11px;color:var(--te);font-weight:500;padding:3px 10px;background:rgba(56,189,248,.1);border-radius:20px;border:1px solid rgba(56,189,248,.25);}
 .pcmp{font-size:11px;color:var(--txt2);}
+.vend-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.vend-chip{padding:5px 12px;border-radius:17px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;color:var(--txt2);background:rgba(29,90,154,.12);border:1px solid rgba(29,90,154,.35);transition:all .15s;}
+.vend-chip:hover{color:var(--te);border-color:var(--bll);}
+.vend-chip.on{background:var(--bll);color:#fff;border-color:var(--bll);box-shadow:0 2px 8px rgba(29,90,154,.4);}
+.vend-chips.soft .vend-chip:hover{color:var(--gr);border-color:var(--gr);}
+.vend-chips.soft .vend-chip.on{background:var(--gr);color:#06281a;border-color:var(--gr);box-shadow:0 2px 8px rgba(0,217,126,.35);}
 .tabs{padding:0 28px;background:#0d1f38;border-bottom:1px solid rgba(29,90,154,.3);display:flex;gap:2px;overflow-x:auto;}
 .tab{padding:10px 16px;font-size:12.5px;font-weight:500;cursor:pointer;color:var(--txt2);border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;}.tab:hover{color:var(--te);}.tab.active{color:var(--te);border-bottom-color:var(--bll);}
 .content{padding:22px 28px;transition:opacity .18s ease;}
@@ -629,8 +635,8 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 <div id="p-vendedores" class="panel">
   <div class="card" style="margin-bottom:13px">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <label for="vendSel" style="font-size:10px;font-weight:700;color:var(--te);text-transform:uppercase;letter-spacing:.5px">🧑‍💼 Vendedor</label>
-      <select id="vendSel" onchange="onVendChange()" style="padding:6px 10px;font-size:12.5px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid var(--bor);color:var(--txt);outline:none;min-width:200px"></select>
+      <label style="font-size:10px;font-weight:700;color:var(--te);text-transform:uppercase;letter-spacing:.5px">🧑‍💼 Vendedores</label>
+      <div class="vend-chips" id="vendChips"></div>
       <span id="vendPeriodo" style="font-size:11px;color:var(--txt3)"></span>
     </div>
   </div>
@@ -2993,17 +2999,33 @@ function abrirVendedor(nome){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function onVendChange(){
-  const sel=document.getElementById('vendSel');
-  window._vendSel=sel?sel.value:'__TODOS__';
-  if(window._vendCur)rVendedores(window._vendCur,window._vendPrv);
+// A seleção é uma LISTA de vendedores; lista vazia = toda a equipe. Aceita
+// também o formato antigo (string, ou '__TODOS__') para não quebrar quem
+// chama de fora.
+function vendListaSel(v){
+  if(Array.isArray(v)) return v.filter(n=>n&&n!=='__TODOS__');
+  if(typeof v==='string'&&v&&v!=='__TODOS__') return [v];
+  return [];
 }
+function rerenderVend(){ if(window._vendCur)rVendedores(window._vendCur,window._vendPrv); }
 
+// Marca ou desmarca um vendedor, somando ao que já estava escolhido.
+function toggleVendedor(nome){
+  const s=vendListaSel(window._vendSel);
+  const i=s.indexOf(nome);
+  if(i>=0) s.splice(i,1); else s.push(nome);
+  window._vendSel=s;
+  rerenderVend();
+}
+// Volta para a equipe inteira.
+function limparVendedores(){
+  window._vendSel=[];
+  rerenderVend();
+}
+// Deixa só este vendedor — é o que a pizza e o ranking fazem ao clicar.
 function onVendChangeDireto(nome){
-  window._vendSel=nome;
-  const sel=document.getElementById('vendSel');
-  if(sel)sel.value=nome;
-  if(window._vendCur)rVendedores(window._vendCur,window._vendPrv);
+  window._vendSel=vendListaSel(nome);
+  rerenderVend();
 }
 
 function vendVazio(){return{qtd:0,fat:0,rec:0,loj:0,cli:new Set(),prod:{},fatProd:{},dias:new Set()};}
@@ -3042,14 +3064,16 @@ function rVendedores(cur,prv){
     .sort((x,y)=>((A[y]||{fat:0}).fat||0)-((A[x]||{fat:0}).fat||0));
 
   // ── Seletor ──────────────────────────────────────────────────────
-  const sel=document.getElementById('vendSel');
-  let escolhido=window._vendSel||'__TODOS__';
-  if(escolhido!=='__TODOS__'&&!nomes.includes(escolhido))escolhido='__TODOS__';
-  window._vendSel=escolhido;
-  if(sel){
-    sel.innerHTML='<option value="__TODOS__">👥 Toda a equipe</option>'+
-      nomes.map(n=>'<option value="'+escAttr(n)+'">'+n+'</option>').join('');
-    sel.value=escolhido;
+  // só sobrevive quem existe no período da empresa atual
+  let sels=vendListaSel(window._vendSel).filter(n=>nomes.includes(n));
+  window._vendSel=sels;
+  const todos=sels.length===0;
+  const um=sels.length===1?sels[0]:null;
+  const chips=document.getElementById('vendChips');
+  if(chips){
+    chips.className='vend-chips'+(isSoft()?' soft':'');
+    chips.innerHTML='<button type="button" class="vend-chip'+(todos?' on':'')+'" onclick="limparVendedores()">👥 Toda a equipe</button>'+
+      nomes.map(n=>'<button type="button" class="vend-chip'+(sels.includes(n)?' on':'')+'" onclick="toggleVendedor(&quot;'+escAttr(n)+'&quot;)">'+n+'</button>').join('');
   }
   const pEl=document.getElementById('vendPeriodo');
   if(pEl)pEl.textContent=curPeriodLabel()+'  ↔  '+prvPeriodLabel();
@@ -3068,22 +3092,24 @@ function rVendedores(cur,prv){
   };
 
   const eqA=somaTudo(A),eqP=somaTudo(P);
-  const a=escolhido==='__TODOS__'?eqA:(A[escolhido]||vazio);
-  const p=escolhido==='__TODOS__'?eqP:(P[escolhido]||vazio);
+  // dois ou mais escolhidos somam entre si, com clientes e dias sem repetir
+  const soDosEscolhidos=mapa=>{const o={};sels.forEach(n=>{if(mapa[n])o[n]=mapa[n];});return o;};
+  const a=todos?eqA:(sels.length?somaTudo(soDosEscolhidos(A)):vazio);
+  const p=todos?eqP:(sels.length?somaTudo(soDosEscolhidos(P)):vazio);
   const tkA=a.fat/Math.max(a.qtd,1),tkP=p.fat/Math.max(p.qtd,1);
   const share=eqA.fat>0?a.fat/eqA.fat*100:0;
   const shareP=eqP.fat>0?p.fat/eqP.fat*100:0;
-  const pos=escolhido==='__TODOS__'?null:nomes.indexOf(escolhido)+1;
+  const pos=um?nomes.indexOf(um)+1:null;   // posição no ranking só faz sentido para um
 
   // ── KPIs ─────────────────────────────────────────────────────────
-  const quemLbl=escolhido==='__TODOS__'?'Toda a equipe':escolhido;
+  const quemLbl=todos?'Toda a equipe':(um||sels.length+' vendedores');
   document.getElementById('kg-vend').innerHTML=[
     kpi(cfg.metric,BRL(a.fat),isReis()?'Faturamento '+BRL(a.rec)+' · '+quemLbl:quemLbl,dlt(a.fat,p.fat),'gr'),
     kpi(cfg.unid,NUM(a.qtd),cfg.unidDesc,dlt(a.qtd,p.qtd),'bl'),
     kpi('Ticket médio',BRL(tkA),cfg.tkDesc,dlt(tkA,tkP),'am'),
     kpi('Clientes únicos',NUM(a.cli.size),'Atendidos no período',dlt(a.cli.size,p.cli.size),'pu'),
     kpi('Média por dia',BRL(a.fat/Math.max(a.dias.size,1)),NUM(a.dias.size)+' dias com venda',dlt(a.fat/Math.max(a.dias.size,1),p.fat/Math.max(p.dias.size,1)),'te'),
-    escolhido==='__TODOS__'
+    todos
       ? kpi('Vendedores ativos',NUM(nomes.filter(n=>(A[n]||{qtd:0}).qtd>0).length),'Com venda no período',null,'bl')
       : kpi('% da equipe',PCT(share),pos?pos+'º de '+nomes.length+' no ranking':'',dlt(share,shareP),'bl'),
   ].join('');
@@ -3095,7 +3121,7 @@ function rVendedores(cur,prv){
   (()=>{
     const box=document.getElementById('vendFeedback');
     if(!box)return;
-    const quem=escolhido==='__TODOS__'?'A equipe':escolhido;
+    const quem=todos?'A equipe':(um||'O grupo de '+sels.length+' vendedores');
     const dFat=p.fat>0?(a.fat-p.fat)/p.fat*100:null;
     const dTk=tkP>0?(tkA-tkP)/tkP*100:null;
     const sinal=v=>(v>=0?'+':'')+v.toFixed(1)+'%';
@@ -3127,7 +3153,7 @@ function rVendedores(cur,prv){
     if(caiu&&caiu.d<0)lp+='Maior queda: <strong style="color:var(--rd)">'+caiu.k+'</strong> ('+caiu.d+').';
     if(lp)linhas.push(lp);
 
-    if(escolhido!=='__TODOS__'){
+    if(um){   // comparar com a média da equipe só vale para um vendedor
       const ativos=nomes.filter(n=>(A[n]||{qtd:0}).qtd>0);
       const mediaFat=ativos.length?eqA.fat/ativos.length:0;
       const mediaTk=eqA.qtd>0?eqA.fat/eqA.qtd:0;
@@ -3145,8 +3171,8 @@ function rVendedores(cur,prv){
   // ── Evolução: últimos 6 meses ────────────────────────────────────
   (()=>{
     const ct=document.getElementById('vendEvoCt');
-    if(ct)ct.textContent=cfg.metric+' — últimos 6 meses'+(escolhido==='__TODOS__'?' (equipe)':' · '+escolhido);
-    const base=SALES.filter(r=>cfg.rows(r)&&(escolhido==='__TODOS__'||String(r.vend||'').trim()===escolhido));
+    if(ct)ct.textContent=cfg.metric+' — últimos 6 meses'+(todos?' (equipe)':' · '+sels.join(' + '));
+    const base=SALES.filter(r=>cfg.rows(r)&&(todos||sels.includes(String(r.vend||'').trim())));
     const ms=[...new Set(SALES.map(r=>r.m))].sort().slice(-6);
     mkChart('c-vendEvo',{type:'bar',data:{labels:ms.map(m=>mL(m)),
       datasets:[{label:cfg.metric,data:ms.map(m=>base.filter(r=>r.m===m).reduce((s,r)=>s+cfg.val(r),0)),
@@ -3193,7 +3219,7 @@ function rVendedores(cur,prv){
       const ta=va.fat/Math.max(va.qtd,1);
       const d=dlt(va.fat,vp.fat);
       const dCls=d?(d.cls==='up'?'var(--gr)':d.cls==='dn'?'var(--rd)':'var(--txt3)'):'var(--txt3)';
-      const destaque=n===escolhido?'background:'+cfg.corA+'.10);':'';
+      const destaque=sels.includes(n)?'background:'+cfg.corA+'.10);':'';
       return '<tr style="border-bottom:1px solid var(--bor);'+destaque+'cursor:pointer" onclick="onVendChangeDireto(&quot;'+escAttr(n)+'&quot;)">'+
         '<td style="padding:7px 12px;font-size:12px;color:var(--txt)">'+n+'</td>'+
         '<td class="r" style="padding:7px 12px;font-size:12px;color:var(--txt)">'+NUM(va.qtd)+'</td>'+

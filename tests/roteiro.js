@@ -12,6 +12,11 @@
   const tick = (ms = 80) => new Promise(r => setTimeout(r, ms));
   const visivel = i => { const e = el(i); return !!e && e.style.display !== 'none'; };
   const semAcento = s => String(s).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  // Vendedores agora são chips de marcar/desmarcar: a seleção é uma lista,
+  // e lista vazia quer dizer "toda a equipe".
+  const vendSelecionados = () => (window._vendSel || []).slice();
+  const vendChips = () => q('#vendChips .vend-chip');
+  const vendChip = nome => vendChips().find(c => c.textContent.trim() === nome);
 
   const hoje = new Date(); hoje.setHours(12, 0, 0, 0);
   const hojeIso = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
@@ -79,7 +84,7 @@
     ok('unidade é Aparelhos', kReis.includes('Aparelhos'));
     ok('faturamento aparece como apoio', /Faturamento R\$/.test(nb(kReis)));
     const vendsReis = [...new Set(reisAparelhos.map(r => r.vend))];
-    ok('seletor lista os vendedores do período', el('vendSel').options.length === vendsReis.length + 1, el('vendSel').options.length + ' opções vs ' + vendsReis.length + ' vendedores');
+    ok('lista os vendedores do período (+ "toda a equipe")', vendChips().length === vendsReis.length + 1, vendChips().length + ' chips vs ' + vendsReis.length + ' vendedores');
     ok('título do gráfico: Lucro bruto — últimos 6 meses', txt('vendEvoCt').startsWith('Lucro bruto — últimos 6 meses'), txt('vendEvoCt'));
     ok('produtos são modelos', txt('vendProdCt').startsWith('Modelos vendidos'), txt('vendProdCt'));
     const modelos = q('#vendProdBars > div > span:first-child').map(e => e.firstChild.textContent);
@@ -91,7 +96,7 @@
     const lbEsperado = reisAparelhos.reduce((s, r) => s + r.lb, 0);
     ok('total da equipe = soma do lucro bruto dos aparelhos', nb(txt('vendBadge')).includes(nb(BRL(lbEsperado))), txt('vendBadge') + ' vs ' + BRL(lbEsperado));
     onVendChangeDireto(vendsReis[0]);
-    ok('clique no ranking seleciona o vendedor', el('vendSel').value === vendsReis[0] && txt('vendEvoCt').includes(vendsReis[0]));
+    ok('clique no ranking seleciona o vendedor', vendSelecionados().join('|') === vendsReis[0] && txt('vendEvoCt').includes(vendsReis[0]), vendSelecionados().join('|'));
     ok('linha destacada em azul (cor da Reis)', el('vendTable').innerHTML.includes('rgba(29,90,154,.10)'));
     onVendChangeDireto('__TODOS__');
 
@@ -101,15 +106,15 @@
     ok('pizza existe e tem onClick', pie && typeof pie.options.onClick === 'function');
     ok('legenda da pizza navega em vez de esconder fatia', pie && pie.options.plugins.legend && typeof pie.options.plugins.legend.onClick === 'function');
     pie.options.onClick({}, [{ index: 0 }]); await tick(30);
-    ok('fatia → aba Vendedores com o vendedor', el('p-vendedores').classList.contains('active') && el('vendSel').value === pie.data.labels[0], el('vendSel').value);
+    ok('fatia → aba Vendedores com o vendedor', el('p-vendedores').classList.contains('active') && vendSelecionados().join('|') === pie.data.labels[0], vendSelecionados().join('|'));
     showTab('visao', q('.tabs .tab')[0]);
     pie.options.plugins.legend.onClick({}, { index: 1 }); await tick(30);
-    ok('legenda → aba Vendedores com o vendedor', el('p-vendedores').classList.contains('active') && el('vendSel').value === pie.data.labels[1], el('vendSel').value);
+    ok('legenda → aba Vendedores com o vendedor', el('p-vendedores').classList.contains('active') && vendSelecionados().join('|') === pie.data.labels[1], vendSelecionados().join('|'));
     showTab('visao', q('.tabs .tab')[0]);
     const linhasDet = q('#vendDetail .br-row');
     ok('linhas do detalhamento são clicáveis', linhasDet.length > 0 && linhasDet.every(r => (r.getAttribute('onclick') || '').includes('abrirVendedor')));
     eval(linhasDet[linhasDet.length - 1].getAttribute('onclick')); await tick(30); // jsdom não dispara onclick inline
-    ok('detalhamento → aba Vendedores com o vendedor', el('p-vendedores').classList.contains('active') && el('vendSel').value === linhasDet[linhasDet.length - 1].querySelector('.br-lbl').textContent, el('vendSel').value);
+    ok('detalhamento → aba Vendedores com o vendedor', el('p-vendedores').classList.contains('active') && vendSelecionados().join('|') === linhasDet[linhasDet.length - 1].querySelector('.br-lbl').textContent, vendSelecionados().join('|'));
 
     bloco('Gráfico de vendas diárias — barra clicável');
     showTab('visao', q('.tabs .tab')[0]);
@@ -155,7 +160,7 @@
     ok('ranking: Serviços | Faturamento | Ticket | Δ Fat.', thsSoft.join('|') === 'Vendedor|Serviços|Anterior|Faturamento|Anterior|Ticket|Δ Fat.', thsSoft.join('|'));
     ok('leitura usa "faturou"', /faturou/.test(txt('vendFeedback')));
     const vendsSoft = [...new Set(softPeriodo.map(r => r.vend))];
-    ok('seletor lista os vendedores do período', el('vendSel').options.length === vendsSoft.length + 1, el('vendSel').options.length + ' vs ' + vendsSoft.length);
+    ok('lista os vendedores do período (+ "toda a equipe")', vendChips().length === vendsSoft.length + 1, vendChips().length + ' vs ' + vendsSoft.length);
     const fatEsperado = softPeriodo.reduce((s, r) => s + r.preco, 0);
     ok('total da equipe = faturamento (PAGO + HOJE, preço > 0)', nb(txt('vendBadge')).includes(nb(BRL(fatEsperado))), txt('vendBadge') + ' vs ' + BRL(fatEsperado));
     onVendChangeDireto('PIERRE');
@@ -185,11 +190,50 @@
     el('prodFiltro').value = ''; filtrarProdutos();
     ok('limpar o filtro devolve tudo', visiveis() === prodsEsp.size);
 
+    bloco('Vendedores: marcar dois ou mais ao mesmo tempo');
+    const kpiPrincipal = () => nb(q('#kg-vend .kc')[0].textContent);
+    const marcados = () => vendChips().filter(c => c.className.indexOf('on') >= 0).map(c => c.textContent.trim());
+
+    // ── Soft Blindagem (faturamento) ──────────────────────────────────
+    showTab('vendedores', el('tabVendedores'));
+    limparVendedores();
+    const fatSoftDe = nomes => softPeriodo.filter(r => nomes.includes(r.vend)).reduce((s, r) => s + r.preco, 0);
+    ok('sem ninguém marcado, "Toda a equipe" fica aceso', marcados().join('|') === '👥 Toda a equipe', marcados().join('|'));
+    toggleVendedor(vendsSoft[0]);
+    ok('marcar um mostra o faturamento dele', kpiPrincipal().indexOf(nb(BRL(fatSoftDe([vendsSoft[0]])))) >= 0, kpiPrincipal().slice(0, 50));
+    toggleVendedor(vendsSoft[1]);
+    ok('marcar o segundo soma os dois', kpiPrincipal().indexOf(nb(BRL(fatSoftDe([vendsSoft[0], vendsSoft[1]])))) >= 0, kpiPrincipal().slice(0, 50));
+    ok('os dois chips ficam acesos, e "toda a equipe" apaga', marcados().slice().sort().join('|') === [vendsSoft[0], vendsSoft[1]].sort().join('|'), marcados().join('|'));
+    ok('o gráfico de evolução nomeia os dois', txt('vendEvoCt').indexOf(vendsSoft[0]) > 0 && txt('vendEvoCt').indexOf(vendsSoft[1]) > 0, txt('vendEvoCt'));
+    ok('o ranking destaca as duas linhas', (el('vendTable').innerHTML.match(/rgba\(13,158,80,\.10\)/g) || []).length === 2, (el('vendTable').innerHTML.match(/rgba\(13,158,80,\.10\)/g) || []).length);
+    toggleVendedor(vendsSoft[2] !== undefined ? vendsSoft[2] : vendsSoft[0]);
+    if (vendsSoft[2] !== undefined) ok('dá para marcar um terceiro', kpiPrincipal().indexOf(nb(BRL(fatSoftDe(vendsSoft.slice(0, 3))))) >= 0, kpiPrincipal().slice(0, 50));
+    else ok('dá para marcar um terceiro', true, 'fixture com 2 vendedores');
+    toggleVendedor(vendsSoft[1]);
+    ok('desmarcar um tira só ele da conta', kpiPrincipal().indexOf(nb(BRL(fatSoftDe([vendsSoft[0], vendsSoft[2]].filter(Boolean))))) >= 0, kpiPrincipal().slice(0, 50));
+    limparVendedores();
+    ok('"Toda a equipe" devolve a equipe inteira', kpiPrincipal().indexOf(nb(BRL(fatSoftDe(vendsSoft)))) >= 0 && marcados().join('|') === '👥 Toda a equipe', kpiPrincipal().slice(0, 50));
+
+    // ── Reis Phones (lucro bruto) ─────────────────────────────────────
+    switchCompany('reis'); await tick(140);
+    showTab('vendedores', el('tabVendedores'));
+    limparVendedores();
+    const lbReisDe = nomes => reisAparelhos.filter(r => nomes.includes(r.vend)).reduce((s, r) => s + r.lb, 0);
+    toggleVendedor(vendsReis[0]);
+    toggleVendedor(vendsReis[1]);
+    ok('na Reis também soma dois', kpiPrincipal().indexOf(nb(BRL(lbReisDe([vendsReis[0], vendsReis[1]])))) >= 0, kpiPrincipal().slice(0, 50));
+    ok('e o rótulo diz quantos são', nb(txt('kg-vend')).indexOf('2 vendedores') >= 0 || nb(txt('vendFeedback')).indexOf('grupo de 2 vendedores') >= 0, txt('vendFeedback').slice(0, 70));
+    ok('clicar no ranking volta a deixar só um', (onVendChangeDireto(vendsReis[0]), vendSelecionados().join('|') === vendsReis[0]), vendSelecionados().join('|'));
+    limparVendedores();
+
+    // volta para a Soft, que é onde o próximo bloco começa
+    switchCompany('soft'); await tick(140);
+
     bloco('Troca de empresa: vendedor que não existe na outra empresa');
     showTab('vendedores', el('tabVendedores'));
     onVendChangeDireto('PIERRE');
     switchCompany('reis'); await tick(120);
-    ok('seletor volta para "Toda a equipe"', el('vendSel').value === '__TODOS__', el('vendSel').value);
+    ok('seleção volta para "Toda a equipe"', vendSelecionados().length === 0, JSON.stringify(vendSelecionados()));
     ok('aba continua ativa', el('p-vendedores').classList.contains('active'));
 
     bloco('Cada empresa só mostra a própria planilha');

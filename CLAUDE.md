@@ -42,7 +42,14 @@ Regras para qualquer edição futura:
     produto = modelo (`r.mod`, com APPLE WATCH/IPAD/MACBOOK por tipo);
     KPI traz o faturamento de apoio; ranking tem coluna Faturamento; a
     leitura informa a % de aparelhos vendidos para lojista.
-  - Cores: verde (Soft) / azul (Reis). Ranking clicável seleciona o vendedor.
+  - **Seleção múltipla:** os vendedores são chips de marcar/desmarcar
+    (`#vendChips`), não mais um `<select>` de um só. `window._vendSel` é uma
+    LISTA; lista vazia = toda a equipe. Marcados dois ou mais, tudo soma
+    entre eles (clientes e dias sem repetir, porque `somaTudo` une os Sets).
+    Posição no ranking e a comparação com a média da equipe só aparecem com
+    um vendedor só, que é quando fazem sentido.
+  - Cores: verde (Soft) / azul (Reis). Ranking e pizza clicáveis deixam só o
+    vendedor clicado (`onVendChangeDireto`).
   - Trocar de empresa com a aba aberta mantém a aba; se o vendedor não existe
     na outra empresa, volta para "Toda a equipe".
 - **Soft — Visão Geral**: garantia estendida em **2 grupos** (Reis Phones e
