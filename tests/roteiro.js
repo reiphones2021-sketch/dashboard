@@ -35,6 +35,14 @@
   const softRows = SOFT.slice(1).map(r => ({ vend: r[sCol('VENDEDOR')], dt: brIso(r[sCol('DATA')]), prod: r[sCol('PRODUTO VENDIDO')], preco: parseFloat(String(r[sCol('PREÇO')]).replace(',', '.')), status: r[sCol('STATUS')] }))
     .filter(r => ['PAGO', 'HOJE'].includes(r.status) && r.preco > 0);
   const softPeriodo = softRows.filter(r => r.dt >= mesIni && r.dt <= hojeIso);
+  // O painel de Metas Diárias corta o realizado no fim de ONTEM: a meta de
+  // hoje tem que sair do que estava feito ontem, senão as vendas de hoje
+  // baixam a própria meta do dia. No dia 1 ainda não há dia fechado no mês.
+  const ontemDt = new Date(hoje); ontemDt.setDate(ontemDt.getDate() - 1);
+  const ontemIso = ontemDt.getFullYear() + '-' + String(ontemDt.getMonth() + 1).padStart(2, '0') + '-' + String(ontemDt.getDate()).padStart(2, '0');
+  const corteMetas = ontemIso >= mesIni ? ontemIso : null;
+  const reisAteCorte = corteMetas ? reisPeriodo.filter(r => r.dt <= corteMetas) : [];
+  const softAteCorte = corteMetas ? softPeriodo.filter(r => r.dt <= corteMetas) : [];
 
   try {
     // ══ carga ══════════════════════════════════════════════════════════
@@ -257,8 +265,10 @@
     const mPerto = (a, b) => Math.abs(a - b) < 0.01;
     // o "já feito" tem que sair das mesmas linhas que o dashboard usa no topo:
     // Reis = lucro bruto (LUCRO), Soft = faturamento (PREÇO), do dia 1 até hoje
-    const mLbReis = reisPeriodo.reduce((s, r) => s + r.lb, 0);
-    const mFatSoft = softPeriodo.reduce((s, r) => s + r.preco, 0);
+    const fimMesDt = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 12, 0, 0);
+    const diasEsperados = Math.max(1, Math.floor((fimMesDt - hoje) / 86400000) + 1);
+    const mLbReis = reisAteCorte.reduce((s, r) => s + r.lb, 0);
+    const mFatSoft = softAteCorte.reduce((s, r) => s + r.preco, 0);
 
     bloco('Metas diárias: botão no seletor de empresa');
     ok('botão "Metas Diárias" fica ao lado das empresas', !!el('btnMetas') && !!el('btnMetas').closest('.company-sw'));
@@ -273,20 +283,20 @@
     ok('cada card tem seu gráfico', q('#mtGrid-reis canvas').length === 8 && q('#mtGrid-extra canvas').length === 2);
 
     bloco('Metas diárias: "já feito" vem da planilha, sem digitar nada');
-    ok('Reis usa o lucro bruto do mês (soma de LUCRO)', mPerto(Metas.estado().feitoReis, mLbReis), Metas.estado().feitoReis + ' vs ' + mLbReis);
-    ok('Soft usa o faturamento do mês (soma de PREÇO)', mPerto(Metas.estado().feitoSoft, mFatSoft), Metas.estado().feitoSoft + ' vs ' + mFatSoft);
+    ok('Reis usa o lucro bruto do período, fechado em ontem', mPerto(Metas.estado().feitoReis, mLbReis), Metas.estado().feitoReis + ' vs ' + mLbReis);
+    ok('Soft usa o faturamento do período, fechado em ontem', mPerto(Metas.estado().feitoSoft, mFatSoft), Metas.estado().feitoSoft + ' vs ' + mFatSoft);
     ok('valor da Reis aparece na tela', nb(txt('mtFeito-reis')) === nb(mBRL(mLbReis)), txt('mtFeito-reis'));
     ok('valor da Soft aparece na tela', nb(txt('mtFeito-soft')) === nb(mBRL(mFatSoft)), txt('mtFeito-soft'));
-    ok('período mostrado é do dia 1 até hoje', txt('mtPer-reis').indexOf('1 a ' + hoje.getDate() + '/') > 0, txt('mtPer-reis'));
+    ok('o rótulo mostra até onde somou', corteMetas ? txt('mtPer-reis').indexOf(String(ontemDt.getDate()) + '/') > 0 : /não começou/.test(txt('mtPer-reis')), txt('mtPer-reis'));
     ok('não sobrou campo de "já feito" para digitar', !el('mtFeitoReis') && !el('mtFeitoSoft'));
     ok('o botão de atualizar da planilha existe', !!el('mtBtnRf'));
 
     bloco('Metas diárias: o cálculo');
-    ok('meta diária = (total − já feito) ÷ dias', nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / 16)), txt('mtV-reis-0'));
+    ok('meta diária = (total − já feito) ÷ dias', nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / diasEsperados)), txt('mtV-reis-0'));
     ok('faltando = total − já feito', nb(txt('mtFalt-reis-0')) === nb('Faltando: ' + mBRL(120000 - mLbReis)), txt('mtFalt-reis-0'));
-    ok('Soft calcula em cima do faturamento', nb(txt('mtV-soft-0')) === nb(mBRL((110000 - mFatSoft) / 16)), txt('mtV-soft-0'));
-    const assistMes = softPeriodo.filter(r => semAcento(r.prod).indexOf('ASSIST') >= 0).reduce((t, r) => t + r.preco, 0);
-    ok('meta extra de assistência lê a planilha, não um valor digitado', nb(txt('mtV-extra-0')) === nb(mBRL((60000 - assistMes) / 16)), txt('mtV-extra-0'));
+    ok('Soft calcula em cima do faturamento', nb(txt('mtV-soft-0')) === nb(mBRL((110000 - mFatSoft) / diasEsperados)), txt('mtV-soft-0'));
+    const assistMes = softAteCorte.filter(r => semAcento(r.prod).indexOf('ASSIST') >= 0).reduce((t, r) => t + r.preco, 0);
+    ok('meta extra de assistência lê a planilha, não um valor digitado', nb(txt('mtV-extra-0')) === nb(mBRL((60000 - assistMes) / diasEsperados)), txt('mtV-extra-0'));
     ok('o campo de dias não tem teto (dá para simular qualquer prazo)', !el('mtDias').getAttribute('max'), el('mtDias').getAttribute('max'));
     el('mtDias').value = '45'; Metas.onDias();
     ok('aceita mais de 31 dias', Metas.estado().dias === 45 && nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / 45)), txt('mtV-reis-0'));
@@ -299,6 +309,48 @@
     ok('meta já batida mostra zero, nunca valor negativo', nb(txt('mtV-reis-0')) === nb(mBRL(0)), txt('mtV-reis-0'));
     Metas.setCampo('reis', 0, 'total', '120000');
 
+    bloco('Metas diárias: o período vem do calendário');
+    Metas.diasDoCalendario();
+    const pm = () => Metas.periodoMeta();
+    ok('começa no dia 1 e termina no fim do mês', pm().ini === mesIni && pm().fim === (fimMesDt.getFullYear() + '-' + String(fimMesDt.getMonth() + 1).padStart(2, '0') + '-' + String(fimMesDt.getDate()).padStart(2, '0')), pm().ini + ' a ' + pm().fim);
+    ok('os dias que faltam saem do calendário', Metas.estado().dias === diasEsperados, Metas.estado().dias + ' vs ' + diasEsperados);
+    ok('hoje ainda conta como dia de venda', pm().primeiro === hojeIso, pm().primeiro);
+    ok('o realizado é somado até ontem', corteMetas ? pm().corte === corteMetas : pm().corte === null, String(pm().corte));
+    ok('a barra explica o recorte', /Realizado somado de/.test(txt('mtPerHint')) && /faltam/.test(txt('mtPerHint')), txt('mtPerHint').slice(0, 80));
+
+    bloco('Metas diárias: as vendas de hoje não derrubam a meta de hoje');
+    // Esse era o problema: somando o que foi vendido hoje, a meta do dia caía
+    // sozinha conforme o dia andava, e no fim do dia parecia cumprida.
+    const lbHoje = reisPeriodo.filter(r => r.dt === hojeIso).reduce((t, r) => t + r.lb, 0);
+    ok('a planilha de teste tem venda de hoje', lbHoje > 0, lbHoje);
+    ok('com corte em ontem, o que foi vendido hoje fica de fora', mPerto(Metas.estado().feitoReis, mLbReis), Metas.estado().feitoReis + ' vs ' + mLbReis);
+    const diariaAntes = txt('mtV-reis-0');
+    Metas.setCorte('hoje'); await Metas.carregarAoVivo();
+    ok('mudando para "até hoje", entra o de hoje', mPerto(Metas.estado().feitoReis, mLbReis + lbHoje), Metas.estado().feitoReis + ' vs ' + (mLbReis + lbHoje));
+    ok('e hoje sai dos dias que faltam', Metas.estado().dias === Math.max(1, diasEsperados - 1), Metas.estado().dias);
+    ok('a meta diária muda de verdade entre os dois cortes', txt('mtV-reis-0') !== diariaAntes, diariaAntes + ' → ' + txt('mtV-reis-0'));
+    Metas.setCorte('ontem'); await Metas.carregarAoVivo();
+    ok('voltando para ontem, a diária volta ao que era', txt('mtV-reis-0') === diariaAntes, txt('mtV-reis-0'));
+
+    bloco('Metas diárias: mexer no calendário muda a conta');
+    const maisCinco = new Date(hoje); maisCinco.setDate(maisCinco.getDate() + 5);
+    const maisCincoIso = maisCinco.getFullYear() + '-' + String(maisCinco.getMonth() + 1).padStart(2, '0') + '-' + String(maisCinco.getDate()).padStart(2, '0');
+    el('mtFim').value = maisCincoIso; Metas.setPeriodo();
+    ok('esticar o fim para daqui a 5 dias dá 6 dias de venda', Metas.estado().dias === 6, Metas.estado().dias);
+    ok('a meta diária acompanha', nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / 6)), txt('mtV-reis-0'));
+    el('mtFim').value = hojeIso; Metas.setPeriodo();
+    ok('fim hoje = 1 dia só', Metas.estado().dias === 1, Metas.estado().dias);
+    el('mtDias').value = '9'; Metas.onDias();
+    ok('digitar à mão continua valendo', Metas.estado().dias === 9 && /à mão/.test(txt('mtPerHint')), txt('mtPerHint').slice(-60));
+    Metas.diasDoCalendario();
+    ok('"voltar ao calendário" refaz a conta', Metas.estado().dias === 1 && !/à mão/.test(txt('mtPerHint')), Metas.estado().dias);
+
+    bloco('Metas diárias: período de um mês que já fechou rola sozinho');
+    Metas.aplicarRemoto({ dias: 3, ini: '2026-01-01', fim: '2026-01-31', ateOntem: true, extraTitle: 'Extras', reis: [{ nome: 'Velha', total: 1000 }], soft: [], extra: [], delta: {} });
+    ok('as datas voltam para o mês de hoje', pm().ini === mesIni, pm().ini + ' a ' + pm().fim);
+    ok('mas o número de dias escolhido é respeitado', Metas.estado().dias === 3, Metas.estado().dias);
+    Metas.resetar(); await Metas.carregarAoVivo();
+
     bloco('Metas diárias: valor colado em qualquer formato');
     ok('98.366,22 (BR com milhar)', Metas.parseBR('98.366,22') === 98366.22);
     ok('98366,22 (BR sem milhar)', Metas.parseBR('98366,22') === 98366.22);
@@ -309,6 +361,7 @@
     ok('texto inválido vira 0, nunca NaN', Metas.parseBR('abc') === 0 && Metas.parseBR('') === 0);
 
     bloco('Metas diárias: meta total se formata sozinha enquanto digita');
+    el('mtDias').value = '10'; Metas.onDias();   // base fixa, sem depender do bloco anterior
     const mMask = Metas.mascaraBR;
     ok('120000 vira 120.000 (é valor em reais, não centavos)', mMask('120000') === '120.000', mMask('120000'));
     ok('1200 vira 1.200', mMask('1200') === '1.200', mMask('1200'));
@@ -336,6 +389,7 @@
     mDigitar('120000'); Metas.onValorSaiu(mInp(), 'reis', 0, 'total');
 
     bloco('Metas diárias: variação desde a referência salva');
+    el('mtDias').value = '10'; Metas.onDias();   // referência salva com 10 dias
     Metas.snapshot();
     ok('a meta diária fica sozinha na linha, para o valor não ser cortado', q('#mtGrid-reis .mt-res .mt-v').length === mCards('reis') && q('#mtGrid-reis .mt-res .mt-delta').length === 0);
     ok('o selo de variação fica na linha do "faltando"', !!document.querySelector('#mtGrid-reis .mt-sub #mtDelta-reis-0') && !!document.querySelector('#mtGrid-reis .mt-sub .mt-falt'));
@@ -444,7 +498,7 @@
       if (s.indexOf('PLANO') >= 0 || s.indexOf('UPGRADE') >= 0) return 'plano';
       return 'acess';
     };
-    const mFatCat = c => softPeriodo.filter(r => mCat(r.prod) === c).reduce((s, r) => s + r.preco, 0);
+    const mFatCat = c => softAteCorte.filter(r => mCat(r.prod) === c).reduce((s, r) => s + r.preco, 0);
     const espAssist = mFatCat('assist'), espAcess = mFatCat('acess');
     ok('a planilha de teste tem os dois grupos', espAssist > 0 && espAcess > 0 && Math.abs(espAssist - espAcess) > 1, espAssist + ' / ' + espAcess);
 
@@ -474,8 +528,11 @@
       const item = Array.from(card.querySelectorAll('.sc-item')).find(i => /FATURAMENTO/.test(i.textContent));
       return item ? item.querySelector('.sc-item-v').textContent.trim() : '(sem faturamento)';
     };
-    ok('card "Acessórios" da Soft = o que a meta puxou', nb(fatDoCard('Acessórios')) === nb(mBRL(espAcess)), fatDoCard('Acessórios') + ' vs ' + mBRL(espAcess));
-    ok('card "Assistência" da Soft = o que a meta puxaria', nb(fatDoCard('Assistência')) === nb(mBRL(espAssist)), fatDoCard('Assistência') + ' vs ' + mBRL(espAssist));
+    // a tela da Soft mostra o período do dashboard (até hoje); a meta corta em
+    // ontem. O que tem de bater é o CRITÉRIO, então comparo no mesmo recorte.
+    const fatCatAteHoje = c => softPeriodo.filter(r => mCat(r.prod) === c).reduce((t, r) => t + r.preco, 0);
+    ok('card "Acessórios" da Soft usa o mesmo critério da meta', nb(fatDoCard('Acessórios')) === nb(mBRL(fatCatAteHoje('acess'))), fatDoCard('Acessórios') + ' vs ' + mBRL(fatCatAteHoje('acess')));
+    ok('card "Assistência" da Soft usa o mesmo critério da meta', nb(fatDoCard('Assistência')) === nb(mBRL(fatCatAteHoje('assist'))), fatDoCard('Assistência') + ' vs ' + mBRL(fatCatAteHoje('assist')));
     if (ACTIVE_COMPANY !== compAtual) { switchCompany(compAtual); await tick(150); }
     Metas.abrir(); await Metas.carregarAoVivo();
 

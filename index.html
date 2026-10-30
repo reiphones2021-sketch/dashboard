@@ -364,6 +364,13 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .mt-sync.local{background:var(--am2);color:var(--am);border-color:rgba(245,166,35,.35);}
 .mt-dias{display:flex;align-items:center;gap:8px;background:rgba(29,90,154,.12);border:1px solid rgba(29,90,154,.35);border-radius:var(--rs);padding:6px 12px;font-size:12px;color:var(--txt2);}
 .mt-dias input[type=number]{width:54px;background:none;border:none;outline:none;padding:0;font-size:15px;font-weight:700;color:var(--txt);text-align:center;font-family:inherit;}
+.mt-periodo{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:rgba(29,90,154,.1);border:1px solid rgba(29,90,154,.3);border-radius:var(--rs);padding:9px 13px;margin-bottom:16px;font-size:12px;color:var(--txt2);}
+.mt-periodo label{font-size:10px;font-weight:700;color:var(--te);text-transform:uppercase;letter-spacing:.5px;}
+.mt-periodo input[type=date],.mt-periodo select{background:rgba(29,90,154,.16);border:1px solid rgba(29,90,154,.4);border-radius:var(--rs);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 8px;outline:none;color-scheme:dark;}
+.mt-periodo input[type=date]:focus,.mt-periodo select:focus{border-color:var(--bll);}
+.mt-periodo-hint{font-size:11px;color:var(--txt3);flex-basis:100%;}
+.mt-periodo-hint b{color:var(--txt2);font-weight:600;}
+.mt-reset{background:none;border:none;color:var(--te);font-size:11px;font-family:inherit;cursor:pointer;text-decoration:underline;padding:0;}
 .mt-sec{margin-bottom:26px;}
 .mt-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
 .mt-sec-nm{display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:700;color:var(--txt);}
@@ -762,6 +769,18 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
         <button class="mt-btn" onclick="Metas.snapshot()">💾 Salvar como referência</button>
         <div class="mt-dias"><span>Dias restantes</span><input type="number" id="mtDias" min="1" step="1" value="16" title="Qualquer número de dias — sirva-se para simular prazos e comparar com dias anteriores" oninput="Metas.onDias()"></div>
       </div>
+    </div>
+
+    <div class="mt-periodo">
+      <label for="mtIni">Período da meta</label>
+      <input type="date" id="mtIni" onchange="Metas.setPeriodo()">
+      <span>até</span>
+      <input type="date" id="mtFim" onchange="Metas.setPeriodo()">
+      <select id="mtCorte" onchange="Metas.setCorte(this.value)" title="Até quando somar o que já foi vendido">
+        <option value="ontem">contar o realizado até ontem</option>
+        <option value="hoje">contar o realizado até hoje</option>
+      </select>
+      <span class="mt-periodo-hint" id="mtPerHint"></span>
     </div>
 
     <div class="mt-sec">
@@ -3263,7 +3282,7 @@ var Metas = (function(){
   const CHAVE='metas_v5';
   const SECS=['reis','soft','extra'];
   const PADRAO={
-    dias:16, feitoReis:0, feitoSoft:0, extraTitle:'Metas extras',
+    feitoReis:0, feitoSoft:0, extraTitle:'Metas extras', ateOntem:true,
     reis:[{nome:'Meta 1',total:120000},{nome:'Meta 2',total:130000},{nome:'Meta 3',total:140000},{nome:'Meta 4',total:150000},
           {nome:'Meta 5',total:160000},{nome:'Meta 6',total:170000},{nome:'Meta 7',total:180000},{nome:'Meta 8',total:190000}],
     soft:[{nome:'Meta 1',total:110000},{nome:'Meta 2',total:120000},{nome:'Meta 3',total:130000},{nome:'Meta 4',total:140000}],
@@ -3374,7 +3393,8 @@ var Metas = (function(){
     SECS.forEach(k=>{ if(!Array.isArray(st[k])) st[k]=[]; });
     if(!st.delta) st.delta={};
     if(!st.extraTitle) st.extraTitle=PADRAO.extraTitle;
-    st.dias=Math.max(1,Math.floor(st.dias)||PADRAO.dias);
+    ajustarPeriodo();
+    st.dias=Math.max(1,Math.floor(st.dias)||periodoMeta().faltam);
     st.feitoReis=parseBR(st.feitoReis); st.feitoSoft=parseBR(st.feitoSoft);
     palpitarFontes();
     carregado=true;
@@ -3382,6 +3402,7 @@ var Metas = (function(){
   function salvar(){ try{ localStorage.setItem(CHAVE,JSON.stringify(st)); }catch(e){} agendarNuvem(); }
   function resetar(){
     st=JSON.parse(JSON.stringify(PADRAO)); deltaOculto={}; carregado=true;
+    ajustarPeriodo(); st.dias=periodoMeta().faltam;
     try{ localStorage.removeItem(CHAVE); }catch(e){}
     redesenhar(); agendarNuvem();
   }
@@ -3519,6 +3540,7 @@ var Metas = (function(){
     if(!el('p-metas')) return;
     el('mtDias').value=st.dias;
     el('mtExtraTitulo').value=st.extraTitle;
+    pintarPeriodo();
     Object.keys(charts).forEach(k=>{ charts[k].destroy(); delete charts[k]; });
     SECS.forEach(renderSecao);
     pintarLive();
@@ -3544,14 +3566,91 @@ var Metas = (function(){
   }
 
   // ── edição ────────────────────────────────────────────────────────
-  function onDias(){ st.dias=Math.max(1,parseInt(el('mtDias').value,10)||1); salvar(); recalcular(); }
+  function onDias(){
+    st.dias=Math.max(1,parseInt(el('mtDias').value,10)||1);
+    salvar(); pintarPeriodo(); recalcular();
+  }
+  // Mexeu no calendário: os dias que faltam passam a vir dele.
+  function setPeriodo(){
+    const i=el('mtIni'), f=el('mtFim');
+    if(ehData(i&&i.value)) st.ini=i.value;
+    if(ehData(f&&f.value)) st.fim=f.value;
+    if(contaDias(st.ini,st.fim)<1) st.fim=st.ini;
+    st.dias=periodoMeta().faltam;
+    salvar(); pintarPeriodo(); recalcular(); carregarAoVivo();
+  }
+  function setCorte(valor){
+    st.ateOntem = valor!=='hoje';
+    st.dias=periodoMeta().faltam;
+    salvar(); pintarPeriodo(); recalcular(); carregarAoVivo();
+  }
+  function diasDoCalendario(){
+    st.dias=periodoMeta().faltam;
+    salvar(); pintarPeriodo(); recalcular();
+  }
+  function pintarPeriodo(){
+    const p=periodoMeta();
+    const i=el('mtIni'), f=el('mtFim'), c=el('mtCorte'), d=el('mtDias'), h=el('mtPerHint');
+    if(i) i.value=p.ini;
+    if(f) f.value=p.fim;
+    if(c) c.value=p.ateOntem?'ontem':'hoje';
+    if(d) d.value=st.dias;
+    if(h){
+      const certo=st.dias===p.faltam;
+      h.innerHTML='Realizado somado de <b>'+p.rotulo+'</b> · faltam <b>'+p.faltam+(p.faltam===1?' dia':' dias')+
+        '</b> de venda (de '+diaMes(p.primeiro)+' a '+diaMes(p.fim)+')'+
+        (certo?'':' · usando <b>'+st.dias+'</b> à mão <button type="button" class="mt-reset" onclick="Metas.diasDoCalendario()">voltar ao calendário</button>');
+    }
+  }
   // ── já feito: lido da planilha, do dia 1 do mês até hoje ──────────
   // Reis Phones = lucro bruto (soma de lb), Soft Blindagem = faturamento
   // (soma de vtc). É a mesma conta que o hero do dashboard mostra.
+  // ── datas ─────────────────────────────────────────────────────────
+  // Meio-dia em tudo: assim horário de verão não muda o dia na subtração.
+  const isoDe=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const dataDe=iso=>{const p=String(iso||'').split('-').map(Number);return new Date(p[0]||1970,(p[1]||1)-1,p[2]||1,12,0,0);};
+  const maisDias=(iso,n)=>{const d=dataDe(iso);d.setDate(d.getDate()+n);return isoDe(d);};
+  const contaDias=(de,ate)=>Math.floor((dataDe(ate)-dataDe(de))/86400000)+1;  // inclusive
+  const hojeIso=()=>isoDe(new Date());
+  const ehData=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s||''));
+  const diaMes=iso=>{const d=dataDe(iso);return d.getDate()+'/'+d.toLocaleDateString('pt-BR',{month:'short'}).replace('.','');};
+  function fimDoMes(iso){const d=dataDe(iso);return isoDe(new Date(d.getFullYear(),d.getMonth()+1,0,12,0,0));}
+
+  // Datas que faltam ou de um mês que já fechou voltam para o mês de hoje —
+  // senão, virado o mês, a meta continuaria apontando para o mês passado.
+  function ajustarPeriodo(){
+    const hoje=hojeIso();
+    if(!ehData(st.ini)||!ehData(st.fim)||contaDias(st.ini,st.fim)<1||contaDias(st.fim,hoje)>1){
+      st.ini=hoje.slice(0,8)+'01';
+      st.fim=fimDoMes(hoje);
+    }
+    if(st.ateOntem===undefined) st.ateOntem=true;
+  }
+
+  // O período da meta: de onde até onde ela vale, e até que dia o que já foi
+  // vendido entra na conta. O corte importa: a meta diária de hoje tem que
+  // sair do que estava feito ONTEM, senão as vendas de hoje baixam a própria
+  // meta do dia e no fim do dia a diária "some".
+  function periodoMeta(){
+    const hoje=hojeIso();
+    const ini=ehData(st.ini)?st.ini:hoje.slice(0,8)+'01';
+    let fim=ehData(st.fim)?st.fim:fimDoMes(hoje);
+    if(contaDias(ini,fim)<1) fim=ini;
+    const ateOntem=st.ateOntem!==false;
+    // o realizado para no dia anterior a hoje (ou em hoje), sem passar do fim
+    let corte=ateOntem?maisDias(hoje,-1):hoje;
+    if(contaDias(ini,corte)<1) corte=null;                    // o período ainda nem começou
+    else if(contaDias(corte,fim)<1) corte=fim;                // o período já acabou
+    // dias que ainda dá para vender: começam no primeiro dia não contado
+    const primeiro=corte?maisDias(corte,1):ini;
+    const faltam=Math.max(1,contaDias(primeiro,fim));
+    return {ini,fim,corte,ateOntem,faltam,primeiro,hoje,
+            rotulo:corte?(diaMes(ini)+' a '+diaMes(corte)):'ainda não começou'};
+  }
+  // Compatibilidade: o resto do módulo pedia o mês corrente.
   function periodoMes(){
-    const h=new Date(), a=h.getFullYear(), m=String(h.getMonth()+1).padStart(2,'0');
-    return {ini:a+'-'+m+'-01', fim:a+'-'+m+'-'+String(h.getDate()).padStart(2,'0'), dia:h.getDate(),
-            mes:h.toLocaleDateString('pt-BR',{month:'short'}).replace('.','')};
+    const p=periodoMeta();
+    return {ini:p.ini, fim:p.corte||p.ini, rotuloCorte:p.rotulo};
   }
   function somaCategoria(vendas,cat,p){
     return (vendas||[]).filter(r=>r.dt>=p.ini&&r.dt<=p.fim&&softCatProd(r.prod)===cat)
@@ -3568,7 +3667,7 @@ var Metas = (function(){
       caixa.classList.toggle('erro',!!falhouLive);
       const per=el('mtPer-'+sec);
       if(per) per.textContent=falhouLive?'· planilha fora do ar'
-        :carregando?'· lendo a planilha...':'· 1 a '+p.dia+'/'+p.mes;
+        :carregando?'· lendo a planilha...':'· '+p.rotuloCorte;
       const v=el('mtFeito-'+sec);
       if(v) v.textContent=brl(valor);
     });
@@ -3705,7 +3804,7 @@ var Metas = (function(){
 
   // O realizado lido da planilha fica de fora: cada aparelho lê o seu. Vai só
   // a configuração — inclusive de onde cada meta extra puxa o "já feito".
-  const campos=()=>({dias:st.dias,extraTitle:st.extraTitle,reis:st.reis,soft:st.soft,
+  const campos=()=>({dias:st.dias,ini:st.ini,fim:st.fim,ateOntem:st.ateOntem!==false,extraTitle:st.extraTitle,reis:st.reis,soft:st.soft,
     extra:st.extra.map(m=>fonteDe(m)==='manual'
       ? {nome:m.nome,total:m.total,feito:m.feito||0,fonte:'manual'}
       : {nome:m.nome,total:m.total,fonte:m.fonte}),
@@ -3784,7 +3883,8 @@ var Metas = (function(){
     SECS.forEach(k=>{ if(!Array.isArray(st[k])) st[k]=[]; });
     if(!st.delta) st.delta={};
     if(!st.extraTitle) st.extraTitle=PADRAO.extraTitle;
-    st.dias=Math.max(1,Math.floor(st.dias)||PADRAO.dias);
+    ajustarPeriodo();
+    st.dias=Math.max(1,Math.floor(st.dias)||periodoMeta().faltam);
     carregado=true; ultimoEnvio=assinatura();
     const palpitou=palpitarFontes();
     try{ localStorage.setItem(CHAVE,JSON.stringify(st)); }catch(e){}
@@ -3887,7 +3987,8 @@ var Metas = (function(){
   return {
     abrir, fechar, montar, redesenhar, resetar, parseBR,
     conectarNuvem, reconectarNuvem, aplicarRemoto, statusNuvem:()=>nuvemStatus, aparelho:()=>APARELHO,
-    onDias, setNome, setCampo, setTituloExtra, setFonte, somaCategoria, onValor, onValorSaiu, mascaraBR,
+    onDias, setPeriodo, setCorte, diasDoCalendario, pintarPeriodo, periodoMeta,
+    setNome, setCampo, setTituloExtra, setFonte, somaCategoria, onValor, onValorSaiu, mascaraBR,
     carregarAoVivo, recarregar, pintarLive,
     addMeta, addExtra, remover, toggleDelta, snapshot,
     textoWpp, copiarWpp, copiarExtra,

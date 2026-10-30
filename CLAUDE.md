@@ -91,9 +91,18 @@ Regras para qualquer edição futura:
     Blindagem = faturamento (soma de `vtc`). Não existe campo para digitar
     esse valor. Carrega as duas empresas com `ensureCompanyData` ao abrir o
     painel; "⟳ Atualizar da planilha" força o refetch das duas.
-  - O usuário só define **meta total** e **dias restantes**. O campo de dias
-    não tem teto (só o piso de 1): dá para pôr mais de 31 e simular prazos,
-    para comparar com dias anteriores.
+  - **O período da meta é escolhido no calendário** (`#mtIni`/`#mtFim`, datas
+    guardadas em `st.ini`/`st.fim`), com o padrão do mês corrente. Período de
+    um mês que já fechou rola sozinho para o mês de hoje (`ajustarPeriodo`),
+    sem mexer num número de dias escolhido à mão.
+  - **O realizado fecha em ONTEM** (`st.ateOntem`, seletor na barra). É o
+    ponto da conta: somando o que foi vendido hoje, a meta do dia cairia
+    sozinha conforme o dia andasse. Contando até ontem, hoje entra como dia
+    de venda; contando até hoje, hoje sai dos dias que faltam — realizado e
+    dias restantes nunca se sobrepõem.
+  - **Dias restantes** saem do calendário (de `periodoMeta().primeiro` até o
+    fim), mas o campo continua editável e sem teto, para simular prazos. Com
+    valor digitado, a barra avisa e oferece voltar ao calendário.
   - Meta diária = (meta total − já feito) ÷ dias restantes, nunca negativa.
   - **"Meta total" se formata sozinha enquanto se digita** (e o "já feito" das
     metas extras, que continua na mão): o que se digita é valor em reais, não
