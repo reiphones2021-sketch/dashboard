@@ -91,7 +91,9 @@ Regras para qualquer edição futura:
     Blindagem = faturamento (soma de `vtc`). Não existe campo para digitar
     esse valor. Carrega as duas empresas com `ensureCompanyData` ao abrir o
     painel; "⟳ Atualizar da planilha" força o refetch das duas.
-  - O usuário só define **meta total** e **dias restantes**.
+  - O usuário só define **meta total** e **dias restantes**. O campo de dias
+    não tem teto (só o piso de 1): dá para pôr mais de 31 e simular prazos,
+    para comparar com dias anteriores.
   - Meta diária = (meta total − já feito) ÷ dias restantes, nunca negativa.
   - **"Meta total" se formata sozinha enquanto se digita** (e o "já feito" das
     metas extras, que continua na mão): o que se digita é valor em reais, não

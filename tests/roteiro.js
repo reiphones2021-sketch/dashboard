@@ -287,6 +287,11 @@
     ok('Soft calcula em cima do faturamento', nb(txt('mtV-soft-0')) === nb(mBRL((110000 - mFatSoft) / 16)), txt('mtV-soft-0'));
     const assistMes = softPeriodo.filter(r => semAcento(r.prod).indexOf('ASSIST') >= 0).reduce((t, r) => t + r.preco, 0);
     ok('meta extra de assistência lê a planilha, não um valor digitado', nb(txt('mtV-extra-0')) === nb(mBRL((60000 - assistMes) / 16)), txt('mtV-extra-0'));
+    ok('o campo de dias não tem teto (dá para simular qualquer prazo)', !el('mtDias').getAttribute('max'), el('mtDias').getAttribute('max'));
+    el('mtDias').value = '45'; Metas.onDias();
+    ok('aceita mais de 31 dias', Metas.estado().dias === 45 && nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / 45)), txt('mtV-reis-0'));
+    el('mtDias').value = '0'; Metas.onDias();
+    ok('mas nunca zero, que dividiria por nada', Metas.estado().dias === 1, Metas.estado().dias);
     el('mtDias').value = '10'; Metas.onDias();
     ok('mudar os dias restantes recalcula na hora', nb(txt('mtV-reis-0')) === nb(mBRL((120000 - mLbReis) / 10)), txt('mtV-reis-0'));
     Metas.setCampo('reis', 0, 'total', '1.000,00');

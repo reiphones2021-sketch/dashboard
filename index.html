@@ -363,7 +363,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .mt-sync.salvando,.mt-sync.lendo{background:var(--te2);color:var(--te);border-color:rgba(56,189,248,.35);}
 .mt-sync.local{background:var(--am2);color:var(--am);border-color:rgba(245,166,35,.35);}
 .mt-dias{display:flex;align-items:center;gap:8px;background:rgba(29,90,154,.12);border:1px solid rgba(29,90,154,.35);border-radius:var(--rs);padding:6px 12px;font-size:12px;color:var(--txt2);}
-.mt-dias input[type=number]{width:44px;background:none;border:none;outline:none;padding:0;font-size:15px;font-weight:700;color:var(--txt);text-align:center;font-family:inherit;}
+.mt-dias input[type=number]{width:54px;background:none;border:none;outline:none;padding:0;font-size:15px;font-weight:700;color:var(--txt);text-align:center;font-family:inherit;}
 .mt-sec{margin-bottom:26px;}
 .mt-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
 .mt-sec-nm{display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:700;color:var(--txt);}
@@ -760,7 +760,7 @@ tbody td{padding:7px 12px;white-space:nowrap;font-variant-numeric:tabular-nums;}
         <span class="mt-sync local" id="mtSync" onclick="Metas.reconectarNuvem()">⚠ Só neste aparelho</span>
         <button class="mt-btn" id="mtBtnRf" onclick="Metas.recarregar()">⟳ Atualizar da planilha</button>
         <button class="mt-btn" onclick="Metas.snapshot()">💾 Salvar como referência</button>
-        <div class="mt-dias"><span>Dias restantes</span><input type="number" id="mtDias" min="1" max="31" value="16" oninput="Metas.onDias()"></div>
+        <div class="mt-dias"><span>Dias restantes</span><input type="number" id="mtDias" min="1" step="1" value="16" title="Qualquer número de dias — sirva-se para simular prazos e comparar com dias anteriores" oninput="Metas.onDias()"></div>
       </div>
     </div>
 
