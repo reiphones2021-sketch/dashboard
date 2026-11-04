@@ -81,6 +81,13 @@ function softValues() {
       rows.push([v, br(d), 'CLIENTE ' + (1 + Math.floor(r() * 120)), prod, String(preco + Math.floor(r() * 40)).replace('.', ','), status, 'APPLE', 'IPHONE 13']);
     }
   });
+  // Nos primeiros dias do mês a amostra aleatória é curta e podia não conter
+  // nenhuma assistência ou acessório antes do corte de ontem, deixando o teste
+  // das metas extras sem o que comparar. Estes dois garantem os dois grupos.
+  const ontem = new Date(hoje); ontem.setDate(ontem.getDate() - 1);
+  rows.push(['SANDY', br(ontem), 'CLIENTE ASSIST FIXA', 'ASSISTÊNCIA TÉCNICA', '650', 'PAGO', 'APPLE', 'IPHONE 13']);
+  rows.push(['VIDAL', br(ontem), 'CLIENTE ACESS FIXA', 'ACESSÓRIO CAPINHA', '80', 'PAGO', 'APPLE', 'IPHONE 13']);
+
   // Lançamentos de hoje ainda com status HOJE (viram PAGO depois): contam.
   rows.push(['SANDY', br(hoje), 'CLIENTE HOJE 1', 'BLINDAGEM COMPLETA', '190', 'HOJE', 'APPLE', 'IPHONE 15']);
   rows.push(['PIERRE', br(hoje), 'CLIENTE HOJE 2', 'GARANTIA ESTENDIDA SOFT BLINDAGEM', '250', 'HOJE', 'APPLE', 'IPHONE 15']);

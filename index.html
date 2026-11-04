@@ -1695,7 +1695,35 @@ function aSplit(rows){
   const dev=rows.filter(r=>r.dev);
   return{cli:agg(dev.filter(r=>!r.loj)),loj:agg(dev.filter(r=>r.loj)),cli_r:dev.filter(r=>!r.loj),loj_r:dev.filter(r=>r.loj)};
 }
-function topMods(rows,n=10){const cnt={},fat={};rows.filter(r=>r.mod&&r.dev).forEach(r=>{cnt[r.mod]=(cnt[r.mod]||0)+1;fat[r.mod]=(fat[r.mod]||0)+(r.vtc||0);});return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([m,q])=>({m,q,fat:fat[m]}));}
+// Lacrado, semi-novo ou lojista — pela mesma leitura da coluna GARANTIA que a
+// aba Previsão usa (antes de mar/2026 a planilha escrevia "Externo" para
+// lacrado e "Interno" para semi-novo). Venda para lojista fica à parte: ali a
+// planilha grava LOJISTA no lugar da garantia, então ela não diz se o aparelho
+// era lacrado ou semi-novo — e inventar um dos dois seria mentir no ranking.
+const GAR_GRUPOS=[
+  {k:'lacrado', rot:'lacrado',  cor:'#2d7acc'},
+  {k:'seminovo',rot:'semi-novo',cor:'#00d97e'},
+  {k:'lojista', rot:'lojista',  cor:'#f5a623'},
+  {k:'outro',   rot:'sem garantia anotada', cor:'#3d6494'}
+];
+function garGrupo(r){
+  if(r&&r.loj) return 'lojista';
+  const g=r&&r.gar;
+  if(g==='lacrado'||g==='externo') return 'lacrado';
+  if(g==='1ano'||g==='6meses'||g==='interno') return 'seminovo';
+  return 'outro';
+}
+
+function topMods(rows,n=10){
+  const cnt={},fat={},gar={};
+  rows.filter(r=>r.mod&&r.dev).forEach(r=>{
+    cnt[r.mod]=(cnt[r.mod]||0)+1;
+    fat[r.mod]=(fat[r.mod]||0)+(r.vtc||0);
+    (gar[r.mod]=gar[r.mod]||{})[garGrupo(r)]=((gar[r.mod]||{})[garGrupo(r)]||0)+1;
+  });
+  return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,n)
+    .map(([m,q])=>({m,q,fat:fat[m],gar:gar[m]||{}}));
+}
 function dlt(c,p){if(!p||p===0)return null;const pct=(c-p)/Math.abs(p)*100;return{pct,cls:pct>0?'up':pct<0?'dn':'fl',s:(pct>0?'▲':'▼')+Math.abs(pct).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'};}
 
 // ── Period label helpers — used everywhere for consistent labels ──
@@ -2174,14 +2202,27 @@ function rVisao(cur,prv,cs,csp){
   if(ctEl)ctEl.textContent='Top 10 aparelhos vendidos no período';
   const mods=topMods(cur.filter(r=>r.dev),10);
   const maxM=mods[0]?mods[0].q:1;
-  document.getElementById('topMods').innerHTML=mods.map(({m,q})=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bor)">
-      <span style="flex:1;font-size:12px;color:var(--txt)">${m}</span>
-      <div style="width:140px;height:6px;background:rgba(29,90,154,.2);border-radius:3px;overflow:hidden">
-        <div style="height:100%;background:var(--bll);border-radius:3px;width:${(q/maxM*100).toFixed(0)}%"></div>
+  // só entram na legenda os grupos que aparecem no período
+  const presentes=GAR_GRUPOS.filter(g=>mods.some(x=>(x.gar||{})[g.k]>0));
+  const legenda=presentes.length>1
+    ? '<div class="tm-leg" style="display:flex;gap:12px;flex-wrap:wrap;padding:0 0 7px;font-size:10.5px;color:var(--txt2)">'+
+      presentes.map(g=>'<span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:2px;background:'+g.cor+';display:inline-block"></span>'+g.rot+'</span>').join('')+
+      '</div>' : '';
+  document.getElementById('topMods').innerHTML=legenda+mods.map(({m,q,gar})=>{
+    const partes=GAR_GRUPOS.filter(g=>(gar||{})[g.k]>0);
+    const barra=partes.map(g=>'<div style="height:100%;background:'+g.cor+';width:'+(gar[g.k]/q*100).toFixed(2)+'%"></div>').join('');
+    const detalhe=partes.length?partes.map(g=>'<b style="color:'+g.cor+';font-weight:600">'+gar[g.k]+'</b> '+g.rot).join(' · '):'';
+    return `
+    <div class="tm-row" style="padding:5px 0;border-bottom:1px solid var(--bor)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="flex:1;font-size:12px;color:var(--txt);min-width:0">${m}</span>
+        <div style="width:140px;height:6px;background:rgba(29,90,154,.2);border-radius:3px;overflow:hidden;display:flex;flex-shrink:0">
+          <div style="height:100%;display:flex;width:${(q/maxM*100).toFixed(0)}%;border-radius:3px;overflow:hidden">${barra}</div>
+        </div>
+        <span class="tm-q" style="font-size:12px;font-weight:600;color:var(--txt);width:24px;text-align:right;flex-shrink:0">${q}</span>
       </div>
-      <span style="font-size:12px;font-weight:600;color:var(--txt);width:24px;text-align:right">${q}</span>
-    </div>`).join('');
+      ${detalhe?'<div class="tm-det" style="font-size:10.5px;color:var(--txt3);margin-top:2px">'+detalhe+'</div>':''}
+    </div>`;}).join('');
 
   // split
   document.getElementById('splitBadge').textContent=isSoft()?sp.cli.qtd+' serviços realizados':sp.cli.qtd+' cliente final · '+sp.loj.qtd+' lojista';

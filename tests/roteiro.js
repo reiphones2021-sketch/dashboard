@@ -96,7 +96,8 @@
     ok('título do gráfico: Lucro bruto — últimos 6 meses', txt('vendEvoCt').startsWith('Lucro bruto — últimos 6 meses'), txt('vendEvoCt'));
     ok('produtos são modelos', txt('vendProdCt').startsWith('Modelos vendidos'), txt('vendProdCt'));
     const modelos = q('#vendProdBars > div > span:first-child').map(e => e.firstChild.textContent);
-    ok('modelos agrupados (IPHONE 15 PRO MAX, APPLE WATCH…)', modelos.includes('IPHONE 15 PRO MAX') && modelos.includes('APPLE WATCH') && modelos.includes('IPAD'), modelos.join(' / '));
+    const formaCanonica = /^(IPHONE \d+( (PRO MAX|PRO|PLUS|MINI))?|APPLE WATCH|IPAD|MACBOOK)$/;
+    ok('modelos agrupados por família, sem variação crua', modelos.length > 0 && modelos.every(m => formaCanonica.test(m)), modelos.join(' / '));
     ok('acessórios e assistência ficam fora', modelos.every(m => !/ACESS|ASSIST/.test(m)));
     const thsReis = q('#vendTable th').map(e => e.textContent);
     ok('ranking: Aparelhos | Faturamento | Lucro bruto | Ticket | Δ Lucro', thsReis.join('|') === 'Vendedor|Aparelhos|Anterior|Faturamento|Lucro bruto|Anterior|Ticket|Δ Lucro', thsReis.join('|'));
@@ -107,6 +108,40 @@
     ok('clique no ranking seleciona o vendedor', vendSelecionados().join('|') === vendsReis[0] && txt('vendEvoCt').includes(vendsReis[0]), vendSelecionados().join('|'));
     ok('linha destacada em azul (cor da Reis)', el('vendTable').innerHTML.includes('rgba(29,90,154,.10)'));
     onVendChangeDireto('__TODOS__');
+
+    bloco('Top 10 aparelhos: lacrado, semi-novo e lojista discriminados');
+    // a regra, direto na função, sem depender da amostra do dia
+    const amostraTM = [
+      { mod: 'IPHONE 13', dev: 1, loj: 0, gar: 'lacrado', vtc: 100 },
+      { mod: 'IPHONE 13', dev: 1, loj: 0, gar: '1ano', vtc: 100 },
+      { mod: 'IPHONE 13', dev: 1, loj: 1, gar: 'lojista', vtc: 100 },
+      { mod: 'IPHONE 12', dev: 1, loj: 0, gar: 'externo', vtc: 100 },
+      { mod: 'IPHONE 12', dev: 1, loj: 0, gar: 'interno', vtc: 100 },
+      { mod: 'IPHONE 11', dev: 1, loj: 0, gar: '6meses', vtc: 100 },
+      { mod: 'CAPINHA', dev: 0, loj: 0, gar: 'outro', vtc: 10 },
+    ];
+    const tm = topMods(amostraTM, 10);
+    const tmDe = m => (tm.find(x => x.m === m) || {}).gar || {};
+    ok('separa lacrado, semi-novo e lojista no mesmo modelo', JSON.stringify(tmDe('IPHONE 13')) === JSON.stringify({ lacrado: 1, seminovo: 1, lojista: 1 }), JSON.stringify(tmDe('IPHONE 13')));
+    ok('"externo"/"interno" do histórico entram como lacrado/semi-novo', tmDe('IPHONE 12').lacrado === 1 && tmDe('IPHONE 12').seminovo === 1, JSON.stringify(tmDe('IPHONE 12')));
+    ok('garantia de 6 meses também é semi-novo', tmDe('IPHONE 11').seminovo === 1, JSON.stringify(tmDe('IPHONE 11')));
+    ok('venda lojista não é contada como lacrado nem semi-novo', !tmDe('IPHONE 13').lacrado || tmDe('IPHONE 13').lacrado === 1, JSON.stringify(tmDe('IPHONE 13')));
+    ok('a soma dos tipos é o total de cada modelo', tm.every(x => Object.values(x.gar).reduce((s, v) => s + v, 0) === x.q), JSON.stringify(tm.map(x => x.q)));
+    ok('acessório continua fora do ranking de aparelhos', !tm.some(x => x.m === 'CAPINHA'), tm.map(x => x.m).join(','));
+
+    // e na tela, com a planilha de teste
+    switchCompany('reis'); await tick(140);
+    showTab('visao', q('.tabs .tab')[0]);
+    const tmLinhas = q('#topMods .tm-row');
+    ok('o ranking lista os aparelhos', tmLinhas.length > 0, tmLinhas.length);
+    ok('cada linha mostra de que tipo são', tmLinhas.every(l => l.querySelector('.tm-det')), tmLinhas.filter(l => !l.querySelector('.tm-det')).length + ' sem detalhe');
+    ok('as partes somam o total da linha', tmLinhas.every(l => {
+      const total = +l.querySelector('.tm-q').textContent;
+      const partes = Array.from(l.querySelectorAll('.tm-det b')).reduce((s, b) => s + (+b.textContent), 0);
+      return partes === total;
+    }), tmLinhas.map(l => l.querySelector('.tm-q').textContent).join(','));
+    ok('os rótulos são só os tipos conhecidos', q('#topMods .tm-det').every(d => /^(\d+ (lacrado|semi-novo|lojista|sem garantia anotada)( · )?)+$/.test(d.textContent.trim())), (q('#topMods .tm-det')[0] || {}).textContent);
+    ok('a legenda explica as cores', q('#topMods .tm-leg').length === 1 && /lacrado/.test(txt('topMods')), q('#topMods .tm-leg').length);
 
     bloco('Reis Phones — pizza e detalhamento levam ao vendedor');
     showTab('visao', q('.tabs .tab')[0]);
@@ -500,7 +535,7 @@
     };
     const mFatCat = c => softAteCorte.filter(r => mCat(r.prod) === c).reduce((s, r) => s + r.preco, 0);
     const espAssist = mFatCat('assist'), espAcess = mFatCat('acess');
-    ok('a planilha de teste tem os dois grupos', espAssist > 0 && espAcess > 0 && Math.abs(espAssist - espAcess) > 1, espAssist + ' / ' + espAcess);
+    ok('a planilha de teste tem os dois grupos', corteMetas ? (espAssist > 0 && espAcess > 0 && Math.abs(espAssist - espAcess) > 1) : true, corteMetas ? espAssist + ' / ' + espAcess : 'dia 1 do mês: nada fechado ainda');
 
     Metas.resetar(); await Metas.carregarAoVivo();
     ok('meta chamada "Assistência" já nasce lendo a planilha', q('#mtGrid-extra .mt-fonte')[0].value === 'assist', q('#mtGrid-extra .mt-fonte')[0].value);

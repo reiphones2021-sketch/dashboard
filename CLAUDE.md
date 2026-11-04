@@ -52,6 +52,17 @@ Regras para qualquer edição futura:
     vendedor clicado (`onVendChangeDireto`).
   - Trocar de empresa com a aba aberta mantém a aba; se o vendedor não existe
     na outra empresa, volta para "Toda a equipe".
+- **Reis — Top 10 aparelhos**: cada linha mostra quantos foram **lacrado**,
+  **semi-novo** e **lojista**, com a barra dividida nas mesmas cores da aba
+  Previsão (azul `#2d7acc` / verde `#00d97e` / âmbar `#f5a623`) e legenda só
+  com os grupos presentes no período. A classificação é `garGrupo`, que lê a
+  coluna GARANTIA como a Previsão (antes de mar/2026 "Externo" = lacrado e
+  "Interno" = semi-novo).
+  - **Lojista é grupo à parte, de propósito**: nessas vendas a planilha grava
+    LOJISTA no lugar da garantia, então ela não diz se o aparelho era lacrado
+    ou semi-novo. Jogar essas vendas num dos dois seria inventar — some sempre
+    lacrado + semi-novo + lojista = total da linha.
+
 - **Soft — Visão Geral**: garantia estendida em **2 grupos** (Reis Phones e
   Soft Blindagem). A "GARANTIA ESTENDIDA" genérica do histórico (antes de
   ago/2026) conta como Soft Blindagem. Não existe mais card genérico.
