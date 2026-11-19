@@ -1412,6 +1412,46 @@ async function refreshCurrentCompany(){
   ensureCompanyData(other, true).catch(()=>{});
 }
 
+// ── Atualização automática (pedido do dono, 19/11/2026) ─────────────
+// O robô lança a venda na planilha em ~1 min; sem isto, quem deixa o
+// dashboard aberto só via a venda clicando em "Atualizar dados".
+// A cada AUTO_MS, com a aba visível, relê as duas empresas e redesenha
+// mantendo período, dia clicado, aba e vendedores marcados (o renderAll lê
+// tudo do estado global). Ao voltar para a aba, atualiza na hora se faz
+// mais de 1 min. Diferente do botão, NÃO apaga o cache antes: busca, e só
+// troca se a leitura voltou com linhas — falha de rede nunca esvazia a tela.
+// Não mexe enquanto alguém digita ou está escolhendo datas no calendário.
+const AUTO_MS = 120000;
+var _autoUlt = Date.now(), _autoRodando = false;
+async function autoAtualizar(){
+  if(_autoRodando || document.visibilityState!=='visible') return false;
+  const a=document.activeElement;
+  if(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return false;
+  const pop=document.getElementById('drpPopup');
+  if(pop && pop.classList.contains('open')) return false;
+  _autoRodando=true;
+  try{
+    const cos=['reis','soft'];
+    const novos=await Promise.all(cos.map(co=>fetchCompanyData(co).catch(()=>null)));
+    let trocou=false;
+    cos.forEach((co,i)=>{
+      const d=novos[i];
+      if(d && d.sales && d.sales.length && !_pending[co]){ _cache[co]=d; trocou=true; }
+    });
+    _autoUlt=Date.now();
+    if(!trocou) return false;
+    if(window.Metas && Metas.aberta()) Metas.carregarAoVivo(false); // lê do cache recém-trocado
+    else applyPeriod();
+    const lu=document.getElementById('lastUpd');
+    if(lu) lu.textContent='✓ Atualizado: '+new Date().toLocaleTimeString('pt-BR')+' (automático a cada 2 min)';
+    return true;
+  }finally{ _autoRodando=false; }
+}
+setInterval(autoAtualizar, AUTO_MS);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible' && Date.now()-_autoUlt>60000) autoAtualizar();
+});
+
 // PERIOD
 
 // ══ DATE RANGE PICKER ════════════════════════════════════════════
