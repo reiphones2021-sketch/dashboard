@@ -153,6 +153,13 @@ Regras para qualquer edição futura:
   novo. Nenhuma das duas empresas passa um mês sem lançar nada, então zero
   linhas é sempre falha de leitura — e antes disso o dashboard mostrava o
   zero como se fosse o resultado real.
+- **Atualização automática a cada 2 min** (`autoAtualizar`, `AUTO_MS`, pedido
+  do dono em 19/11/2026): com a aba visível, relê as duas empresas e redesenha
+  mantendo período, dia clicado, aba e vendedores; ao voltar para a aba,
+  atualiza na hora se passou de 1 min. Ao contrário do botão, **não apaga o
+  cache antes** — só troca se a leitura voltou com linhas, então rede caída
+  nunca esvazia a tela. Não roda com alguém digitando nem com o calendário
+  aberto. Com o painel de Metas aberto, repinta as metas.
 - **Nenhum `NaN`/`undefined`/`Infinity`** em nenhuma aba, nas duas empresas,
   inclusive com período de um dia.
 
