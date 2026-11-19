@@ -672,7 +672,7 @@
     applyPeriod(); await tick(80);
     ok('com dados na planilha a faixa some', el('avisoDados').style.display === 'none', el('avisoDados').style.display);
 
-    bloco('Atualização automática a cada 2 min (dashboard aberto vê a venda nova sozinho)');
+    bloco('Atualização automática a cada 30 s (dashboard aberto vê a venda nova sozinho)');
     {
       const buscaReal = fetchCompanyData;
       if (ACTIVE_COMPANY !== 'reis') { switchCompany('reis'); await tick(120); }
@@ -682,10 +682,14 @@
       const nova = Object.assign({}, reis.find(r => r.dt === hojeIso) || reis[0], { dt: hojeIso, cli: 'CLIENTE DA AUTO' });
       let chamadas = 0;
       fetchCompanyData = co => { chamadas++; return Promise.resolve(co === 'reis' ? { sales: reis.concat([nova]), custos: [] } : { sales: soft, custos: [] }); };
-      ok('existe intervalo de 2 min', AUTO_MS === 120000, AUTO_MS);
+      ok('atualiza a cada 30 s', AUTO_MS === 30000, AUTO_MS);
       const foi = await autoAtualizar(); await tick(80);
       ok('relê e troca os dados', foi === true && _cache.reis.sales.some(r => r.cli === 'CLIENTE DA AUTO'));
       ok('lê as duas empresas', chamadas === 2, chamadas);
+      const objAntes = _cache.reis;
+      const deNovo = await autoAtualizar(); await tick(40);
+      ok('planilha sem mudança não redesenha (gráfico não pisca a cada 30 s)', deNovo === false && _cache.reis === objAntes);
+      ok('mas o horário de "Atualizado" anda', /automático a cada 30 s/.test(el('lastUpd').textContent), el('lastUpd').textContent);
       ok('mantém o dia escolhido no gráfico', window._startStr === hojeIso && window._endStr === hojeIso, window._startStr + '..' + window._endStr);
       ok('mantém a empresa na tela', ACTIVE_COMPANY === 'reis');
 

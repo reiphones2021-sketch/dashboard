@@ -1418,11 +1418,15 @@ async function refreshCurrentCompany(){
 // A cada AUTO_MS, com a aba visível, relê as duas empresas e redesenha
 // mantendo período, dia clicado, aba e vendedores marcados (o renderAll lê
 // tudo do estado global). Ao voltar para a aba, atualiza na hora se faz
-// mais de 1 min. Diferente do botão, NÃO apaga o cache antes: busca, e só
+// mais de AUTO_MS. Diferente do botão, NÃO apaga o cache antes: busca, e só
 // troca se a leitura voltou com linhas — falha de rede nunca esvazia a tela.
 // Não mexe enquanto alguém digita ou está escolhendo datas no calendário.
-const AUTO_MS = 120000;
+// 30 s (era 2 min; dono pediu mais rápido em 19/11): cada leitura são 7
+// pedidos à API, 14/min por tela aberta — folga larga na cota de 300/min.
+// Só redesenha se algum dado mudou (senão os gráficos piscariam a cada 30 s).
+const AUTO_MS = 30000;
 var _autoUlt = Date.now(), _autoRodando = false;
+const _assinatura = d => d ? JSON.stringify([d.sales, d.custos]) : '';
 async function autoAtualizar(){
   if(_autoRodando || document.visibilityState!=='visible') return false;
   const a=document.activeElement;
@@ -1433,23 +1437,27 @@ async function autoAtualizar(){
   try{
     const cos=['reis','soft'];
     const novos=await Promise.all(cos.map(co=>fetchCompanyData(co).catch(()=>null)));
-    let trocou=false;
+    let leu=false, mudou=false;
     cos.forEach((co,i)=>{
       const d=novos[i];
-      if(d && d.sales && d.sales.length && !_pending[co]){ _cache[co]=d; trocou=true; }
+      if(d && d.sales && d.sales.length && !_pending[co]){
+        leu=true;
+        if(_assinatura(d)!==_assinatura(_cache[co])){ _cache[co]=d; mudou=true; }
+      }
     });
     _autoUlt=Date.now();
-    if(!trocou) return false;
+    if(!leu) return false;
+    const lu=document.getElementById('lastUpd');
+    if(lu) lu.textContent='✓ Atualizado: '+new Date().toLocaleTimeString('pt-BR')+' (automático a cada 30 s)';
+    if(!mudou) return false; // nada novo: não redesenha
     if(window.Metas && Metas.aberta()) Metas.carregarAoVivo(false); // lê do cache recém-trocado
     else applyPeriod();
-    const lu=document.getElementById('lastUpd');
-    if(lu) lu.textContent='✓ Atualizado: '+new Date().toLocaleTimeString('pt-BR')+' (automático a cada 2 min)';
     return true;
   }finally{ _autoRodando=false; }
 }
 setInterval(autoAtualizar, AUTO_MS);
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible' && Date.now()-_autoUlt>60000) autoAtualizar();
+  if(document.visibilityState==='visible' && Date.now()-_autoUlt>AUTO_MS) autoAtualizar();
 });
 
 // PERIOD
